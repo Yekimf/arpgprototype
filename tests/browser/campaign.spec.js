@@ -1,3 +1,4 @@
+import {speak,closeConversationOrPanel} from './helpers.js';
 import {test,expect} from '@playwright/test';
 import {createPlayer,xpNeeded,findPath} from '../../src/game.js';
 import {createCampaign,generateWilderness,generateStronghold,PROLOGUE} from '../../src/campaign.js';
@@ -21,9 +22,9 @@ async function navigate(page,dungeon,target=dungeon.portal){
 
 test('new character creation presents the complete prologue and starts with only a strike',async({page},info)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));expect(await page.evaluate(()=>localStorage.getItem('ashen-reliquary-save-v1'))).toBeNull();await expect(page.locator('.title-copy h1')).toContainText('ASHEN');await page.locator('[data-front="create"]').click();await page.locator('#character-name').fill('Ser Rowan');await page.locator('input[name="origin"][value="templar"]').check();await page.locator('input[name="appearance"][value="iron"]').check();await page.locator('#creation-form button[type="submit"]').click();
- for(let i=0;i<PROLOGUE.length;i++){await expect(page.locator('.cinematic-subtitles h2')).toHaveText(PROLOGUE[i].title);await expect(page.locator('.cinematic-subtitles p')).toHaveText(PROLOGUE[i].text);if(i===0){await page.locator('[data-front="hold"]').click();await expect(page.locator('#front-end')).toHaveClass(/scene-paused/);await page.locator('[data-front="hold"]').click();}await page.locator('[data-front="next"]').click();}
+ for(let i=0;i<PROLOGUE.length;i++){await expect(page.locator('.cinematic-subtitles h2')).toHaveText(PROLOGUE[i].title);await expect(page.locator('.sketch-page')).toHaveAttribute('data-scene',String(i));await expect(page.locator('.cinematic-subtitles p')).toContainText(PROLOGUE[i].text.split('.')[0]);if(i===0){await page.locator('[data-front="hold"]').click();await expect(page.locator('#front-end')).toHaveClass(/scene-paused/);await page.locator('[data-front="hold"]').click();}await page.locator('[data-front="next"]').click();}
  await expect(page.locator('#front-end')).toBeHidden();let s=await state(page);expect(s.zone).toBe('town');expect(s.level).toBe(1);expect(s.points).toBe(0);expect(s.skills).toEqual({});expect(s.slots).toEqual([null,null,null,null]);expect(s.mouseSkill).toBe('basic');expect(s.campaign.act).toBe(1);
- await page.locator('[data-panel="skills"]').click();await expect(page.locator('[data-learn="cleave"]')).toBeDisabled();await page.locator('[data-action="close"]').last().click();await page.locator('[data-panel="inventory"]').click();await page.screenshot({path:`/tmp/arpg-v04/${info.project.name}-final-inventory.png`});await page.locator('[data-action="close"]').last().click();
+ await page.locator('[data-panel="skills"]').click();await expect(page.locator('[data-learn="cleave"]')).toBeDisabled();await page.locator('[data-action="close"]').last().click();await page.locator('[data-panel="inventory"]').click();await page.screenshot({path:`/tmp/arpg-v05/${info.project.name}-final-inventory.png`});await page.locator('[data-action="close"]').last().click();
  await page.reload();await expect(page.locator('[data-front="continue"]')).toContainText('Ser Rowan');await page.locator('[data-front="continue"]').click();s=await state(page);expect(s.attributes.will).toBe(3);expect(errors).toEqual([]);
 });
 test('a real kill earns a level, a first learned skill, and allocatable attributes',async({page},info)=>{
@@ -35,10 +36,8 @@ test('a real kill earns a level, a first learned skill, and allocatable attribut
  await page.locator('[data-panel="character"]').click();await page.locator('[data-attribute="vitality"]').click();expect((await state(page)).attributes.vitality).toBe(before.attributes.vitality+1);await page.locator('[data-action="close"]').last().click();
 });
 test('town leads to wilderness, discovered waypoints travel, and the automap is an overlay',async({page},info)=>{
- await fixture(page);await page.locator('#journey-button').click();await page.locator('[data-town-action="depart"]').click();await expect.poll(()=>state(page).then(s=>s.zone)).toBe('wilderness');
- const d=generateWilderness(42710+107,1);if(info.project.name==='desktop')expect((await navigate(page,d,d.waypoint)).i).toBeGreaterThan(0);else{
-  const step={x:16.5,y:47.5};let goal=await page.evaluate(at=>window.__reliquary.project(at.x,at.y),step);await page.touchscreen.tap(goal.x,goal.y);await expect.poll(()=>state(page).then(s=>Math.hypot(s.position.x-step.x,s.position.y-step.y)),{timeout:7000}).toBeLessThan(.4);goal=await page.evaluate(at=>window.__reliquary.project(at.x,at.y),d.waypoint);await page.touchscreen.tap(goal.x,goal.y);
- }
+ await fixture(page);const before=await state(page);await speak(page,'guide');await page.locator('[data-talk="accept"]').click();expect((await state(page)).areaSeed).toBe(before.areaSeed);expect((await state(page)).position).toEqual(before.position);await closeConversationOrPanel(page);
+ const d=generateWilderness(42710+107,1);expect((await navigate(page,d,d.waypoint)).i).toBeGreaterThan(0);expect((await state(page)).zone).toBe('wilderness');expect((await state(page)).areaSeed).toBe(before.areaSeed);
  await expect.poll(()=>state(page).then(s=>s.campaign.waypoints.includes('act-1-wilderness')),{timeout:12000}).toBe(true);
  if((await state(page)).panel!=='worldmap')await page.locator('[data-panel="worldmap"]').click();await expect(page.locator('[data-waypoint="act-1-stronghold"]')).toBeDisabled();await expect(page.locator('[data-map-act="2"]')).toBeDisabled();await page.locator('[data-waypoint="emberfall"]').click();await expect.poll(()=>state(page).then(s=>s.zone)).toBe('town');
  await page.locator('[data-panel="worldmap"]').click();await page.locator('[data-waypoint="act-1-wilderness"]').click();expect((await state(page)).zone).toBe('wilderness');

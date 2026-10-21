@@ -31,3 +31,13 @@ test('waypoints stay locked until attuned and campaign acts require their knight
  assert.equal(defeatCampaignBoss(p,'wanderer'),false);assert.ok(defeatCampaignBoss(p,'king'));assert.ok(defeatCampaignBoss(p,'wanderer'));assert.equal(p.campaign.completed,true);
  const restored=JSON.parse(JSON.stringify(p));assert.ok(canTravel(restored,'act-1-wilderness'));assert.equal(restored.campaign.completed,true);
 });
+
+test('Emberfall sits inside a broad connected wilderness with four physical exits and a safe camp',()=>{
+ for(let seed=1;seed<=12;seed++){
+  const p=createPlayer(),d=generateWilderness(seed,1,p),b=d.townBounds;
+  assert.equal(d.size,96);assert.ok(d.tiles.flat().filter(Boolean).length>5000);
+  for(const target of [{x:48.5,y:36.5},{x:48.5,y:67.5},{x:34.5,y:51.5},{x:64.5,y:51.5},d.portal,d.townWaypoint,...d.npcs])assert.ok(findPath(d,d.start,target).length,`seed ${seed}, route ${JSON.stringify(target)}`);
+  assert.ok(d.enemies.length>35);for(const e of d.enemies)assert.equal(e.x>b.x1&&e.x<b.x2&&e.y>b.y1&&e.y<b.y2,false);
+  assert.ok(d.water.size>100);assert.ok(d.roads.size>100);assert.ok(d.props.some(p=>p.type==='palisade'));
+ }
+});

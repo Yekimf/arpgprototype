@@ -83,3 +83,10 @@ test('town has no enemies and every service, stash, and gate can be approached o
     for(const target of targets){assert.ok(isWalkable(town,target.x,target.y),`Blocked service: ${target.id||target.type}`);assert.ok(findPath(town,town.start,target).length>0);}
   }
 });
+
+test('common gear equips immediately, including old saves carrying a false identification flag',()=>{
+ const p=character(),common={id:'common-sword',name:'Plain Falchion',slot:'weapon',rarity:'normal',damage:17,identified:false};
+ assert.ok(addToContainer(p.inventory,common));const scrolls=p.identifyScrolls;assert.equal(identifyItem(p,common.id).ok,false);assert.equal(equipItem(p,common.id).ok,true);assert.equal(p.identifyScrolls,scrolls);assert.equal(p.equipment.weapon.damage,17);
+ const magic={...ring('still-hidden'),identified:false};assert.ok(addToContainer(p.inventory,magic));assert.equal(equipItem(p,magic.id).ok,false);
+ p.stash=[{...common,id:'old-common'}];migratePlayer(p);assert.equal(p.stash[0].identified,true);assert.equal(p.equipment.weapon.identified,true);
+});

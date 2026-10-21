@@ -1,3 +1,4 @@
+import {speak} from './helpers.js';
 import {test,expect} from '@playwright/test';
 import {createPlayer} from '../../src/game.js';
 const snapshot=page=>page.evaluate(()=>window.__reliquary.snapshot());
@@ -29,7 +30,7 @@ test('inventory fits the viewport and shows hover comparisons without selection'
 test('shop and forge keep selected actions and all pack cells onscreen',async({page},info)=>{
   await load(page);await page.setViewportSize(info.project.name==='desktop'?{width:1280,height:720}:{width:360,height:640});
   for(const [npc,title,selector,action] of [['merchant','Orrin’s wares','[data-stock-id]','buy'],['smith','Garran’s forge','[data-smith-equipped="charm"]','reforge']]){
-    await page.locator(`[data-npc="${npc}"]`).click();await expect(page.locator('#modal-title')).toHaveText(title,{timeout:12000});await page.locator(selector).first().click();await expect(page.locator(`[data-town-action="${action}"]`)).toBeInViewport();expect(await bounds(page)).toEqual({fits:true,noScroll:true,sections:true,actions:true});await page.locator('[data-action="close"]').click();
+    await speak(page,npc,npc);await expect(page.locator('#modal-title')).toHaveText(title,{timeout:12000});await page.locator(selector).first().click();await expect(page.locator(`[data-town-action="${action}"]`)).toBeInViewport();expect(await bounds(page)).toEqual({fits:true,noScroll:true,sections:true,actions:true});await page.locator('[data-action="close"]').click();
   }
 });
 test('ground click moves without swinging and walk frames animate',async({page},info)=>{

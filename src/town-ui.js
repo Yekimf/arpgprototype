@@ -1,3 +1,4 @@
+import {requiresIdentification} from './game.js';
 import {equipmentEtching} from './equipment-icons.js';
 import {playerStats,itemDescription,clamp} from './game.js';
 import {WORLD_ART,ITEM_ART} from './assets.js';
@@ -37,7 +38,7 @@ export class TownUI {
     const dimensions=container==='stash'?STASH:BAG;
     const used=items.filter(i=>i.bagX>=0).reduce((s,i)=>{const size=itemSize(i);return s+size.w*size.h;},0);
     return `<div class="bag-label"><span>${container==='stash'?'PERSONAL STASH':'TRAVEL PACK'}</span><span>${used} / ${dimensions.width*dimensions.height} cells</span></div><div class="spatial-bag" data-bag-grid="${container}" style="--cols:${dimensions.width};--rows:${dimensions.height}">${items.filter(i=>i.bagX>=0).map(item=>{
-      const size=itemSize(item);return `<button class="bag-item ${rarity(item)} ${item.identified===false?'unidentified':''} ${item.id===this.selection?'selected':''}" data-pack-id="${escape(item.id)}" data-container="${container}" draggable="true" style="grid-column:${item.bagX+1}/span ${size.w};grid-row:${item.bagY+1}/span ${size.h}" aria-label="${escape(itemName(item))}" title="${escape(itemName(item))}">${icon(item)}${item.identified===false?'<b class="unknown-mark">?</b>':''}${item.reforges?`<small class="forge-mark">+${item.reforges}</small>`:''}</button>`;
+      const size=itemSize(item);return `<button class="bag-item ${rarity(item)} ${requiresIdentification(item)?'unidentified':''} ${item.id===this.selection?'selected':''}" data-pack-id="${escape(item.id)}" data-container="${container}" draggable="true" style="grid-column:${item.bagX+1}/span ${size.w};grid-row:${item.bagY+1}/span ${size.h}" aria-label="${escape(itemName(item))}" title="${escape(itemName(item))}">${icon(item)}${requiresIdentification(item)?'<b class="unknown-mark">?</b>':''}${item.reforges?`<small class="forge-mark">+${item.reforges}</small>`:''}</button>`;
     }).join('')}</div>${items.some(i=>i.bagX<0)?`<div class="overflow-items"><small>Legacy overflow · preserved safely. Free pack space to organize.</small>${items.filter(i=>i.bagX<0).map(i=>`<button data-pack-id="${escape(i.id)}" data-container="${container}" class="small-button">${escape(itemName(i))}</button>`).join('')}</div>`:''}`;
   }
   equipment(){const p=this.player;return `<div class="paperdoll"><div class="paperdoll-figure"></div>${Object.entries(EQUIPMENT).map(([slot,name])=>{
@@ -45,7 +46,7 @@ export class TownUI {
   }).join('')}</div>`;}
   detail(){
     const item=this.selected;if(!item)return `<div class="empty-detail"><span>✧</span><p>Select a relic to inspect its properties.</p><small>Drag items to rearrange. Double-click to equip.<br>On mobile, tap an item and use the action buttons.</small></div>`;
-    const p=this.player,unknown=item.identified===false,equipped=p.equipment[item.slot],pack=this.source==='pack',panel=this.game.panel;
+    const p=this.player,unknown=requiresIdentification(item),equipped=p.equipment[item.slot],pack=this.source==='pack',panel=this.game.panel;
     const name=escape(itemName(item));
     let actions='';
     if(unknown&&pack)actions+=btn('identify',`Identify · 1 scroll`,!p.identifyScrolls);

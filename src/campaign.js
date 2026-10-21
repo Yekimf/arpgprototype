@@ -1,3 +1,4 @@
+import {generateTown} from './settlement.js';
 import {generateDungeon,makeEnemy,random,distance,isWalkable} from './game.js';
 
 export const ACTS=[
@@ -19,22 +20,47 @@ export function canAdvance(p,act=p.campaign?.act){return !!p.campaign?.defeated.
 export function advanceCampaign(p){const c=ensureCampaign(p);if(!c||c.act>=5||!canAdvance(p))return false;c.act++;return true;}
 export function campaignObjective(p,kind,act=p.campaign?.act||1){const a=actFor(act);if(p.campaign?.completed)return 'The bargain is broken. The kingdom sees dawn.';if(kind==='town')return p.quests.guideMet?`Follow the king’s spirit into ${a.wilds}`:'Speak to Sister Maelin, then follow the Kingsroad';if(kind==='wilderness')return `Journey to ${a.stronghold}`;if(act===5&&p.campaign?.defeated.includes('king'))return 'End the Veiled Wanderer’s bargain';if(act===5&&canAdvance(p,5))return 'Confront King Vaelor, the Usurper';return canAdvance(p,act)?'Speak to King Alaric’s spirit and continue':`Release ${a.knight} from the curse`;}
 
-export function generateWilderness(seed,act=1){
- const rng=random(seed),size=64,tiles=Array.from({length:size},()=>Array(size).fill(0)),start={x:13.5,y:48.5},portal={x:49.5,y:14.5},props=[],enemies=[];
- const route=[start,{x:18.5,y:39.5},{x:30.5,y:38.5},{x:34.5,y:28.5},{x:43.5,y:26.5},portal];
- const carve=(x,y,r)=>{for(let yy=Math.max(1,Math.floor(y-r));yy<Math.min(size-1,y+r);yy++)for(let xx=Math.max(1,Math.floor(x-r));xx<Math.min(size-1,x+r);xx++)if(Math.hypot(xx+.5-x,yy+.5-y)<r)tiles[yy][xx]=1;};
- for(let i=1;i<route.length;i++){const a=route[i-1],b=route[i],len=distance(a,b);for(let j=0;j<=Math.ceil(len*2);j++){const t=j/Math.ceil(len*2);carve(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,4.2+rng()*1.6);}}
- const rooms=route.map(p=>({x:p.x-3,y:p.y-3,w:6,h:6}));let id=1;
- for(let i=1;i<route.length;i++)for(let j=0;j<4+i%2;j++){const p=route[i],x=p.x-2+rng()*4,y=p.y-2+rng()*4;if(distance({x,y},start)>6&&isWalkable({tiles},x,y))enemies.push(makeEnemy(id++,x,y,rng()<.22?'wraith':rng()<.45?'crawler':'skeleton',1+(act-1)*.65,j===0&&i>2));}
- for(let y=2;y<size-2;y++)for(let x=2;x<size-2;x++)if(tiles[y][x]){const n=rng();if(n<.035&&distance({x,y},start)>3)props.push({x:x+.5,y:y+.5,type:'building',sprite:7,width:100+rng()*65,height:130+rng()*50});else if(n<.06)props.push({x:x+.5,y:y+.5,type:'bones',variant:1});}
+// The camp and its surrounding fields are one continuous, seeded area.
+export const inSanctuary=(d,p)=>!!d.townBounds&&p.x>d.townBounds.x1&&p.x<d.townBounds.x2&&p.y>d.townBounds.y1&&p.y<d.townBounds.y2;
+export function generateWilderness(seed,act=1,player={quests:{}}){
+ const rng=random(seed),size=96,tiles=Array.from({length:size},()=>Array(size).fill(0)),start=act===1?{x:48,y:50.5}:{x:17.5,y:77.5},portal={x:76.5,y:18.5},props=[],enemies=[],roads=new Set(),water=new Set();
+ const townBounds=act===1?{x1:37,y1:39,x2:61,y2:64}:null;
+ // A broad, irregular landmass. Ponds, groves and ruins interrupt the field rather
+ // than reducing it to a single corridor; roads are always guaranteed walkable.
+ for(let y=3;y<size-3;y++)for(let x=3;x<size-3;x++){
+   const edge=Math.hypot((x-48)/47,(y-48)/46),ripples=Math.sin(x*.22)*.028+Math.cos(y*.29)*.026;
+   if(edge<.99+ripples)tiles[y][x]=1;
+ }
+ const carve=(x,y,r,road=false)=>{for(let yy=Math.max(2,Math.floor(y-r));yy<Math.min(size-2,y+r);yy++)for(let xx=Math.max(2,Math.floor(x-r));xx<Math.min(size-2,x+r);xx++)if(Math.hypot(xx+.5-x,yy+.5-y)<r){tiles[yy][xx]=1;if(road&&Math.hypot(xx+.5-x,yy+.5-y)<1.4)roads.add(yy*size+xx);}};
+ const lakes=[{x:23,y:24,rx:7,ry:4},{x:73,y:64,rx:5,ry:8},{x:28,y:64,rx:4,ry:5}];
+ for(const lake of lakes)for(let y=3;y<size-3;y++)for(let x=3;x<size-3;x++)if(((x-lake.x)/lake.rx)**2+((y-lake.y)/lake.ry)**2<1+Math.sin(x*2+y)*.12){tiles[y][x]=0;water.add(y*size+x);}
+ const route=[start,{x:48.5,y:37.5},{x:56.5,y:30.5},{x:67.5,y:27.5},portal];
+ const paths=[route,[start,{x:35.5,y:51.5},{x:18.5,y:45.5}],[start,{x:48.5,y:68.5},{x:57.5,y:80.5}],[start,{x:64.5,y:51.5},{x:80.5,y:42.5}]];
+ for(const path of paths)for(let i=1;i<path.length;i++){const a=path[i-1],b=path[i],steps=Math.ceil(distance(a,b)*2);for(let j=0;j<=steps;j++){const t=j/steps;carve(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,2.8,true);}}
+ const rooms=route.map(p=>({x:p.x-3,y:p.y-3,w:6,h:6}));
+ if(act===1){
+   for(let y=39;y<=64;y++)for(let x=37;x<=61;x++)tiles[y][x]=1;
+   const town=generateTown(player),shift=p=>({...p,x:p.x+16,y:p.y+18});
+   for(const p of town.props.filter(p=>!p.exit&&!(p.type==='building'&&p.sprite===7)))props.push(shift(p));
+   for(const b of props.filter(p=>p.type==='building'&&!p.stash)){const r=b.sprite===12?.4:1.2;for(let y=Math.floor(b.y-r);y<=b.y+r;y++)for(let x=Math.floor(b.x-r);x<=b.x+r;x++)tiles[y][x]=0;}
+   for(let x=37;x<=61;x++)for(const y of [39,64])if(Math.abs(x-48.5)>2.7){tiles[y][x]=0;props.push({type:'palisade',axis:'x',x:x+.5,y:y+.5});}
+   for(let y=40;y<64;y++)for(const x of [37,61])if(Math.abs(y-51.5)>2.7){tiles[y][x]=0;props.push({type:'palisade',axis:'y',x:x+.5,y:y+.5});}
+ }
+ let id=1;
+ for(let y=8;y<89;y+=5)for(let x=8;x<89;x+=5){const at={x:x+rng()*3,y:y+rng()*3};if(!isWalkable({tiles},at.x,at.y)||townBounds&&at.x>31&&at.x<67&&at.y>33&&at.y<70||distance(at,start)<9||distance(at,portal)<4)continue;if(rng()<.5)enemies.push(makeEnemy(id++,at.x,at.y,rng()<.22?'wraith':rng()<.4?'crawler':'skeleton',1+(act-1)*.65,rng()<.075));}
+ // Preserve several routes through each grove. Decorative trees never block a road.
+ for(let y=4;y<size-4;y++)for(let x=4;x<size-4;x++)if(tiles[y][x]&&!roads.has(y*size+x)&&!(townBounds&&x>34&&x<65&&y>36&&y<68)){
+   const n=rng();if(n<.018)props.push({x:x+.5,y:y+.5,type:'building',sprite:7,width:110+rng()*55,height:135+rng()*45});else if(n<.027)props.push({x:x+.5,y:y+.5,type:'bones',variant:1});
+ }
  props.push({type:'building',sprite:15,x:portal.x,y:portal.y-1,width:225,height:230,exit:true});
- const waypoint={x:17.5,y:43.5};carve(waypoint.x,waypoint.y,2);
- const shrine={x:32.5,y:36.5};carve(shrine.x,shrine.y,2);
- return {seed,size,tiles,rooms,start,portal,enemies,props,depth:act,seen:new Set(),bossDead:false,outdoor:true,act,kind:'wilderness',waypoint,shrine,spirit:{x:15.5,y:46.5},exitReady:true};
+ const waypoint={x:56.5,y:30.5},shrine={x:67.5,y:27.5};carve(waypoint.x,waypoint.y,2);carve(shrine.x,shrine.y,2);carve(portal.x,portal.y,3);
+ const d={seed,size,tiles,rooms,start,portal,enemies,props,roads,water,depth:act,seen:new Set(),bossDead:false,outdoor:true,act,kind:'wilderness',waypoint,shrine,spirit:act===1?{x:46.8,y:50.3}:{x:start.x+2,y:start.y},exitReady:true,townBounds,npcs:[]};
+ if(act===1){d.npcs=generateTown(player).npcs.map(n=>({...n,x:n.x+16,y:n.y+18}));d.townWaypoint={x:49,y:52};for(let y=37;y<67;y++)for(let x=35;x<64;x++)d.seen.add(y*size+x);}
+ return d;
 }
 export function generateStronghold(seed,act=1){
  const d=generateDungeon(seed,1+(act-1)*.65),boss=d.enemies.find(e=>e.type==='warden');
- d.act=act;d.kind='stronghold';d.waypoint={x:d.start.x+2,y:d.start.y+1};d.spirit={x:d.start.x-1.5,y:d.start.y};
+ d.act=act;d.kind='stronghold';d.returnGate={x:d.start.x,y:d.start.y-1};d.waypoint={x:d.start.x+2,y:d.start.y+1};d.spirit={x:d.start.x-1.5,y:d.start.y};
  Object.assign(boss,{name:actFor(act).knight,bossId:`knight-${act}`,phaseType:['thorns','flood','fire','frost','oath'][act-1],tint:actFor(act).color});
  d.shrine={x:d.start.x-2,y:d.start.y+2};return d;
 }

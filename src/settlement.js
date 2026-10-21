@@ -1,4 +1,4 @@
-import {generateItem, random} from './game.js';
+import {generateItem, random, requiresIdentification} from './game.js';
 
 export const BAG={width:10,height:4}, STASH={width:10,height:8};
 export const EQUIPMENT={helm:'Head',charm:'Amulet',weapon:'Main hand',armor:'Body armor',shield:'Off hand',gloves:'Hands',belt:'Belt',ring:'Ring',boots:'Feet'};
@@ -14,7 +14,7 @@ export function itemSize(item){
   if(item.width&&item.height)return {w:item.width,h:item.height};
   return ({weapon:{w:/axe|mace/i.test(item.name)?2:1,h:3},armor:{w:2,h:3},shield:{w:2,h:3},helm:{w:2,h:2},gloves:{w:2,h:2},boots:{w:2,h:2},belt:{w:2,h:1},charm:{w:1,h:1},ring:{w:1,h:1}})[item.slot]||{w:1,h:1};
 }
-export const itemName=item=>item.identified===false?`Unidentified ${EQUIPMENT[item.slot]||'relic'}`:item.name;
+export const itemName=item=>requiresIdentification(item)?`Unidentified ${EQUIPMENT[item.slot]||'relic'}`:item.name;
 export const itemValue=item=>Math.max(1,Math.round(({normal:6,magic:14,rare:30,legendary:70}[item.rarity]||6)*(item.level||1)));
 export const buyPrice=item=>item.price??itemValue(item)*3;
 export function cellsFree(items,item,x,y,dimensions=BAG,ignoreId=item.id){
@@ -55,7 +55,7 @@ export function migratePlayer(player){
   for(const slot of Object.keys(EQUIPMENT))player.equipment[slot]??=null;
   for(const item of [...player.inventory,...player.stash,...Object.values(player.equipment).filter(Boolean)]){
     item.id??=`legacy-${Math.random().toString(36).slice(2)}`;
-    item.durability??=100;item.identified??=true;item.reforges??=0;
+    item.durability??=100;if(!['magic','rare','legendary'].includes(item.rarity))item.identified=true;item.identified??=true;item.reforges??=0;
   }
   arrange(player.inventory);arrange(player.stash,STASH);return player;
 }
@@ -63,7 +63,7 @@ function result(ok,message,extra={}){return {ok,message,...extra};}
 export function equipItem(player,id){
   const index=player.inventory.findIndex(i=>i.id===id),item=player.inventory[index];
   if(!item)return result(false,'Choose an item first.');
-  if(item.identified===false)return result(false,'Identify this relic before equipping it.');
+  if(requiresIdentification(item))return result(false,'Identify this relic before equipping it.');
   const old=player.equipment[item.slot],remaining=player.inventory.filter(i=>i.id!==id);
   let spot=null;
   if(old){spot=findSpace(remaining,old);if(!spot)return result(false,'Make space in your pack for the equipped item.');}
@@ -83,14 +83,14 @@ export function moveItem(player,id,toStash){
   source.splice(index,1);return result(true,toStash?'Item stored safely.':'Item returned to your pack.');
 }
 export function identifyItem(player,id,scholar=false){
-  const item=player.inventory.find(i=>i.id===id);if(!item||item.identified!==false)return result(false,'Choose an unidentified item.');
+  const item=player.inventory.find(i=>i.id===id);if(!item||!requiresIdentification(item))return result(false,'Choose an unidentified item.');
   if(scholar&&!player.quests.scholarRescued)return result(false,'Edrin is still trapped beneath the monastery.');
   if(!scholar&&!player.identifyScrolls)return result(false,'You need a scroll of insight. Orrin sells them.');
   if(!scholar)player.identifyScrolls--;item.identified=true;return result(true,`${item.name} revealed.`);
 }
 export function identifyAll(player){
   if(!player.quests.scholarRescued)return result(false,'Rescue the archivist to unlock identification.');
-  const items=player.inventory.filter(i=>i.identified===false);if(!items.length)return result(false,'No unidentified relics in your pack.');
+  const items=player.inventory.filter(i=>requiresIdentification(i));if(!items.length)return result(false,'No unidentified relics in your pack.');
   items.forEach(i=>i.identified=true);return result(true,`${items.length} relic${items.length===1?'':'s'} identified. No charge.`);
 }
 export function generateStock(level=1,seed=791){
@@ -134,7 +134,7 @@ export function reforgeAffixes(item){return Object.keys(AFFIXES).filter(k=>item[
 export function reforgeItem(player,id,affix,rng=Math.random){
   const item=[...player.inventory,...Object.values(player.equipment).filter(Boolean)].find(i=>i.id===id);
   if(!item)return result(false,'Choose an item first.');
-  if(item.identified===false)return result(false,'Identify this item before reforging it.');
+  if(requiresIdentification(item))return result(false,'Identify this item before reforging it.');
   if(!reforgeAffixes(item).includes(affix))return result(false,'Choose a magical property to reroll.');
   const cost=reforgeCost(item);if(player.gold<cost.gold||player.shards<cost.shards)return result(false,`Reforging needs ${cost.gold} gold and ${cost.shards} ember shards.`);
   const old=item[affix],scale=(1+(item.level||1)*.18)*({normal:1,magic:1.35,rare:1.8,legendary:2.5}[item.rarity]||1);

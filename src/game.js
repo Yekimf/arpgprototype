@@ -1,3 +1,4 @@
+export const requiresIdentification=item=>!!item&&['magic','rare','legendary'].includes(item.rarity)&&item.identified===false;
 export const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 export const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 export function random(seed) {
@@ -125,7 +126,7 @@ export function canLearn(player,id) {
 export function learnSkill(player,id) {if(!canLearn(player,id))return false;player.skills[id]=(player.skills[id]||0)+1;player.points--;if(getSkill(id).active&&!player.slots.includes(id)){const empty=player.slots.indexOf(null);if(empty>=0)player.slots[empty]=id;if(player.mouseSkill==='basic')player.mouseSkill=id;}return true;}
 export function playerStats(player) {
   const items=Object.values(player.equipment).filter(Boolean);
-  const total=key=>items.reduce((s,i)=>s+(i.identified===false?0:(i[key]||0)*(['damage','armor'].includes(key)&&i.durability<=0?.5:1)),0);
+  const total=key=>items.reduce((s,i)=>s+(requiresIdentification(i)?0:(i[key]||0)*(['damage','armor'].includes(key)&&i.durability<=0?.5:1)),0);
   const r=id=>rankOf(player,id), invested=Object.keys(MASTERIES).filter(k=>masteryPoints(player,k)>=3).length,a=player.attributes||{},might=a.might||0,vitality=a.vitality||0,will=a.will||0,dexterity=a.dexterity||0;
   return {maxHp:120+(player.level-1)*16+r('vigor')*18+total('life')+vitality*6,maxMana:80+r('spirit')*12+total('spirit')+will*4,damage:18+(player.level-1)*2+total('damage')+might*1.5,armor:3+r('vigor')*2+r('ward')*4+total('armor')+vitality*.25,crit:7+r('precision')*3+total('crit')+dexterity*.4,speed:3.8+total('speed'),regen:5+r('spirit')*.6+will*.08,bonus:1+(total('bonus')+r('convergence')*5*invested)/100,fire:1+r('kindling')*.08,cold:1+r('resonance')*.08,cdr:1-r('flow')*.04};
 }

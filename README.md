@@ -10,13 +10,13 @@ An original browser isometric ARPG for mouse/keyboard and touch. A loyal soldier
 
 The root HTML is the ready-to-play offline game; the other files are its editable source. It embeds the code, styles, artwork and interface. Mobile browsers that cannot execute downloaded HTML need the game served by a static website. Cloud onboarding does not supply a live localhost visualization or a public game URL.
 
-Version 0.4 introduces a title screen, character creation, six-scene illustrated prologue, five-act campaign, wilderness routes, discoverable waypoints, world map, overlay automap, earned character progression, corrected walking art, sculpted globes, and a medieval inventory plate.
+Version 0.5 rebuilds walking with an eight-direction articulated soldier, replaces scaled panels with a native-size rustic inventory, adds in-world NPC topic menus, and puts Emberfall inside an open 96×96 wilderness. The prologue reveals etched ink strokes on parchment. Compressed runtime art, cached ground and walls, bounded enemy simulation and a capped world render resolution reduce browser work; the UI stays at native resolution.
 
 ## Begin a new oath
 
 Choose **Begin your oath** (or **New character** for an existing save), enter a name, choose your former calling and surcoat, and swear the oath. Royal Vanguard, Sun-sworn Templar and King’s Outrider begin with different attribute distributions. Each served King Alaric. All can combine the three skill masteries.
 
-The prologue shows Alaric refusing the visitor’s offer, Prince Vaelor’s betrayal, the corruption of the royal army, your return from visiting family, the old king’s guidance, and the road ahead. Its painted scenes pan under captions; you can pause, advance or skip. Optional narration uses the browser’s available system speech voices.
+The prologue shows Alaric refusing the visitor’s offer, Prince Vaelor’s betrayal, the corruption of the royal army, your return from visiting family, the old king’s guidance, and the road ahead. Its etched illustrations accumulate individual ink strokes on stained paper. There is no narrative text panel. Optional captions show one sentence at a time; you can pause, advance or skip. Optional narration uses the browser’s available system speech voices.
 
 New characters start at **level 1 with a basic weapon strike**, an empty QWER bar and no skill points. Each level grants **2 skill points and 5 attribute points**. Spend them in Masteries (K) and Character (C). First-tier abilities unlock at level 2, intermediate skills at level 4, and advanced skills at level 8. The deeper tiers also require 3 or 7 points invested in their mastery. Learning an active ability fills the first empty slot and gives the right mouse button its first spell.
 
@@ -39,7 +39,7 @@ Ironbound, Cinderweaver and Hollow Sage contain 22 skills, including ten active 
 | IV — The Silent Choir | Frostwold | Cathedral of Thorns | Dame Yseld, the Hollow Saint |
 | V — The Usurper’s Crown | Crownfall Approach | Throne of Black Glass | Sir Brennan, the Last Oath |
 
-Emberfall leads first into the wilderness. Follow the winding road to the kingdom gate, then explore the connected procedural stronghold. Each knight’s defeat releases its soul and opens the next act. In the final act, Brennan’s fall brings King Vaelor into battle, followed by the Veiled Wanderer in a separate stage. Breaking the bargain completes the campaign and presents its ending.
+Emberfall stands in the middle of the Kingsroad Wilds. Walk north, south, east or west through its palisade gates without loading another area. Accepting Maelin’s quest gives supplies and leaves you standing in the camp. Fields, groves, ponds and side routes surround it; follow the north road to Marchgate, then enter the procedural stronghold. A stronghold’s entrance also leads back outdoors. Each knight’s defeat releases its soul and opens the next act. In the final act, Brennan’s fall brings King Vaelor into battle, followed by the Veiled Wanderer in a separate stage. Breaking the bargain completes the campaign and presents its ending.
 
 The knights have different combat patterns: thorn projectiles, drowned volleys, fire hazards, frost attacks and marked oath strikes. The king calls his royal guard and brands the ground; the Wanderer releases radial soul barrages. Melee windups and ground warnings give time to evade.
 
@@ -60,17 +60,17 @@ Press **G** for the kingdom world map. Locked acts and unattuned waypoints remai
 | Evade | Space | Tap evade |
 | Healing flask | 1 | Tap flask |
 | Talk, use a waypoint, enter a gate | Click the object or press F nearby | Tap the object or interaction button |
-| Return to Emberfall | T; hold still for three seconds | Tap Town portal; hold still |
-| Inventory / Masteries / Character | I / K / C | Side buttons |
+| Return to Emberfall | T; hold still for three seconds | Tap the small portal button marked T; hold still |
+| Inventory / Masteries / Character | I / K / C | Buttons above the bottom HUD |
 | Automap / world map | Tab / G | World-map side button; keyboard Tab if attached |
 | Loot labels | Hold Alt | Nearby labels appear automatically |
 | Pause / close a panel | Escape | Pause or panel × button |
 
-The bottom HUD gives QWER four large sockets. Smaller LMB/RMB bindings and utility buttons sit beside the mana globe. Sculpted winged-knight housings surround both liquid globes. The cursor is an original metal arrow, and projectiles and directional melee follow the aim point.
+The bottom HUD gives QWER four large sockets. Smaller LMB/RMB bindings and utility buttons sit beside the mana globe. Tarnished iron housings surround both liquid globes. The cursor is an original metal arrow, and projectiles and directional melee follow the aim point.
 
 ## Inventory and town services
 
-The inventory is a fixed medieval leather-and-metal plate. Its equipment sockets retain their proportions while the complete plate scales to fit. The travel pack uses **10×4 cells**; the stash has **10×8 cells**. Different item types occupy different footprints. Short landscape screens use a wider equipment-and-pack plate.
+The inventory is a stained leather sheet in an angular iron frame. Its text and controls remain at native screen size; equipment, pack and action rows reflow within the available viewport instead of shrinking the entire panel. The travel pack uses **10×4 cells**; the stash has **10×8 cells**. Different item types occupy different footprints. Short landscape screens place equipment and pack side by side.
 
 Press I, Escape or × to close it. Hover for a floating stat and equipment comparison; tap to inspect on touch screens. Selected actions stay in the footer. Drag to rearrange or equip, or double-click a carried item to equip it. Desktop inventory panels allow continued world play; touch inventory pauses combat. Legacy overflow is retained in a tray rather than discarded.
 
@@ -81,7 +81,7 @@ Press I, Escape or × to close it. Hover for a floating stat and equipment compa
 | Garran | Repairs gear, salvages carried items into embers, and reforges a selected eligible magical affix. |
 | Edrin | Returns after his rescue and identifies all carried relics freely. |
 
-Magical dungeon loot starts unidentified. Use a scroll or the rescued archivist before equipping it. Reforging spends gold and embers to reroll one eligible property, preserving the other properties and base item. A roll can improve or worsen. It also repairs the item and increases future reforge costs. Broken gear contributes half its base weapon damage or armor. Failed equipment swaps, transfers and purchases leave items and currency unchanged.
+Common gear equips immediately. Only magic, rare and legendary dungeon loot starts unidentified, including correct handling of older saves with a false identification flag on common gear. Use a scroll or the rescued archivist before equipping it. Reforging spends gold and embers to reroll one eligible property, preserving the other properties and base item. A roll can improve or worsen. It also repairs the item and increases future reforge costs. Broken gear contributes half its base weapon damage or armor. Failed equipment swaps, transfers and purchases leave items and currency unchanged.
 
 ## Saves and current scope
 
@@ -89,7 +89,9 @@ Progress saves locally in the same browser and origin. It includes the character
 
 Older version-one characters retain their gear and learned skills and can continue their original endless-crypt expedition. Choose **New character** to begin the new story. The creator clearly marks replacement of the current browser save; it happens when you swear the new oath.
 
-This is a single-player campaign prototype with five procedural wilderness/stronghold pairs, one service town, five named knight bosses and two final bosses. Areas share the painted terrain and scenery kit, with distinct names, story, progression and boss patterns. The cutscene uses animated painted panels. There is no multiplayer or account backend.
+Click a townsperson, walk into conversation range, then choose Talk, Trade, Heal, Repair / Reforge or Identify as appropriate. Conversations appear as compact topic menus over the world. Edrin identifies all enchanted items from his menu after his rescue.
+
+This is a single-player campaign prototype with five seeded wilderness/stronghold pairs, one service town, five named knight bosses and two final bosses. Areas share the painted terrain and scenery kit, with distinct names, story, progression and boss patterns. The cutscene uses animated ink illustrations. There is no multiplayer or account backend.
 
 ## Development
 
@@ -107,7 +109,7 @@ npm run build
 npm run preview
 ```
 
-The build creates `dist/index.html` with adjacent assets and the portable `dist/ashen-reliquary.html`. Opening `dist/index.html` alone is not the standalone distribution. The portable build uses system fonts and requires no network or storage permission to run. The development site may optionally load Google Fonts and falls back to local fonts.
+The build creates `dist/index.html` with adjacent assets and the portable `dist/ashen-reliquary.html`. Opening `dist/index.html` alone is not the standalone distribution. The portable build uses system fonts and requires no network or storage permission to run. Both builds use local system fonts and embedded art.
 
 ```sh
 npm test
@@ -120,3 +122,22 @@ Unit checks cover generated dungeon and campaign connectivity, progression and l
 The standalone check runs with networking disabled and denied storage, exercises the title/creation/prologue, town services, inventory, map, wilderness and basic combat, and verifies zero external HTTP requests or JavaScript errors. Managed cloud Chromium blocks direct `file:` navigation, so this check loads the HTML as an isolated document.
 
 `CHROMIUM_PATH` can select another system Chromium executable. Each cloud task already has an isolated checkout; work directly in it without adding a Git worktree.
+
+## Artwork and browser performance
+
+Runtime WebP atlases are committed, so ordinary installation and builds do not require image-generation or 3D tools. Three.js is used only by the offline soldier baker; it is not part of the playable game. The source PNGs remain available for editing.
+
+- `node scripts/pack-art.mjs` regenerates compressed runtime scenery from source images.
+- `node scripts/bake-soldier.mjs` bakes the articulated model into eight directions with idle, eight walk frames and seven strike frames per direction. Start the Vite server first; the baker uses system Chromium with software WebGL.
+- `node scripts/profile-browser.mjs` samples 120 animation frames in town and a stronghold at 1440×900 with Chromium’s CPU throttle set to 4×. Run it alone against the development server, not beside browser tests. FPS measures this headless environment and does not predict every device.
+
+The world is capped at 1280×800 internal pixels, while text and interface remain native resolution. Ground tiles are baked into reusable chunks, wall variants and light textures are cached, distant enemies sleep, and nearby separation uses spatial buckets. Covered title screens and hidden tabs do not redraw the game world.
+
+A local Chromium sample at 1440×900 with CPU throttled 4× measured the following idle scenes. These are render benchmarks, not a claim about combat FPS on every device. The larger connected camp is used in version 0.5.
+
+| Scene | Previous median frame | Version 0.5 median frame |
+| --- | --- | --- |
+| Town | 175.2 ms | 53.3 ms |
+| Stronghold | 140.1 ms | 46.6 ms |
+
+The standalone HTML decreased from approximately 28,205 KiB to 4,243 KiB. Reported JavaScript heap in these scenes decreased from approximately 203–210 MiB to 28–31 MiB; decoded canvases and browser GPU memory are separate from that heap figure.

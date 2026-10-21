@@ -1,4 +1,4 @@
-import {playerStats} from './game.js';
+import {playerStats,requiresIdentification} from './game.js';
 import {EQUIPMENT,itemName,buyPrice,repairCost,SLOT_ART} from './settlement.js';
 
 export const HUD_PANELS=['inventory','stash','merchant','smith','scholar'];
@@ -64,25 +64,21 @@ export class InventoryHUD {
   fit(){
     if(!this.modal.classList.contains('hud-panel')||this.modal.offsetWidth===0)return;
     const sheet=this.modal.querySelector('.inventory-sheet');if(!sheet)return;
-    const service=this.game.panel!=='inventory',mobile=innerWidth<=700,wide=!service&&innerHeight<520&&innerWidth>700,width=wide?960:service&&!mobile?820:480,height=wide?500:service&&!mobile?650:710;
-    sheet.classList.toggle('wide-inventory',wide);
-    sheet.classList.toggle('narrow-service',service&&mobile);
-    const narrow=innerWidth<=700,landscape=innerHeight<520&&innerWidth>700;
-    const bottom=narrow?102:landscape?108:145;
-    const availableHeight=Math.max(200,innerHeight-bottom-24),availableWidth=innerWidth-(narrow?16:32);
-    const scale=Math.min(1,availableHeight/height,availableWidth/width);
-    sheet.style.width=width+'px';sheet.style.height=height+'px';sheet.style.transform=`scale(${scale})`;
-    this.modal.style.width=`${width*scale}px`;this.modal.style.height=`${height*scale}px`;this.modal.style.setProperty('--panel-w',`${width*scale}px`);this.modal.style.setProperty('--panel-h',`${height*scale}px`);
-    this.modal.style.top=`${Math.max(8,(innerHeight-bottom-height*scale)/2)}px`;
+    const service=this.game.panel!=='inventory',mobile=innerWidth<=700,wide=innerHeight<580&&innerWidth>700;
+    const width=Math.min(innerWidth-16,wide?760:service&&!mobile?800:440),height=Math.min(service?720:730,innerHeight-(wide?100:118));
+    sheet.classList.toggle('wide-inventory',wide);sheet.classList.toggle('narrow-service',service&&mobile);
+    sheet.style.width='100%';sheet.style.height='100%';sheet.style.transform='none';
+    this.modal.style.width=width+'px';this.modal.style.height=height+'px';this.modal.style.setProperty('--panel-w',width+'px');this.modal.style.setProperty('--panel-h',height+'px');this.modal.style.top='8px';
     for(const section of this.modal.querySelectorAll('.hud-bag-section')){
       const grid=section.querySelector('.spatial-bag');if(!grid)continue;
-      const cols=Number(grid.style.getPropertyValue('--cols'))||10,rows=Number(grid.style.getPropertyValue('--rows'))||6;
+      const cols=Number(grid.style.getPropertyValue('--cols'))||10,rows=Number(grid.style.getPropertyValue('--rows'))||4;
       const label=section.querySelector('.bag-label')?.offsetHeight||18,overflow=section.querySelector('.overflow-items')?.offsetHeight||0;
-      const cell=Math.max(12,Math.floor(Math.min((section.clientWidth-4)/cols,(section.clientHeight-label-overflow-10)/rows)));
-      grid.style.width=`${cell*cols}px`;grid.style.height=`${cell*rows}px`;
+      const cell=Math.max(12,Math.floor(Math.min((section.clientWidth-4)/cols,(section.clientHeight-label-overflow-6)/rows)));
+      const w=cell*cols+'px',h=cell*rows+'px';if(grid.style.width!==w)grid.style.width=w;if(grid.style.height!==h)grid.style.height=h;
     }
-    const free=innerWidth-width*scale-34;this.game.hudWidth=free>=280&&innerWidth>700?width*scale+34:0;
+    this.game.hudWidth=innerWidth-width>380&&innerWidth>700?width+16:0;
   }
+
   header(name,kicker){return `<header class="hud-heading"><div><span class="eyebrow">${kicker}</span><h2 id="modal-title">${name}</h2></div><button class="close" data-action="close" aria-label="Close panel">×</button></header>`;}
   render(panel){
     const o=this.owner,p=o.player,m=this.modal;
@@ -107,7 +103,7 @@ export class InventoryHUD {
       toolbar=`${button('repair',`Repair gear · ${repairCost(p)} gold`,!repairCost(p))}<span>Gold + embers reforge one affix.</span>`;
       contents=`<div class="hud-content hud-service-content"><section class="hud-section"><div class="hud-section-title">EQUIPPED · SELECT TO REFORGE</div><div class="smith-equipped">${Object.entries(p.equipment).filter(([,i])=>i).map(([s,i])=>`<button class="smith-item ${i.rarity}" data-smith-equipped="${s}" aria-label="${esc(itemName(i))}">${icon(i)}<span>${esc(itemName(i))}<small>${Math.ceil(i.durability??100)}% condition</small></span></button>`).join('')}</div><p class="hud-service-note">Salvage carried gear for embers. A reforge may improve or worsen a magical property.</p></section>${pack}</div>`;
     }else{
-      toolbar=button('identify-all','Identify all · Free',!p.quests.scholarRescued||!p.inventory.some(i=>i.identified===false));
+      toolbar=button('identify-all','Identify all · Free',!p.quests.scholarRescued||!p.inventory.some(i=>requiresIdentification(i)));
       contents=`<div class="hud-content hud-service-content"><section class="hud-section hud-scholar"><div class="service-portrait portrait-scholar"></div><h3>Every relic remembers.</h3><p>${p.quests.scholarRescued?'In gratitude for his rescue, Edrin reveals your relics freely.':'Defeat the Hollow Warden to rescue Edrin.'}</p></section>${pack}</div>`;
     }
     m.innerHTML='<div class="inventory-sheet"><i class="corner-rivet tl"></i><i class="corner-rivet tr"></i><i class="corner-rivet bl"></i><i class="corner-rivet br"></i>'+heading+o.wallet()+`<div class="hud-toolbar">${toolbar}</div>`+contents+`<footer id="hud-item-actions" class="hud-item-actions">${this.actionDock()}</footer><div class="hud-key-hint">I · INVENTORY <span>ESC · CLOSE</span></div></div>`;

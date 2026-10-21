@@ -1,5 +1,5 @@
 import {clamp, distance} from './game.js';
-import {WORLD_ART,ITEM_ART,HERO_ART,WALK_ART,CAMPAIGN_ART} from './assets.js';
+import {WORLD_ART,ITEM_ART,CAMPAIGN_ART,SOLDIER_ART} from './assets.js';
 import {itemName} from './settlement.js';
 
 export class Renderer {
@@ -7,25 +7,26 @@ export class Renderer {
     this.canvas=canvas; this.ctx=canvas.getContext('2d'); this.map=minimap; this.mc=minimap.getContext('2d');
     this.w=0;this.h=0;this.camera={x:0,y:0};this.time=0;this.zoom=1;
     this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;
-    this.campaignArt=new Image();this.campaignArt.src=CAMPAIGN_ART;this.walkArt=new Image();this.walkArt.src=WALK_ART;this.heroArt=new Image();this.heroArt.src=HERO_ART;this.heroFrame={row:0,column:0,action:'idle'};
-    this.tileCache=new Map();this.artLoaded=false;
+    this.campaignArt=new Image();this.campaignArt.src=CAMPAIGN_ART;this.heroFrame={row:0,column:0,action:'idle'};
+    this.soldierArt=new Image();this.soldierArt.src=SOLDIER_ART;this.groundCache=new Map();this.glowCache=new Map();this.wallCache=new Map();this.spriteCache=new Map();this.palisadeCache=new Map();this.tileCache=new Map();this.artLoaded=false;
+    for(const art of [this.worldArt,this.itemArt,this.campaignArt,this.soldierArt])art.addEventListener('load',()=>{this.artLoaded=[this.worldArt,this.itemArt,this.campaignArt,this.soldierArt].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
     this.resize();window.addEventListener('resize',()=>this.resize());
   }
-  resize(){this.w=window.innerWidth;this.h=window.innerHeight;const dpr=Math.min(devicePixelRatio||1,1.75);this.canvas.width=this.w*dpr;this.canvas.height=this.h*dpr;this.ctx.setTransform(dpr,0,0,dpr,0,0);this.zoom=this.w<650?.85:this.h<540?.85:1.12;}
+  resize(){this.w=window.innerWidth;this.h=window.innerHeight;const dpr=Math.min(devicePixelRatio||1,1,1280/this.w,800/this.h);this.canvas.width=this.w*dpr;this.canvas.height=this.h*dpr;this.ctx.setTransform(dpr,0,0,dpr,0,0);this.zoom=this.w<650?.85:this.h<540?.85:1.12;this.needsDraw=true;}
   iso(x,y){return {x:(x-y)*34,y:(x+y)*17};}
   screen(x,y,z=0){const p=this.iso(x,y);return{x:(p.x-this.camera.x)*this.zoom+(this.originX??this.w/2),y:(p.y-this.camera.y+17-z)*this.zoom+this.h*.53};}
   unproject(x,y,z=0){const a=(x-(this.originX??this.w/2))/this.zoom+this.camera.x,b=(y-this.h*.53)/this.zoom+this.camera.y-17+z;return{x:(a/34+b/17)/2,y:(b/17-a/34)/2};}
   poly(points,fill,stroke=null,width=1){const c=this.ctx;c.beginPath();points.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.stroke();}}
   ellipse(x,y,rx,ry,fill){const c=this.ctx;c.fillStyle=fill;c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fill();}
   line(points,color,width=1){const c=this.ctx;c.beginPath();points.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.strokeStyle=color;c.lineWidth=width;c.stroke();}
-  light(x,y,r,color){const c=this.ctx,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(1,'transparent');c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2);}
-  sprite(index,w,h,offsetY=0){
-    if(!this.worldArt.complete||!this.worldArt.naturalWidth)return false;
-    const s=this.worldArt.naturalWidth/4;this.ctx.drawImage(this.worldArt,index%4*s+.7,Math.floor(index/4)*s+.7,s-1.4,s-1.4,-w/2,-h+offsetY,w,h);return true;
+  light(x,y,r,color){let glow=this.glowCache.get(color);if(!glow){glow=document.createElement('canvas');glow.width=glow.height=128;const ctx=glow.getContext('2d'),g=ctx.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,color);g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.fillRect(0,0,128,128);this.glowCache.set(color,glow);}this.ctx.drawImage(glow,x-r,y-r,r*2,r*2);}
+  cachedSprite(art,index,w,h,offsetY=0){
+    if(!art.complete||!art.naturalWidth)return false;const key=art.src+'-'+index+'-'+Math.round(w)+'-'+Math.round(h);let cached=this.spriteCache.get(key);
+    if(!cached){cached=document.createElement('canvas');cached.width=Math.ceil(w);cached.height=Math.ceil(h);const size=art.naturalWidth/4;cached.getContext('2d').drawImage(art,index%4*size+.8,Math.floor(index/4)*size+.8,size-1.6,size-1.6,0,0,cached.width,cached.height);this.spriteCache.set(key,cached);if(this.spriteCache.size>220)this.spriteCache.delete(this.spriteCache.keys().next().value);}
+    this.ctx.drawImage(cached,-w/2,-h+offsetY,w,h);return true;
   }
-  campaignSprite(index,w,h){
-    if(!this.campaignArt.complete||!this.campaignArt.naturalWidth)return false;const s=this.campaignArt.naturalWidth/4;this.ctx.drawImage(this.campaignArt,index%4*s+.8,Math.floor(index/4)*s+.8,s-1.6,s-1.6,-w/2,-h,w,h);return true;
-  }
+  sprite(index,w,h,offsetY=0){return this.cachedSprite(this.worldArt,index,w,h,offsetY);}
+  campaignSprite(index,w,h){return this.cachedSprite(this.campaignArt,index,w,h);}
   terrain(index,variant=0,tone=1){
     const key=`${index}-${variant}-${tone}`;if(this.tileCache.has(key))return this.tileCache.get(key);
     if(!this.itemArt.complete||!this.itemArt.naturalWidth)return null;
@@ -44,24 +45,19 @@ export class Renderer {
     const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),x=Math.min(...xs),y=Math.min(...ys),w=Math.max(...xs)-x,h=Math.max(...ys)-y,s=this.itemArt.naturalWidth/4;
     c.drawImage(this.itemArt,3*s,0,s,s,x,y,w,h);c.fillStyle=shade;c.fillRect(x,y,w,h);c.restore();
   }
-  draw(game,dt){
-    const c=this.ctx,{dungeon:d,player:p}=game;this.time+=dt;
-    this.artLoaded=this.worldArt.complete&&this.worldArt.naturalWidth>0&&this.itemArt.complete&&this.itemArt.naturalWidth>0&&this.heroArt.complete&&this.heroArt.naturalWidth>0&&this.walkArt.complete&&this.walkArt.naturalWidth>0&&this.campaignArt.complete&&this.campaignArt.naturalWidth>0;
-    this.originX??=this.w/2;this.originX+=((this.w-(game.hudWidth||0))/2-this.originX)*Math.min(1,dt*12);
-    const target=this.iso(p.x,p.y);this.camera.x+=(target.x-this.camera.x)*Math.min(1,dt*7);this.camera.y+=(target.y-this.camera.y)*Math.min(1,dt*7);
-    c.fillStyle=d.town?'#171512':'#0d0c0b';c.fillRect(0,0,this.w,this.h);
-    c.save();c.translate(this.originX,this.h*.53);c.scale(this.zoom,this.zoom);c.translate(-this.camera.x,-this.camera.y);
-    const viewW=this.w/this.zoom/2+120,viewH=this.h/this.zoom/2+140;
-    // The stonework uses a stable coordinate hash so the world never flickers.
-    for(let y=0;y<d.size;y++)for(let x=0;x<d.size;x++){
-      const v=this.iso(x,y);if(Math.abs(v.x-this.camera.x)>viewW||Math.abs(v.y-this.camera.y)>viewH)continue;
-      const key=y*d.size+x,seen=d.seen.has(key),near=distance({x:x+.5,y:y+.5},p);
-      if(!d.tiles[y][x]&&!(d.town&&Math.hypot(x-32.5,y-32.5)<22))continue;
-      const n=((x*73856093^y*19349663)>>>0)%100,shade=seen?clamp(1-(near-5)*.065,.24,1):.12;
-      c.globalAlpha=shade;
+  groundChunk(d,cx,cy){
+    const key=`${cx},${cy}`;let cached=this.groundCache.get(key);
+    const x0=cx*8,y0=cy*8,base=this.iso(x0,y0),ox=306;
+    if(!cached){
+      const canvas=document.createElement('canvas');canvas.width=612;canvas.height=352;
+      const c=canvas.getContext('2d'),old=this.ctx;this.ctx=c;c.translate(ox,0);
+      for(let y=y0;y<Math.min(y0+8,d.size);y++)for(let x=x0;x<Math.min(x0+8,d.size);x++){
+        const camp=d.townBounds&&x>=d.townBounds.x1&&x<=d.townBounds.x2&&y>=d.townBounds.y1&&y<=d.townBounds.y2;if(!d.tiles[y][x]&&!camp&&!d.water?.has(y*d.size+x)&&!(d.town&&Math.hypot(x-32.5,y-32.5)<22))continue;
+        const point=this.iso(x,y),v={x:point.x-base.x,y:point.y-base.y};
+      const n=((x*73856093^y*19349663)>>>0)%100;if(d.water?.has(y*d.size+x)){this.poly([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17]],n<50?'#202d28':'#283731','#334036',.5);this.line([[v.x-15,v.y+16],[v.x+11,v.y+16]],'#72837425');continue;}
       const color=n<15?'#293d30':n<45?'#344238':n<70?'#3a483d':'#414c40';
-      const road=(d.town||d.outdoor)&&(Math.abs(x-32.5)<1.7||Math.abs(y-32.5)<1.7||Math.hypot(x-32.5,y-32.5)<4.7);
-      const tile=this.terrain(d.town?(road?1:0):d.outdoor?0:2,n%4,d.act||1);
+      const road=d.roads?.has(y*d.size+x)||d.town&&(Math.abs(x-32.5)<1.7||Math.abs(y-32.5)<1.7);
+      const tile=this.terrain(d.town||d.outdoor?(road?1:0):2,n%4,d.act||1);
       if(tile){c.drawImage(tile,v.x-34,v.y,68,34);this.line([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17],[v.x,v.y]],'#0b07053a',.5);}
       else this.poly([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17]],color,'#121f18',1.5);
       this.line([[v.x,v.y+2],[v.x+31,v.y+17]],'#66705a44');
@@ -72,18 +68,49 @@ export class Renderer {
       // Exposed edges reveal the depth of the ancient foundations.
       if(!d.town&&!d.outdoor&&!d.tiles[y+1]?.[x]){this.poly([[v.x-34,v.y+17],[v.x,v.y+34],[v.x,v.y+62],[v.x-34,v.y+45]],'#211e19','#100d0b');this.line([[v.x-33,v.y+31],[v.x-1,v.y+47]],'#393329');}
       if(!d.town&&!d.outdoor&&!d.tiles[y]?.[x+1]){this.poly([[v.x+34,v.y+17],[v.x,v.y+34],[v.x,v.y+62],[v.x+34,v.y+45]],'#2b261f','#100d0b');this.line([[v.x+33,v.y+31],[v.x+1,v.y+47]],'#42392c');}
+
+      }
+      this.ctx=old;const fog=document.createElement('canvas');fog.width=612;fog.height=352;
+      cached={canvas,fog,x:base.x-ox,y:base.y,count:-1};this.groundCache.set(key,cached);
+      if(this.groundCache.size>(this.chunkBudget||48))this.groundCache.delete(this.groundCache.keys().next().value);
     }
+    let count=0;for(let y=y0;y<Math.min(y0+8,d.size);y++)for(let x=x0;x<Math.min(x0+8,d.size);x++)if(d.seen.has(y*d.size+x))count++;
+    if(count!==cached.count){const c=cached.fog.getContext('2d');c.clearRect(0,0,612,352);c.fillStyle='#000d';
+      for(let y=y0;y<Math.min(y0+8,d.size);y++)for(let x=x0;x<Math.min(x0+8,d.size);x++)if(!d.seen.has(y*d.size+x)&&(d.tiles[y][x]||d.water?.has(y*d.size+x))){const point=this.iso(x,y),px=point.x-base.x+ox,py=point.y-base.y;c.beginPath();c.moveTo(px,py);c.lineTo(px+34,py+17);c.lineTo(px,py+34);c.lineTo(px-34,py+17);c.closePath();c.fill();}cached.count=count;}
+    return cached;
+  }
+  drawGround(d,viewW,viewH){
+    if(this.cachedDungeon!==d){this.cachedDungeon=d;this.groundCache.clear();this.staticObjects=[...d.props,...(d.npcs||[]).map(n=>({...n,type:'npc'}))];
+      if(!d.town&&!d.outdoor)for(let y=1;y<d.size-1;y++)for(let x=1;x<d.size-1;x++)if(!d.tiles[y][x]&&(d.tiles[y+1]?.[x]||d.tiles[y]?.[x+1]))this.staticObjects.push({x:x+.5,y:y+.5,type:'wall',variant:(x*7+y*11)%5});
+    }
+    const width=Math.ceil(viewW*2+192),height=Math.ceil(viewH*2+192),oldView=this.groundView;
+    const refresh=!oldView||oldView.d!==d||oldView.canvas.width!==width||oldView.canvas.height!==height||Math.abs(this.camera.x-oldView.cx)>80||Math.abs(this.camera.y-oldView.cy)>80||d.seen.size!==oldView.seen&&this.time-oldView.time>.2;
+    if(refresh){
+      const canvas=oldView?.canvas||document.createElement('canvas');canvas.width=width;canvas.height=height;
+      const x=Math.floor(this.camera.x-width/2),y=Math.floor(this.camera.y-height/2),ctx=canvas.getContext('2d'),old=this.ctx;ctx.translate(-x,-y);this.ctx=ctx;
+      this.chunkBudget=Math.max(48,Math.ceil(4*(viewW+396)*(viewH+246)/73984)+12);
+      for(let cy=0;cy<Math.ceil(d.size/8);cy++)for(let cx=0;cx<Math.ceil(d.size/8);cx++){const center=this.iso(cx*8+4,cy*8+4);if(Math.abs(center.x-this.camera.x)>viewW+396||Math.abs(center.y-this.camera.y)>viewH+246)continue;const cached=this.groundChunk(d,cx,cy);ctx.drawImage(cached.canvas,cached.x,cached.y);ctx.drawImage(cached.fog,cached.x,cached.y);}
+      this.ctx=old;this.groundView={canvas,x,y,cx:this.camera.x,cy:this.camera.y,seen:d.seen.size,time:this.time,d};
+    }
+    const view=this.groundView;this.ctx.drawImage(view.canvas,view.x,view.y);
+  }
+
+  draw(game,dt){
+    const c=this.ctx,{dungeon:d,player:p}=game;this.time+=dt;
+    this.artLoaded=this.soldierArt.complete&&this.soldierArt.naturalWidth>0&&this.worldArt.complete&&this.worldArt.naturalWidth>0&&this.itemArt.complete&&this.itemArt.naturalWidth>0&&this.campaignArt.complete&&this.campaignArt.naturalWidth>0;
+    this.originX??=this.w/2;this.originX+=((this.w-(game.hudWidth||0))/2-this.originX)*Math.min(1,dt*12);
+    const target=this.iso(p.x,p.y);this.camera.x+=(target.x-this.camera.x)*Math.min(1,dt*7);this.camera.y+=(target.y-this.camera.y)*Math.min(1,dt*7);
+    c.fillStyle=d.town?'#171512':'#0d0c0b';c.fillRect(0,0,this.w,this.h);
+    c.save();c.translate(this.originX,this.h*.53);c.scale(this.zoom,this.zoom);c.translate(-this.camera.x,-this.camera.y);
+    const viewW=this.w/this.zoom/2+120,viewH=this.h/this.zoom/2+140;
+    this.drawGround(d,viewW,viewH);
     c.globalAlpha=1;
     // Back walls, crenellated masonry, and scattered objects share painter ordering.
-    const objects=[];
-    for(let y=1;y<d.size-1;y++)for(let x=1;x<d.size-1;x++){
-      if(d.town||d.outdoor||d.tiles[y][x]||!d.seen.has(y*d.size+x))continue;
-      if(d.tiles[y+1]?.[x]||d.tiles[y]?.[x+1])objects.push({x:x+.5,y:y+.5,type:'wall',variant:(x*7+y*11)%5});
-    }
-    for(const prop of d.props)if(d.seen.has(Math.floor(prop.y)*d.size+Math.floor(prop.x)))objects.push(prop);
-    for(const npc of d.npcs||[])objects.push({...npc,type:'npc'});
+    const visible=o=>{const v=this.iso(o.x,o.y);return Math.abs(v.x-this.camera.x)<viewW&&Math.abs(v.y-this.camera.y)<viewH;};
+    const objects=this.staticObjects.filter(o=>visible(o)&&d.seen.has(Math.floor(o.y)*d.size+Math.floor(o.x)));
     for(const loot of game.loot)objects.push({...loot,type:'loot',loot});
-    if(d.waypoint)objects.push({...d.waypoint,type:'waypoint'});
+    if(d.returnGate)objects.push({...d.returnGate,type:'entrance'});
+    if(d.waypoint)objects.push({...d.waypoint,type:'waypoint'});if(d.townWaypoint)objects.push({...d.townWaypoint,type:'waypoint'});
     if(d.spirit)objects.push({...d.spirit,type:'spirit'});
     if(d.shrine)objects.push({...d.shrine,type:'shrine'});
     if(d.bossDead)objects.push({...d.portal,type:'portal'});
@@ -99,12 +126,14 @@ export class Renderer {
       else if(o.type==='spirit')this.spirit(o,game);
       else if(o.type==='shrine')this.shrine(o,game);
       else if(o.type==='wall')this.wall(o);
+      else if(o.type==='palisade')this.palisade(o);
       else if(o.type==='brazier')this.brazier(o);
       else if(o.type==='pillar')this.pillar(o);
       else if(o.type==='tomb')this.tomb(o);
       else if(o.type==='loot')this.loot(o.loot,game);
       else if(o.type==='portal')this.portal();
       else if(o.type==='building'){this.ellipse(0,1,o.width*.4,o.width*.19,'#07040377');this.sprite(o.sprite,o.width,o.height);if(o.exit)this.worldLabel(game.player.campaign?(d.outdoor?'KINGDOM GATE':'THE KING’S ROAD'):'THE HOLLOW CRYPT','ENTER · F',-o.height-10);if(o.stash)this.worldLabel('PERSONAL STASH','',-o.height-7);}
+      else if(o.type==='entrance'){this.sprite(15,125,135);this.worldLabel('THE KING’S ROAD','F · LEAVE STRONGHOLD',-132);}
       else if(o.type==='npc')this.npc(o,game);
       else this.debris(o);
       c.restore();
@@ -119,7 +148,16 @@ export class Renderer {
     if(p.hp/game.stats.maxHp<.28){const g=c.createRadialGradient(this.w/2,this.h/2,this.h*.3,this.w/2,this.h/2,this.w*.65);g.addColorStop(0,'transparent');g.addColorStop(1,'#741b2355');c.fillStyle=g;c.fillRect(0,0,this.w,this.h);}
     this.drawMap(game);
   }
+  palisade(o){let canvas=this.palisadeCache.get(o.axis);if(!canvas){canvas=document.createElement('canvas');canvas.width=96;canvas.height=96;const old=this.ctx;this.ctx=canvas.getContext('2d');this.ctx.translate(48,70);this.paintPalisade(o);this.ctx=old;this.palisadeCache.set(o.axis,canvas);}this.ctx.drawImage(canvas,-48,-70);}
+  paintPalisade(o){
+    const dir=o.axis==='x'?{x:34,y:17}:{x:-34,y:17};
+    this.line([[-dir.x*.5,-19-dir.y*.5],[dir.x*.5,-19+dir.y*.5]],'#292017',5);
+    for(let i=-1;i<=1;i++){const x=dir.x*i*.35,y=dir.y*i*.35;this.poly([[x-3,y],[x-3,y-38],[x,y-46],[x+4,y-37],[x+4,y]],'#443b29','#17120d',1);this.line([[x,y-5],[x,y-36]],'#7a6b4355');}
+  }
   wall(o){
+    if(this.itemArt.complete&&this.itemArt.naturalWidth){let tile=this.wallCache.get(o.variant);if(!tile){tile=document.createElement('canvas');tile.width=80;tile.height=140;const old=this.ctx;this.ctx=tile.getContext('2d');this.ctx.translate(40,118);this.paintWall(o);this.ctx=old;this.wallCache.set(o.variant,tile);}this.ctx.drawImage(tile,-40,-118);return;}this.paintWall(o);
+  }
+  paintWall(o){
     const h=37+o.variant*3;
     this.ellipse(0,4,32,14,'#030d0980');
     this.stoneFace([[-33,-17],[0,0],[0,-h],[ -33,-h-17]],'#18120a88');
@@ -185,16 +223,15 @@ export class Renderer {
   hero(game){
     const c=this.ctx,{player:p}=game,t=this.time,bob=game.moving?Math.sin(t*12)*1.6:Math.sin(t*2)*.5;
     this.ellipse(0,2,15,7,'#020a07a0');
-    if(this.artLoaded){
-      const attacking=game.attackAnim>0,direction=(attacking?game.actionFacing:game.facing)||game.lastMove,v=this.iso(direction.x,direction.y),len=Math.hypot(v.x,v.y)||1;
-      const row=(direction.x+direction.y<0?2:0)+(attacking?1:0),progress=clamp(1-game.attackAnim/.4,0,.999),column=attacking?Math.min(3,Math.floor(progress*4)):game.moving?Math.floor(game.walkPhase)%4:0;
+    if(this.soldierArt.complete&&this.soldierArt.naturalWidth){
+      const attacking=game.attackAnim>0,direction=(attacking?game.actionFacing:game.facing)||game.lastMove;
+      const row=(Math.round(Math.atan2(direction.x-direction.y,direction.x+direction.y)/(Math.PI/4))+8)%8;
+      const progress=clamp(1-game.attackAnim/.38,0,.999),column=attacking?9+Math.min(6,Math.floor(progress*7)):game.moving?1+Math.floor(game.walkPhase)%8:0;
       this.heroFrame={row,column,action:game.dodgeTime>0?'evade':attacking?'attack':game.moving?'walk':'idle'};
-      const art=attacking?this.heroArt:this.walkArt,walkRow=direction.x+direction.y<0?2:0,artRow=attacking?row:walkRow,s=art.naturalWidth/4,draw=()=>c.drawImage(art,column*s+.6,artRow*s+.6,s-1.2,s-1.2,-48,-105,96,105);
       if(p.appearance==='iron')c.filter='grayscale(.85)';
-      if(game.dodgeTime>0){for(let i=2;i>0;i--){c.save();c.globalAlpha=.12/i;c.translate(-v.x/len*12*i,-v.y/len*12*i);if(v.x<0)c.scale(-1,1);draw();c.restore();}}
-      c.save();if(attacking)c.translate(v.x/len*Math.sin(progress*Math.PI)*4,v.y/len*Math.sin(progress*Math.PI)*4);else if(!game.moving)c.translate(0,Math.sin(t*1.8)*.35);
-      if(v.x<0)c.scale(-1,1);if(game.dodgeTime>0)c.rotate(.14);draw();c.restore();
-      if(attacking&&game.castColor)this.light(v.x/len*15,-43+v.y/len*12,25,game.castColor+'44');return;
+      if(game.dodgeTime>0)c.globalAlpha=.7;
+      c.drawImage(this.soldierArt,column*96,row*128,96,128,-48,-110,96,128);
+      if(attacking&&game.castColor)this.light(0,-43,25,game.castColor+'44');return;
     }
     if(game.dodgeTime>0){this.light(0,-10,45,'#d4dbab33');c.globalAlpha=.6;}
     if(game.attackAnim>0){c.save();c.globalAlpha=game.attackAnim*2;this.ellipse(5,-10,35,15,'#d9c79522');c.restore();}
@@ -335,8 +372,9 @@ export class Renderer {
         if(!d.tiles[y][x]||!d.seen.has(y*d.size+x))continue;const at=project(x,y),a=scale,b=scale*.5;
         if(!d.tiles[y-1]?.[x]){c.moveTo(at.x,at.y);c.lineTo(at.x+a,at.y+b);}if(!d.tiles[y]?.[x+1]){c.moveTo(at.x+a,at.y+b);c.lineTo(at.x,at.y+2*b);}if(!d.tiles[y+1]?.[x]){c.moveTo(at.x,at.y+2*b);c.lineTo(at.x-a,at.y+b);}if(!d.tiles[y]?.[x-1]){c.moveTo(at.x-a,at.y+b);c.lineTo(at.x,at.y);}
       }c.stroke();
+      if(d.roads){c.fillStyle=overlay?'#b19e7055':'#b19e7033';for(const key of d.roads)if(d.seen.has(key)){const at=project(key%d.size,Math.floor(key/d.size));c.fillRect(at.x-.6,at.y-.4,1.2,.8);}}
       const marker=(o,color,r=3)=>{if(!o||!d.seen.has(Math.floor(o.y)*d.size+Math.floor(o.x)))return;const at=project(o.x,o.y);c.strokeStyle=color;c.lineWidth=1.4;c.beginPath();c.moveTo(at.x,at.y-r);c.lineTo(at.x+r,at.y);c.lineTo(at.x,at.y+r);c.lineTo(at.x-r,at.y);c.closePath();c.stroke();};
-      marker(d.waypoint,'#99dce2',overlay?7:4);marker(d.portal,'#d1b271',overlay?8:4);marker(d.spirit,'#b9e0ed',overlay?5:2);marker(d.shrine,'#e0d5a3',overlay?5:2);
+      marker(d.townWaypoint,'#99dce2',overlay?7:4);marker(d.returnGate,'#d1b271',overlay?6:3);marker(d.waypoint,'#99dce2',overlay?7:4);marker(d.portal,'#d1b271',overlay?8:4);marker(d.spirit,'#b9e0ed',overlay?5:2);marker(d.shrine,'#e0d5a3',overlay?5:2);
       for(const n of d.npcs||[])marker(n,'#cbb47e',2);for(const e of d.enemies)if(!e.dead&&distance(e,p)<8)marker(e,e.type==='warden'?'#d6a55f':'#b76c52',e.type==='warden'?4:1.5);
       const v=project(p.x,p.y);c.fillStyle='#f1dfb0';c.beginPath();c.moveTo(v.x,v.y-5);c.lineTo(v.x+3,v.y+3);c.lineTo(v.x,v.y+1);c.lineTo(v.x-3,v.y+3);c.closePath();c.fill();
       if(overlay){c.textAlign='center';c.font='12px Georgia';c.fillStyle='#cbb98caa';c.fillText(document.getElementById('location').textContent,w/2,25);c.font='9px Georgia';c.fillStyle='#b8a68099';c.fillText('TAB · CLOSE     ◈ WAYPOINT     ◆ ROAD / GATE     G · WORLD MAP',w/2,h-20);}
