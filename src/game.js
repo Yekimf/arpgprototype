@@ -110,27 +110,37 @@ export const MASTERIES = {
     {id:'convergence',name:'Convergence',icon:'❖',max:3,req:7,description:'+{v}% all damage for each mastery with 3+ invested points.',base:5,step:5},
   ]},
 };
-export const INNATE_SKILL={id:'lance',name:'Spirit Lance',icon:'➹',max:1,active:true,innate:true,cost:8,cooldown:2,base:110,step:0,description:'A focused aether projectile, aimed at the cursor. An innate ability available to every wayfarer.'};
-export const ALL_SKILLS=[...Object.values(MASTERIES).flatMap(m=>m.nodes),INNATE_SKILL];
+export const INNATE_SKILL={id:'lance',name:'Spirit Lance',icon:'➹',max:5,req:0,active:true,cost:8,cooldown:2,base:110,step:20,description:'A focused aether projectile deals {v}% weapon damage, aimed at the cursor.'};
+MASTERIES.aether.nodes.push(INNATE_SKILL);
+export const ALL_SKILLS=Object.values(MASTERIES).flatMap(m=>m.nodes);
 export const getSkill=id=>ALL_SKILLS.find(n=>n.id===id);
-export const rankOf=(player,id)=>id==='lance'?1:player.skills[id]||0;
+export const rankOf=(player,id)=>player.skills[id]||0;
+export const skillLevel=id=>{const s=getSkill(id);return !s?99:s.req>=7?8:s.req>=3?4:2;};
 export const masteryPoints=(player,key)=>MASTERIES[key].nodes.reduce((sum,n)=>sum+rankOf(player,n.id),0);
 export function canLearn(player,id) {
   if(getSkill(id)?.innate)return false;
   const skill=getSkill(id), key=Object.keys(MASTERIES).find(k=>MASTERIES[k].nodes.includes(skill));
-  return !!skill && player.points>0 && rankOf(player,id)<skill.max && masteryPoints(player,key)>=skill.req;
+  return !!skill && player.level>=skillLevel(id) && player.points>0 && rankOf(player,id)<skill.max && masteryPoints(player,key)>=skill.req;
 }
-export function learnSkill(player,id) {if(!canLearn(player,id))return false;player.skills[id]=(player.skills[id]||0)+1;player.points--;return true;}
+export function learnSkill(player,id) {if(!canLearn(player,id))return false;player.skills[id]=(player.skills[id]||0)+1;player.points--;if(getSkill(id).active&&!player.slots.includes(id)){const empty=player.slots.indexOf(null);if(empty>=0)player.slots[empty]=id;if(player.mouseSkill==='basic')player.mouseSkill=id;}return true;}
 export function playerStats(player) {
   const items=Object.values(player.equipment).filter(Boolean);
   const total=key=>items.reduce((s,i)=>s+(i.identified===false?0:(i[key]||0)*(['damage','armor'].includes(key)&&i.durability<=0?.5:1)),0);
-  const r=id=>rankOf(player,id), invested=Object.keys(MASTERIES).filter(k=>masteryPoints(player,k)>=3).length;
-  return {maxHp:120+(player.level-1)*16+r('vigor')*18+total('life'),maxMana:80+r('spirit')*12+total('spirit'),damage:18+(player.level-1)*2+total('damage'),armor:3+r('vigor')*2+r('ward')*4+total('armor'),crit:7+r('precision')*3+total('crit'),speed:3.8+total('speed'),regen:5+r('spirit')*.6,bonus:1+(total('bonus')+r('convergence')*5*invested)/100,fire:1+r('kindling')*.08,cold:1+r('resonance')*.08,cdr:1-r('flow')*.04};
+  const r=id=>rankOf(player,id), invested=Object.keys(MASTERIES).filter(k=>masteryPoints(player,k)>=3).length,a=player.attributes||{},might=a.might||0,vitality=a.vitality||0,will=a.will||0,dexterity=a.dexterity||0;
+  return {maxHp:120+(player.level-1)*16+r('vigor')*18+total('life')+vitality*6,maxMana:80+r('spirit')*12+total('spirit')+will*4,damage:18+(player.level-1)*2+total('damage')+might*1.5,armor:3+r('vigor')*2+r('ward')*4+total('armor')+vitality*.25,crit:7+r('precision')*3+total('crit')+dexterity*.4,speed:3.8+total('speed'),regen:5+r('spirit')*.6+will*.08,bonus:1+(total('bonus')+r('convergence')*5*invested)/100,fire:1+r('kindling')*.08,cold:1+r('resonance')*.08,cdr:1-r('flow')*.04};
 }
-export const xpNeeded=level=>70+level*45;
-export function createPlayer() {
-  return {x:0,y:0,level:1,xp:0,gold:0,points:4,skills:{cleave:1,bolt:1,nova:1},slots:['cleave','bolt','nova','lance'],mouseSkill:'bolt',equipment:{weapon:{name:'Pilgrim’s Longsword',slot:'weapon',rarity:'normal',damage:5,level:1,icon:'⚔',id:'starter-sword'},armor:{name:'Weathered Hauberk',slot:'armor',rarity:'normal',armor:3,level:1,icon:'⛊',id:'starter-armor'},charm:null,boots:null,helm:null,gloves:null,belt:null,ring:null,shield:null},inventory:[],stash:[],shards:0,identifyScrolls:0,buyback:[],shopStock:null,quests:{guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false},hp:120,mana:80,potions:3,kills:0,deaths:0};
+export const xpNeeded=level=>Math.round(55+level*30+Math.pow(level,1.7)*10);
+export const ORIGINS={vanguard:{name:'Royal Vanguard',description:'You held the king’s shield wall. Strength and endurance are your inheritance.',attributes:{might:2,vitality:2,will:0,dexterity:0}},templar:{name:'Sun-sworn Templar',description:'You guarded the royal chapel. The old gods have not forgotten your oath.',attributes:{might:0,vitality:1,will:3,dexterity:0}},outrider:{name:'King’s Outrider',description:'You carried the king’s word beyond the walls. Your blade is swift and certain.',attributes:{might:1,vitality:0,will:0,dexterity:3}}};
+export function createPlayer(options={}) {
+  const origin=ORIGINS[options.origin]?options.origin:'vanguard';
+  return {name:String(options.name||'The Loyalist').trim().slice(0,24),origin,appearance:options.appearance==='iron'?'iron':'crimson',progressionVersion:2,attributes:{...ORIGINS[origin].attributes},attributePoints:0,x:0,y:0,level:1,xp:0,gold:0,points:0,skills:{},slots:[null,null,null,null],mouseSkill:'basic',equipment:{weapon:{name:'King’s Service Sword',slot:'weapon',rarity:'normal',damage:5,level:1,icon:'⚔',id:'starter-sword'},armor:{name:'Weathered Hauberk',slot:'armor',rarity:'normal',armor:3,level:1,icon:'⛊',id:'starter-armor'},charm:null,boots:null,helm:null,gloves:null,belt:null,ring:null,shield:null},inventory:[],stash:[],shards:0,identifyScrolls:0,buyback:[],shopStock:null,quests:{guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false},hp:120,mana:80,potions:3,kills:0,deaths:0};
 }
+export function grantExperience(player,amount){
+  if(!Number.isFinite(amount)||amount<=0)return 0;player.xp+=amount;let levels=0;
+  while(player.xp>=xpNeeded(player.level)&&player.level<60){player.xp-=xpNeeded(player.level);player.level++;player.points+=2;player.attributePoints=(player.attributePoints||0)+5;levels++;}
+  if(levels){const s=playerStats(player);player.hp=s.maxHp;player.mana=s.maxMana;player.potions=Math.min(5,player.potions+levels);}return levels;
+}
+export function spendAttribute(player,key){if(!['might','vitality','will','dexterity'].includes(key)||!(player.attributePoints>0))return false;player.attributes??={};player.attributes[key]=(player.attributes[key]||0)+1;player.attributePoints--;return true;}
 const ITEM_BASES={weapon:['Falchion','War Axe','Runeblade','Mace'],armor:['Chainmail','Brigandine','Cuirass','Vestment'],charm:['Talisman','Moonstone','Reliquary','Pendant'],boots:['Greaves','Pathfinders','Sabatons','Treads'],helm:['Sallet','War Helm','Crown','Great Helm'],gloves:['Gauntlets','Grips','Gloves','Handguards'],belt:['Girdle','War Belt','Sash','Belt'],ring:['Signet','Band','Ring','Seal'],shield:['Buckler','Kite Shield','Round Shield','Ward']};
 export function generateItem(rng,depth,guaranteedRare=false) {
   const roll=rng(),rarity=guaranteedRare?(roll<.2?'legendary':'rare'):roll<.03?'legendary':roll<.22?'rare':roll<.65?'magic':'normal';

@@ -1,5 +1,5 @@
 import {clamp, distance} from './game.js';
-import {WORLD_ART,ITEM_ART,HERO_ART} from './assets.js';
+import {WORLD_ART,ITEM_ART,HERO_ART,WALK_ART,CAMPAIGN_ART} from './assets.js';
 import {itemName} from './settlement.js';
 
 export class Renderer {
@@ -7,7 +7,7 @@ export class Renderer {
     this.canvas=canvas; this.ctx=canvas.getContext('2d'); this.map=minimap; this.mc=minimap.getContext('2d');
     this.w=0;this.h=0;this.camera={x:0,y:0};this.time=0;this.zoom=1;
     this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;
-    this.heroArt=new Image();this.heroArt.src=HERO_ART;this.heroFrame={row:0,column:0,action:'idle'};
+    this.campaignArt=new Image();this.campaignArt.src=CAMPAIGN_ART;this.walkArt=new Image();this.walkArt.src=WALK_ART;this.heroArt=new Image();this.heroArt.src=HERO_ART;this.heroFrame={row:0,column:0,action:'idle'};
     this.tileCache=new Map();this.artLoaded=false;
     this.resize();window.addEventListener('resize',()=>this.resize());
   }
@@ -23,14 +23,18 @@ export class Renderer {
     if(!this.worldArt.complete||!this.worldArt.naturalWidth)return false;
     const s=this.worldArt.naturalWidth/4;this.ctx.drawImage(this.worldArt,index%4*s+.7,Math.floor(index/4)*s+.7,s-1.4,s-1.4,-w/2,-h+offsetY,w,h);return true;
   }
-  terrain(index,variant=0){
-    const key=`${index}-${variant}`;if(this.tileCache.has(key))return this.tileCache.get(key);
+  campaignSprite(index,w,h){
+    if(!this.campaignArt.complete||!this.campaignArt.naturalWidth)return false;const s=this.campaignArt.naturalWidth/4;this.ctx.drawImage(this.campaignArt,index%4*s+.8,Math.floor(index/4)*s+.8,s-1.6,s-1.6,-w/2,-h,w,h);return true;
+  }
+  terrain(index,variant=0,tone=1){
+    const key=`${index}-${variant}-${tone}`;if(this.tileCache.has(key))return this.tileCache.get(key);
     if(!this.itemArt.complete||!this.itemArt.naturalWidth)return null;
     const canvas=document.createElement('canvas');canvas.width=136;canvas.height=68;const c=canvas.getContext('2d'),s=this.itemArt.naturalWidth/4;
     c.translate(68,0);c.transform(1,.5,-1,.5,0,0);
     const crop=s*.62,ox=variant%2*(s-crop),oy=Math.floor(variant/2)*(s-crop);
     c.drawImage(this.itemArt,index*s+ox,oy,crop,crop,0,0,68,68);
     c.globalCompositeOperation='source-atop';c.fillStyle=index===0?'#291a1422':index===2?'#10101622':'#22170d16';c.fillRect(0,0,68,68);
+    if(tone>1){c.fillStyle=({2:'#23474c55',3:'#572b1e66',4:'#becedb38',5:'#382c4255'})[tone]||'transparent';c.fillRect(0,0,68,68);}
     this.tileCache.set(key,canvas);return canvas;
   }
   stoneFace(points,shade){
@@ -42,7 +46,7 @@ export class Renderer {
   }
   draw(game,dt){
     const c=this.ctx,{dungeon:d,player:p}=game;this.time+=dt;
-    this.artLoaded=this.worldArt.complete&&this.worldArt.naturalWidth>0&&this.itemArt.complete&&this.itemArt.naturalWidth>0&&this.heroArt.complete&&this.heroArt.naturalWidth>0;
+    this.artLoaded=this.worldArt.complete&&this.worldArt.naturalWidth>0&&this.itemArt.complete&&this.itemArt.naturalWidth>0&&this.heroArt.complete&&this.heroArt.naturalWidth>0&&this.walkArt.complete&&this.walkArt.naturalWidth>0&&this.campaignArt.complete&&this.campaignArt.naturalWidth>0;
     this.originX??=this.w/2;this.originX+=((this.w-(game.hudWidth||0))/2-this.originX)*Math.min(1,dt*12);
     const target=this.iso(p.x,p.y);this.camera.x+=(target.x-this.camera.x)*Math.min(1,dt*7);this.camera.y+=(target.y-this.camera.y)*Math.min(1,dt*7);
     c.fillStyle=d.town?'#171512':'#0d0c0b';c.fillRect(0,0,this.w,this.h);
@@ -56,8 +60,8 @@ export class Renderer {
       const n=((x*73856093^y*19349663)>>>0)%100,shade=seen?clamp(1-(near-5)*.065,.24,1):.12;
       c.globalAlpha=shade;
       const color=n<15?'#293d30':n<45?'#344238':n<70?'#3a483d':'#414c40';
-      const road=d.town&&(Math.abs(x-32.5)<1.7||Math.abs(y-32.5)<1.7||Math.hypot(x-32.5,y-32.5)<4.7);
-      const tile=this.terrain(d.town?(road?1:0):2,n%4);
+      const road=(d.town||d.outdoor)&&(Math.abs(x-32.5)<1.7||Math.abs(y-32.5)<1.7||Math.hypot(x-32.5,y-32.5)<4.7);
+      const tile=this.terrain(d.town?(road?1:0):d.outdoor?0:2,n%4,d.act||1);
       if(tile){c.drawImage(tile,v.x-34,v.y,68,34);this.line([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17],[v.x,v.y]],'#0b07053a',.5);}
       else this.poly([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17]],color,'#121f18',1.5);
       this.line([[v.x,v.y+2],[v.x+31,v.y+17]],'#66705a44');
@@ -66,19 +70,22 @@ export class Renderer {
       if(n%19===0){this.poly([[v.x-6,v.y+8],[v.x+6,v.y+13],[v.x+2,v.y+17],[v.x-9,v.y+12]],'#69736144');}
       if(n%13===0)this.line([[v.x+8,v.y+9],[v.x+3,v.y+13],[v.x+11,v.y+18],[v.x+7,v.y+22]],'#16271c');
       // Exposed edges reveal the depth of the ancient foundations.
-      if(!d.town&&!d.tiles[y+1]?.[x]){this.poly([[v.x-34,v.y+17],[v.x,v.y+34],[v.x,v.y+62],[v.x-34,v.y+45]],'#211e19','#100d0b');this.line([[v.x-33,v.y+31],[v.x-1,v.y+47]],'#393329');}
-      if(!d.town&&!d.tiles[y]?.[x+1]){this.poly([[v.x+34,v.y+17],[v.x,v.y+34],[v.x,v.y+62],[v.x+34,v.y+45]],'#2b261f','#100d0b');this.line([[v.x+33,v.y+31],[v.x+1,v.y+47]],'#42392c');}
+      if(!d.town&&!d.outdoor&&!d.tiles[y+1]?.[x]){this.poly([[v.x-34,v.y+17],[v.x,v.y+34],[v.x,v.y+62],[v.x-34,v.y+45]],'#211e19','#100d0b');this.line([[v.x-33,v.y+31],[v.x-1,v.y+47]],'#393329');}
+      if(!d.town&&!d.outdoor&&!d.tiles[y]?.[x+1]){this.poly([[v.x+34,v.y+17],[v.x,v.y+34],[v.x,v.y+62],[v.x+34,v.y+45]],'#2b261f','#100d0b');this.line([[v.x+33,v.y+31],[v.x+1,v.y+47]],'#42392c');}
     }
     c.globalAlpha=1;
     // Back walls, crenellated masonry, and scattered objects share painter ordering.
     const objects=[];
     for(let y=1;y<d.size-1;y++)for(let x=1;x<d.size-1;x++){
-      if(d.town||d.tiles[y][x]||!d.seen.has(y*d.size+x))continue;
+      if(d.town||d.outdoor||d.tiles[y][x]||!d.seen.has(y*d.size+x))continue;
       if(d.tiles[y+1]?.[x]||d.tiles[y]?.[x+1])objects.push({x:x+.5,y:y+.5,type:'wall',variant:(x*7+y*11)%5});
     }
     for(const prop of d.props)if(d.seen.has(Math.floor(prop.y)*d.size+Math.floor(prop.x)))objects.push(prop);
     for(const npc of d.npcs||[])objects.push({...npc,type:'npc'});
     for(const loot of game.loot)objects.push({...loot,type:'loot',loot});
+    if(d.waypoint)objects.push({...d.waypoint,type:'waypoint'});
+    if(d.spirit)objects.push({...d.spirit,type:'spirit'});
+    if(d.shrine)objects.push({...d.shrine,type:'shrine'});
     if(d.bossDead)objects.push({...d.portal,type:'portal'});
     for(const enemy of d.enemies)if(!enemy.dead&&d.seen.has(Math.floor(enemy.y)*d.size+Math.floor(enemy.x)))objects.push({...enemy,type:'enemy',enemy});
     objects.push({...p,type:'hero'});
@@ -88,13 +95,16 @@ export class Renderer {
       c.save();c.translate(v.x,v.y+17);
       if(o.type==='hero')this.hero(game);
       else if(o.type==='enemy')this.enemy(o.enemy,game);
+      else if(o.type==='waypoint')this.waypoint(o,game);
+      else if(o.type==='spirit')this.spirit(o,game);
+      else if(o.type==='shrine')this.shrine(o,game);
       else if(o.type==='wall')this.wall(o);
       else if(o.type==='brazier')this.brazier(o);
       else if(o.type==='pillar')this.pillar(o);
       else if(o.type==='tomb')this.tomb(o);
       else if(o.type==='loot')this.loot(o.loot,game);
       else if(o.type==='portal')this.portal();
-      else if(o.type==='building'){this.ellipse(0,1,o.width*.4,o.width*.19,'#07040377');this.sprite(o.sprite,o.width,o.height);if(o.exit)this.worldLabel('THE HOLLOW CRYPT','ENTER · F',-o.height-10);if(o.stash)this.worldLabel('PERSONAL STASH','',-o.height-7);}
+      else if(o.type==='building'){this.ellipse(0,1,o.width*.4,o.width*.19,'#07040377');this.sprite(o.sprite,o.width,o.height);if(o.exit)this.worldLabel(game.player.campaign?(d.outdoor?'KINGDOM GATE':'THE KING’S ROAD'):'THE HOLLOW CRYPT','ENTER · F',-o.height-10);if(o.stash)this.worldLabel('PERSONAL STASH','',-o.height-7);}
       else if(o.type==='npc')this.npc(o,game);
       else this.debris(o);
       c.restore();
@@ -179,7 +189,8 @@ export class Renderer {
       const attacking=game.attackAnim>0,direction=(attacking?game.actionFacing:game.facing)||game.lastMove,v=this.iso(direction.x,direction.y),len=Math.hypot(v.x,v.y)||1;
       const row=(direction.x+direction.y<0?2:0)+(attacking?1:0),progress=clamp(1-game.attackAnim/.4,0,.999),column=attacking?Math.min(3,Math.floor(progress*4)):game.moving?Math.floor(game.walkPhase)%4:0;
       this.heroFrame={row,column,action:game.dodgeTime>0?'evade':attacking?'attack':game.moving?'walk':'idle'};
-      const s=this.heroArt.naturalWidth/4,draw=()=>c.drawImage(this.heroArt,column*s+.6,row*s+.6,s-1.2,s-1.2,-48,-105,96,105);
+      const art=attacking?this.heroArt:this.walkArt,walkRow=direction.x+direction.y<0?2:0,artRow=attacking?row:walkRow,s=art.naturalWidth/4,draw=()=>c.drawImage(art,column*s+.6,artRow*s+.6,s-1.2,s-1.2,-48,-105,96,105);
+      if(p.appearance==='iron')c.filter='grayscale(.85)';
       if(game.dodgeTime>0){for(let i=2;i>0;i--){c.save();c.globalAlpha=.12/i;c.translate(-v.x/len*12*i,-v.y/len*12*i);if(v.x<0)c.scale(-1,1);draw();c.restore();}}
       c.save();if(attacking)c.translate(v.x/len*Math.sin(progress*Math.PI)*4,v.y/len*Math.sin(progress*Math.PI)*4);else if(!game.moving)c.translate(0,Math.sin(t*1.8)*.35);
       if(v.x<0)c.scale(-1,1);if(game.dodgeTime>0)c.rotate(.14);draw();c.restore();
@@ -214,7 +225,7 @@ export class Renderer {
     if(this.artLoaded&&e.type!=='crawler'){
       c.save();if(e.hit>0)c.filter='brightness(1.7)';else if(e.slow>0)c.filter='sepia(.4) hue-rotate(135deg)';c.translate(0,bob*.5);
       if(e.attackAnim>0){const v=this.iso(game.player.x-e.x,game.player.y-e.y),len=Math.hypot(v.x,v.y)||1,lunge=Math.sin((1-e.attackAnim/.3)*Math.PI)*9;c.translate(v.x/len*lunge,v.y/len*lunge);c.rotate(v.x/len*lunge*.006);}
-      this.sprite(boss?6:e.type==='wraith'?5:4,boss?114:e.type==='wraith'?75:64,boss?144:e.type==='wraith'?89:80);c.restore();
+      if(e.bossId){const id=e.bossId==='king'?5:e.bossId==='wanderer'?6:Number(e.bossId.split('-')[1])-1;this.campaignSprite(id+(e.attackAnim>0?8:0),boss?114:80,boss?144:100);}else this.sprite(boss?6:e.type==='wraith'?5:4,boss?114:e.type==='wraith'?75:64,boss?144:e.type==='wraith'?89:80);c.restore();
       if(e.hp<e.maxHp&&!boss){c.fillStyle='#120906';c.fillRect(-20,-88,40,3);c.fillStyle=e.elite?'#bd9b58':'#a35f41';c.fillRect(-20,-88,40*e.hp/e.maxHp,3);}
       if(e.burn>0)this.light(0,-30,35,'#ea8c4233');return;
     }
@@ -303,18 +314,33 @@ export class Renderer {
     for(const b of game.projectiles){const p=this.iso(b.x,b.y),v=this.iso(b.dx,b.dy),len=Math.hypot(v.x,v.y)||1,color=b.kind==='blade'?'#d6c89e':b.kind==='aether'?'#9bcef1':'#ffb15c';c.save();c.translate(p.x,p.y-7);this.light(0,0,b.kind==='blade'?15:27,color+'33');this.ellipse(0,0,b.kind==='blade'?8:6,3,color);this.line([[0,0],[-v.x/len*22,-v.y/len*22]],color+'99',4);c.restore();}
     for(const f of game.floaters){const p=this.iso(f.x,f.y);c.save();c.globalAlpha=Math.min(1,f.life);c.font=`${f.crit?'bold 19':'12'}px ${f.crit?'Georgia':'Inter'},serif`;c.textAlign='center';c.fillStyle=f.color||'#d9d7b6';c.shadowColor='#06120c';c.shadowBlur=4;c.fillText(f.text,p.x,p.y-42-(1.4-f.life)*27);c.restore();}
   }
+  waypoint(o,game){
+    const c=this.ctx,t=this.time,lit=game.player.campaign?.waypoints.includes(game.zone==='town'?'emberfall':`act-${game.act}-${game.dungeon.kind}`);
+    this.ellipse(0,2,31,15,'#070a0be0');this.poly([[-29,-3],[0,-18],[29,-3],[29,7],[0,22],[-29,7]],'#343630','#8e90766b');this.poly([[-27,-5],[0,-19],[27,-5],[0,9]],'#4c5044','#9d9c7766');
+    c.strokeStyle=lit?'#90d8dfaa':'#7e8d8788';c.lineWidth=1.5;c.beginPath();c.ellipse(0,-5,20,9,0,0,Math.PI*2);c.stroke();
+    for(let i=0;i<8;i++){const a=i*Math.PI/4+Math.PI/8;this.line([[Math.cos(a)*12,-5+Math.sin(a)*6],[Math.cos(a)*20,-5+Math.sin(a)*10]],lit?'#a3e5e4aa':'#888d7777',1.5);}
+    this.poly([[0,-13],[8,-5],[0,3],[-8,-5]],lit?'#95e2eb88':'#96a09b33');if(lit){this.light(0,-13,65,'#75d4e324');for(let i=0;i<5;i++)this.ellipse(Math.sin(i*3+t)*11,-12-(t*15+i*12)%55,1,1,'#a8e6ec88');}
+    this.worldLabel(lit?'ATTUNED WAYPOINT':'ANCIENT WAYPOINT','F · TRAVEL',-60);
+  }
+  spirit(o,game){
+    const c=this.ctx;c.save();this.light(0,-45,90,'#9dc8e52b');c.globalAlpha=.68+Math.sin(this.time*1.8)*.09;c.translate(0,Math.sin(this.time*1.8)*3-7);this.campaignSprite(distance(o,game.player)<3?15:7,78,110);c.restore();this.worldLabel('KING ALARIC','THE UNFORGOTTEN · F',-127);
+  }
+  shrine(o,game){this.light(0,-38,85,'#ead6a126');this.pillar({variant:2});this.ellipse(0,-65,10,4,'#dbc37a66');this.ctx.font='29px Georgia';this.ctx.textAlign='center';this.ctx.fillStyle='#dcc489';this.ctx.fillText('☼',0,-69+Math.sin(this.time)*2);this.worldLabel('SHRINE OF THE OLD GODS','F · RECEIVE BLESSING',-111);}
   drawMap(game){
-    const c=this.mc,{dungeon:d,player:p}=game,w=this.map.width,h=this.map.height;c.clearRect(0,0,w,h);
-    const scale=game.largeMap?3:2.15;const iso=(x,y)=>({x:(x-y)*scale+w/2,y:(x+y)*scale*.5+12});
-    const mid=iso(d.size/2,d.size/2),offsetY=h/2-mid.y;
-    c.save();c.translate(0,offsetY);
-    for(let y=0;y<d.size;y++)for(let x=0;x<d.size;x++)if(d.tiles[y][x]){
-      const seen=d.seen.has(y*d.size+x),v=iso(x,y);c.fillStyle=seen?'#81927350':'#52644a10';c.fillRect(v.x,v.y,scale+1,scale*.5+1);
-    }
-    for(const e of d.enemies)if(!e.dead&&d.seen.has(Math.floor(e.y)*d.size+Math.floor(e.x))){const v=iso(e.x,e.y);c.fillStyle=e.type==='warden'?'#debb6e':'#a36e50';c.fillRect(v.x-1,v.y-1,e.type==='warden'?4:2,e.type==='warden'?4:2);}
-    for(const n of d.npcs||[]){const v=iso(n.x,n.y);c.fillStyle='#d3ba79';c.fillRect(v.x-2,v.y-2,4,4);}
-    const v=iso(p.x,p.y);c.fillStyle='#e1d09e';c.beginPath();c.moveTo(v.x,v.y-4);c.lineTo(v.x+3,v.y+2);c.lineTo(v.x-3,v.y+2);c.closePath();c.fill();
-    if(d.bossDead){const g=iso(d.portal.x,d.portal.y);c.strokeStyle='#9ed0b8';c.strokeRect(g.x-3,g.y-3,6,6);}
-    c.restore();
+    if(this.time<(this.nextMap||0))return;this.nextMap=this.time+.1;
+    const render=(c,w,h,overlay)=>{
+      const {dungeon:d,player:p}=game;c.clearRect(0,0,w,h);const scale=overlay?9:2.35,project=(x,y)=>({x:(x-y)*scale+w/2-(overlay?(p.x-p.y)*scale:0),y:(x+y)*scale*.5+h/2-(overlay?(p.x+p.y)*scale*.5:d.size*scale*.5)});
+      c.lineWidth=overlay?1.2:.7;c.strokeStyle=overlay?'#d7c59c99':'#c5b68c9c';c.beginPath();
+      for(let y=0;y<d.size;y++)for(let x=0;x<d.size;x++){
+        if(!d.tiles[y][x]||!d.seen.has(y*d.size+x))continue;const at=project(x,y),a=scale,b=scale*.5;
+        if(!d.tiles[y-1]?.[x]){c.moveTo(at.x,at.y);c.lineTo(at.x+a,at.y+b);}if(!d.tiles[y]?.[x+1]){c.moveTo(at.x+a,at.y+b);c.lineTo(at.x,at.y+2*b);}if(!d.tiles[y+1]?.[x]){c.moveTo(at.x,at.y+2*b);c.lineTo(at.x-a,at.y+b);}if(!d.tiles[y]?.[x-1]){c.moveTo(at.x-a,at.y+b);c.lineTo(at.x,at.y);}
+      }c.stroke();
+      const marker=(o,color,r=3)=>{if(!o||!d.seen.has(Math.floor(o.y)*d.size+Math.floor(o.x)))return;const at=project(o.x,o.y);c.strokeStyle=color;c.lineWidth=1.4;c.beginPath();c.moveTo(at.x,at.y-r);c.lineTo(at.x+r,at.y);c.lineTo(at.x,at.y+r);c.lineTo(at.x-r,at.y);c.closePath();c.stroke();};
+      marker(d.waypoint,'#99dce2',overlay?7:4);marker(d.portal,'#d1b271',overlay?8:4);marker(d.spirit,'#b9e0ed',overlay?5:2);marker(d.shrine,'#e0d5a3',overlay?5:2);
+      for(const n of d.npcs||[])marker(n,'#cbb47e',2);for(const e of d.enemies)if(!e.dead&&distance(e,p)<8)marker(e,e.type==='warden'?'#d6a55f':'#b76c52',e.type==='warden'?4:1.5);
+      const v=project(p.x,p.y);c.fillStyle='#f1dfb0';c.beginPath();c.moveTo(v.x,v.y-5);c.lineTo(v.x+3,v.y+3);c.lineTo(v.x,v.y+1);c.lineTo(v.x-3,v.y+3);c.closePath();c.fill();
+      if(overlay){c.textAlign='center';c.font='12px Georgia';c.fillStyle='#cbb98caa';c.fillText(document.getElementById('location').textContent,w/2,25);c.font='9px Georgia';c.fillStyle='#b8a68099';c.fillText('TAB · CLOSE     ◈ WAYPOINT     ◆ ROAD / GATE     G · WORLD MAP',w/2,h-20);}
+    };
+    render(this.mc,this.map.width,this.map.height,false);const overlay=document.getElementById('map-overlay');if(game.largeMap&&overlay)render(overlay.getContext('2d'),overlay.width,overlay.height,true);
   }
 }

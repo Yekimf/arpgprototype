@@ -1,6 +1,6 @@
 import {generateItem, random} from './game.js';
 
-export const BAG={width:10,height:6}, STASH={width:10,height:8};
+export const BAG={width:10,height:4}, STASH={width:10,height:8};
 export const EQUIPMENT={helm:'Head',charm:'Amulet',weapon:'Main hand',armor:'Body armor',shield:'Off hand',gloves:'Hands',belt:'Belt',ring:'Ring',boots:'Feet'};
 export const AFFIXES={life:'Life',crit:'Critical chance',bonus:'All damage',spirit:'Spirit'};
 export const NPCS=[
@@ -45,8 +45,11 @@ export function arrange(items,dimensions=BAG,sort=false){
   return items.filter(i=>i.bagX<0).length;
 }
 export function migratePlayer(player){
-  player.slots=Array.from({length:4},(_,i)=>player.slots?.[i]||['cleave','bolt','nova','lance'][i]);
-  player.mouseSkill??='bolt';
+  const legacy=player.progressionVersion!==2;
+  player.slots=Array.from({length:4},(_,i)=>player.slots?.[i]??null);
+  if(legacy&&player.slots.includes('lance'))player.skills.lance??=1;
+  player.mouseSkill??=legacy?'bolt':'basic';
+  player.attributes??={might:0,vitality:0,will:0,dexterity:0};player.attributePoints??=Math.max(0,(player.level-1)*5);player.name??='The Loyalist';
   player.stash??=[];player.shards??=0;player.identifyScrolls??=0;player.buyback??=[];
   player.quests={guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false,...player.quests};
   for(const slot of Object.keys(EQUIPMENT))player.equipment[slot]??=null;

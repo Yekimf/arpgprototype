@@ -19,11 +19,11 @@ test('migration preserves overflowing legacy inventory and adds equipment and se
   const p=createPlayer();p.inventory=Array.from({length:24},(_,i)=>({...ring(`legacy-${i}`),slot:'armor'}));
   migratePlayer(p);assert.equal(p.inventory.length,24);assert.ok(p.inventory.some(i=>i.bagX<0));
   assert.equal(Object.keys(p.equipment).length,9);assert.deepEqual(p.stash,[]);assert.equal(p.shards,0);
-  assert.equal(arrange(p.inventory),14);assert.equal(p.inventory.length,24);
+  assert.equal(arrange(p.inventory),19);assert.equal(p.inventory.length,24);
 });
 test('failed equipment swaps, stash transfers, and purchases are atomic',()=>{
   const p=character();p.gold=1000;p.shopStock=generateStock(1,21);
-  for(let i=0;i<60;i++)assert.ok(addToContainer(p.inventory,ring(`full-${i}`)));
+  for(let i=0;i<40;i++)assert.ok(addToContainer(p.inventory,ring(`full-${i}`)));
   const old=JSON.stringify(p);assert.equal(buyItem(p,0).ok,false);assert.equal(JSON.stringify(p),old);
   const target=p.inventory[0];target.slot='weapon';target.width=1;target.height=1;
   const before=JSON.stringify(p);assert.equal(equipItem(p,target.id).ok,false);assert.equal(JSON.stringify(p),before);

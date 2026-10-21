@@ -31,9 +31,9 @@ test('collision stops walls while allowing movement over open floor',()=>{
   assert.equal(isWalkable(d,-10,0),false);
 });
 test('masteries enforce tier requirements, rank caps, and point costs',()=>{
-  const p=createPlayer();p.points=30;
+  const p=createPlayer();p.points=30;p.level=4;
   assert.equal(canLearn(p,'quake'),false);assert.equal(learnSkill(p,'quake'),false);
-  assert.ok(learnSkill(p,'vigor'));assert.ok(learnSkill(p,'vigor'));
+  assert.ok(learnSkill(p,'vigor'));assert.ok(learnSkill(p,'vigor'));assert.ok(learnSkill(p,'vigor'));
   assert.equal(masteryPoints(p,'iron'),3);assert.ok(learnSkill(p,'quake'));
   for(let i=0;i<10;i++)learnSkill(p,'cleave');assert.equal(p.skills.cleave,5);
   const old=p.points;assert.equal(learnSkill(p,'cleave'),false);assert.equal(p.points,old);

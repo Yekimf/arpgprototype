@@ -2,13 +2,13 @@ import {test,expect} from '@playwright/test';
 import {createPlayer,generateDungeon,ALL_SKILLS} from '../../src/game.js';
 
 async function seedGame(page,extra={},zone='dungeon'){
-  const player=createPlayer();Object.assign(player,extra);
+  const player=createPlayer();Object.assign(player,{level:8,points:4,skills:{cleave:1,bolt:1,nova:1,lance:1},slots:['cleave','bolt','nova','lance'],mouseSkill:'bolt'},extra);
   await page.addInitScript(save=>localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify(save)),{version:1,player,seed:42710,depth:1,zone});
 }
 const state=page=>page.evaluate(()=>window.__reliquary.snapshot());
 
 test('movement, abilities, cooldowns, and mastery assignment work',async({page},info)=>{
-  const errors=[];page.on('pageerror',e=>errors.push(e.message));await seedGame(page);await page.goto('/');
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));await seedGame(page);await page.goto('/');await page.locator('[data-front="continue"]').click();
   await expect(page.locator('#world')).toBeVisible();await expect.poll(()=>state(page).then(s=>s.enemies)).toBeGreaterThan(20);
   const before=await state(page);
   if(info.project.name==='mobile'){
@@ -33,13 +33,13 @@ test('movement, abilities, cooldowns, and mastery assignment work',async({page},
 
 test('spatial inventory comparison, equipment, stash, and local save persist',async({page})=>{
   const inventory=[{id:'test-weapon',name:'Runic Falchion',slot:'weapon',rarity:'rare',level:2,damage:24,life:20,icon:'⚔'},{id:'test-charm',name:'Ashen Moonstone',slot:'charm',rarity:'magic',level:2,spirit:18,icon:'◈'}];
-  await seedGame(page,{inventory},'town');await page.goto('/');await page.locator('[data-panel="inventory"]').click();
+  await seedGame(page,{inventory},'town');await page.goto('/');await page.locator('[data-front="continue"]').click();await page.locator('[data-panel="inventory"]').click();
   await page.locator('[data-pack-id="test-weapon"]').click();await expect(page.locator('#item-detail')).toContainText('+24 Weapon damage');
   await page.locator('[data-town-action="equip"]').click();await expect(page.locator('[data-equip-slot="weapon"]')).toHaveAttribute('aria-label',/Runic Falchion/);
   await page.locator('[data-pack-id="test-charm"]').click();await page.locator('[data-town-action="store"]').click();
   const persisted=await page.evaluate(()=>JSON.parse(localStorage.getItem('ashen-reliquary-save-v1')));
   expect(persisted.player.equipment.weapon.damage).toBe(24);expect(persisted.player.inventory).toHaveLength(1);expect(persisted.player.stash).toHaveLength(1);
-  const restored=await page.context().newPage();await restored.goto('/');await restored.locator('[data-panel="inventory"]').click();
+  const restored=await page.context().newPage();await restored.goto('/');await restored.locator('[data-front="continue"]').click();await restored.locator('[data-panel="inventory"]').click();
   await expect(restored.locator('[data-equip-slot="weapon"]')).toHaveAttribute('aria-label',/Runic Falchion/);
   await restored.locator('[data-town-action="stash"]').click();await restored.locator('[data-container="stash"]').click();await restored.locator('[data-town-action="withdraw"]').click();
   expect((await restored.evaluate(()=>JSON.parse(localStorage.getItem('ashen-reliquary-save-v1')))).player.stash).toHaveLength(0);
@@ -50,7 +50,7 @@ test('all advanced abilities execute and death recovery preserves the character'
   const p=createPlayer();p.equipment.charm={name:'Test reservoir',slot:'charm',rarity:'rare',spirit:1000,icon:'◈'};
   const skills=Object.fromEntries(ALL_SKILLS.map(s=>[s.id,1]));
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await seedGame(page,{skills,slots:['quake','meteor','chain'],mana:900,equipment:p.equipment});await page.goto('/');
+  await seedGame(page,{skills,slots:['quake','meteor','chain'],mana:900,equipment:p.equipment});await page.goto('/');await page.locator('[data-front="continue"]').click();
   for(let slot=0;slot<3;slot++)await page.locator(`[data-slot="${slot}"]`).dispatchEvent('pointerdown');
   await page.waitForTimeout(1100);
   let s=await state(page);for(const id of ['quake','meteor','chain'])expect(s.cooldowns[id]).toBeGreaterThan(0);
@@ -62,7 +62,7 @@ test('all advanced abilities execute and death recovery preserves the character'
   await page.waitForTimeout(500);s=await state(page);for(const id of ['whirl','inferno','vortex'])expect(s.cooldowns[id]).toBeGreaterThan(0);
   // A second page with a fragile fixture exercises actual enemy damage and recovery.
   const fragile=await page.context().newPage(),f=createPlayer();f.hp=1;f.gold=100;
-  await seedGame(fragile,f);await fragile.goto('/');
+  await seedGame(fragile,f);await fragile.goto('/');await fragile.locator('[data-front="continue"]').click();
   await expect(fragile.locator('#modal-title')).toHaveText('Not yet forgotten.',{timeout:15000});
   await fragile.locator('[data-action="revive"]').click();
   expect((await state(fragile)).hp).toBeGreaterThan(100);
@@ -73,7 +73,7 @@ test('all advanced abilities execute and death recovery preserves the character'
 test('a full expedition can defeat the Warden, earn loot, and descend',async({page},info)=>{
   test.skip(info.project.name==='mobile','Desktop navigation covers floor progression; mobile input is covered separately.');
   const p=createPlayer();p.equipment.weapon.damage=2000;p.equipment.armor.armor=10000;
-  await seedGame(page,{equipment:p.equipment});await page.goto('/');
+  await seedGame(page,{equipment:p.equipment});await page.goto('/');await page.locator('[data-front="continue"]').click();
   const d=generateDungeon(42710),start=[Math.floor(d.start.x),Math.floor(d.start.y)],end=[Math.floor(d.portal.x),Math.floor(d.portal.y)],queue=[start],parents=new Map([[start.join(','),null]]);
   for(let i=0;i<queue.length;i++){const[x,y]=queue[i];if(x===end[0]&&y===end[1])break;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=`${nx},${ny}`;if(d.tiles[ny]?.[nx]&&!parents.has(k)){parents.set(k,[x,y]);queue.push([nx,ny]);}}}
   const path=[];let at=end;while(at){path.push({x:at[0]+.5,y:at[1]+.5});at=parents.get(at.join(','));}path.reverse();
