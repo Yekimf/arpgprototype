@@ -1,0 +1,182 @@
+import {generateItem, random} from './game.js';
+
+export const BAG={width:10,height:6}, STASH={width:10,height:8};
+export const EQUIPMENT={helm:'Head',charm:'Amulet',weapon:'Main hand',armor:'Body armor',shield:'Off hand',gloves:'Hands',belt:'Belt',ring:'Ring',boots:'Feet'};
+export const AFFIXES={life:'Life',crit:'Critical chance',bonus:'All damage',spirit:'Spirit'};
+export const NPCS=[
+  {id:'guide',name:'Sister Maelin',role:'HEALER & GUIDE',x:31.5,y:30.5,sprite:1,description:'Keeper of the last light'},
+  {id:'merchant',name:'Orrin',role:'PROVISIONS & TRADE',x:29.5,y:34.5,sprite:3,description:'A fair price for a hard road'},
+  {id:'smith',name:'Garran',role:'BLACKSMITH & REFORGING',x:36.5,y:31.5,sprite:3,description:'What breaks can be made stronger'},
+  {id:'scholar',name:'Edrin',role:'ARCHIVIST · IDENTIFICATION',x:34.5,y:36.5,sprite:2,description:'Every relic remembers'},
+];
+export const SLOT_ART={weapon:4,armor:6,helm:7,gloves:8,boots:9,belt:10,ring:11,charm:12,shield:13};
+export function itemSize(item){
+  if(item.width&&item.height)return {w:item.width,h:item.height};
+  return ({weapon:{w:/axe|mace/i.test(item.name)?2:1,h:3},armor:{w:2,h:3},shield:{w:2,h:3},helm:{w:2,h:2},gloves:{w:2,h:2},boots:{w:2,h:2},belt:{w:2,h:1},charm:{w:1,h:1},ring:{w:1,h:1}})[item.slot]||{w:1,h:1};
+}
+export const itemName=item=>item.identified===false?`Unidentified ${EQUIPMENT[item.slot]||'relic'}`:item.name;
+export const itemValue=item=>Math.max(1,Math.round(({normal:6,magic:14,rare:30,legendary:70}[item.rarity]||6)*(item.level||1)));
+export const buyPrice=item=>item.price??itemValue(item)*3;
+export function cellsFree(items,item,x,y,dimensions=BAG,ignoreId=item.id){
+  const {w,h}=itemSize(item);
+  if(!Number.isInteger(x)||!Number.isInteger(y)||x<0||y<0||x+w>dimensions.width||y+h>dimensions.height)return false;
+  return !items.some(other=>{
+    if(other.id===ignoreId||other.bagX<0||other.bagY<0||other.bagX===undefined)return false;
+    const size=itemSize(other);return x<other.bagX+size.w&&x+w>other.bagX&&y<other.bagY+size.h&&y+h>other.bagY;
+  });
+}
+export function findSpace(items,item,dimensions=BAG){
+  for(let y=0;y<dimensions.height;y++)for(let x=0;x<dimensions.width;x++)if(cellsFree(items,item,x,y,dimensions))return {x,y};
+  return null;
+}
+export function addToContainer(items,item,dimensions=BAG){
+  const spot=findSpace(items,item,dimensions);if(!spot)return false;
+  item.bagX=spot.x;item.bagY=spot.y;items.push(item);return true;
+}
+export function arrange(items,dimensions=BAG,sort=false){
+  if(sort)items.sort((a,b)=>{const sa=itemSize(a),sb=itemSize(b);return sb.w*sb.h-sa.w*sa.h||a.slot.localeCompare(b.slot);});
+  const placed=[];
+  for(const item of items){
+    if(sort||!cellsFree(placed,item,item.bagX,item.bagY,dimensions)){
+      const spot=findSpace(placed,item,dimensions);item.bagX=spot?.x??-1;item.bagY=spot?.y??-1;
+    }
+    placed.push(item);
+  }
+  return items.filter(i=>i.bagX<0).length;
+}
+export function migratePlayer(player){
+  player.slots=Array.from({length:4},(_,i)=>player.slots?.[i]||['cleave','bolt','nova','lance'][i]);
+  player.mouseSkill??='bolt';
+  player.stash??=[];player.shards??=0;player.identifyScrolls??=0;player.buyback??=[];
+  player.quests={guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false,...player.quests};
+  for(const slot of Object.keys(EQUIPMENT))player.equipment[slot]??=null;
+  for(const item of [...player.inventory,...player.stash,...Object.values(player.equipment).filter(Boolean)]){
+    item.id??=`legacy-${Math.random().toString(36).slice(2)}`;
+    item.durability??=100;item.identified??=true;item.reforges??=0;
+  }
+  arrange(player.inventory);arrange(player.stash,STASH);return player;
+}
+function result(ok,message,extra={}){return {ok,message,...extra};}
+export function equipItem(player,id){
+  const index=player.inventory.findIndex(i=>i.id===id),item=player.inventory[index];
+  if(!item)return result(false,'Choose an item first.');
+  if(item.identified===false)return result(false,'Identify this relic before equipping it.');
+  const old=player.equipment[item.slot],remaining=player.inventory.filter(i=>i.id!==id);
+  let spot=null;
+  if(old){spot=findSpace(remaining,old);if(!spot)return result(false,'Make space in your pack for the equipped item.');}
+  player.inventory.splice(index,1);player.equipment[item.slot]=item;
+  if(old){old.bagX=spot.x;old.bagY=spot.y;player.inventory.push(old);}
+  return result(true,`${item.name} equipped.`);
+}
+export function unequipItem(player,slot){
+  const item=player.equipment[slot];if(!item)return result(false,'That equipment slot is empty.');
+  if(!addToContainer(player.inventory,item))return result(false,'No room in your pack.');
+  player.equipment[slot]=null;return result(true,`${item.name} moved to your pack.`);
+}
+export function moveItem(player,id,toStash){
+  const source=toStash?player.inventory:player.stash,target=toStash?player.stash:player.inventory;
+  const index=source.findIndex(i=>i.id===id),item=source[index];if(!item)return result(false,'Item not found.');
+  if(!addToContainer(target,item,toStash?STASH:BAG))return result(false,toStash?'Your stash is full.':'Your pack is full.');
+  source.splice(index,1);return result(true,toStash?'Item stored safely.':'Item returned to your pack.');
+}
+export function identifyItem(player,id,scholar=false){
+  const item=player.inventory.find(i=>i.id===id);if(!item||item.identified!==false)return result(false,'Choose an unidentified item.');
+  if(scholar&&!player.quests.scholarRescued)return result(false,'Edrin is still trapped beneath the monastery.');
+  if(!scholar&&!player.identifyScrolls)return result(false,'You need a scroll of insight. Orrin sells them.');
+  if(!scholar)player.identifyScrolls--;item.identified=true;return result(true,`${item.name} revealed.`);
+}
+export function identifyAll(player){
+  if(!player.quests.scholarRescued)return result(false,'Rescue the archivist to unlock identification.');
+  const items=player.inventory.filter(i=>i.identified===false);if(!items.length)return result(false,'No unidentified relics in your pack.');
+  items.forEach(i=>i.identified=true);return result(true,`${items.length} relic${items.length===1?'':'s'} identified. No charge.`);
+}
+export function generateStock(level=1,seed=791){
+  const rng=random(seed),stock=[];
+  for(let i=0;i<9;i++){
+    const item=generateItem(rng,Math.max(1,Math.ceil(level/2)),i===8);
+    item.identified=true;item.durability=100;item.id=`shop-${seed}-${i}`;item.price=itemValue(item)*3;stock.push(item);
+  }
+  return stock;
+}
+export function buyItem(player,index){
+  const item=player.shopStock?.[index];if(!item)return result(false,'That item is no longer available.');
+  const price=buyPrice(item);if(player.gold<price)return result(false,`You need ${price} gold.`);
+  if(!addToContainer(player.inventory,item))return result(false,'No room in your pack.');
+  player.gold-=price;player.shopStock.splice(index,1);delete item.price;return result(true,`${item.name} purchased.`);
+}
+export function sellItem(player,id){
+  const index=player.inventory.findIndex(i=>i.id===id),item=player.inventory[index];if(!item)return result(false,'Choose an item from your pack.');
+  const price=itemValue(item);player.gold+=price;player.inventory.splice(index,1);player.buyback.unshift({...item,price});player.buyback=player.buyback.slice(0,8);
+  return result(true,`Sold for ${price} gold.`);
+}
+export function buyBack(player,index){
+  const item=player.buyback[index];if(!item)return result(false,'Item is no longer available.');
+  if(player.gold<item.price)return result(false,'Not enough gold.');
+  if(!addToContainer(player.inventory,item))return result(false,'No room in your pack.');
+  player.gold-=item.price;player.buyback.splice(index,1);delete item.price;return result(true,'Item bought back.');
+}
+export function buySupply(player,type){
+  const cost=type==='flask'?8:12;if(player.gold<cost)return result(false,`You need ${cost} gold.`);
+  if(type==='flask'&&player.potions>=5)return result(false,'Your flask is already full.');
+  player.gold-=cost;if(type==='flask')player.potions++;else player.identifyScrolls++;
+  return result(true,type==='flask'?'One flask charge restored.':'Scroll of insight purchased.');
+}
+export function salvageItem(player,id){
+  const index=player.inventory.findIndex(i=>i.id===id),item=player.inventory[index];if(!item)return result(false,'Choose an item from your pack.');
+  const shards={normal:1,magic:1,rare:2,legendary:4}[item.rarity]||1;
+  player.shards+=shards;player.inventory.splice(index,1);return result(true,`Salvaged into ${shards} ember shard${shards===1?'':'s'}.`);
+}
+export function reforgeCost(item){return {gold:25+(item.level||1)*10+(item.reforges||0)*20,shards:item.rarity==='legendary'?3:item.rarity==='rare'?2:1};}
+export function reforgeAffixes(item){return Object.keys(AFFIXES).filter(k=>item[k]>0&&!(k==='spirit'&&item.slot==='charm')&&!(k==='crit'&&item.slot==='ring'));}
+export function reforgeItem(player,id,affix,rng=Math.random){
+  const item=[...player.inventory,...Object.values(player.equipment).filter(Boolean)].find(i=>i.id===id);
+  if(!item)return result(false,'Choose an item first.');
+  if(item.identified===false)return result(false,'Identify this item before reforging it.');
+  if(!reforgeAffixes(item).includes(affix))return result(false,'Choose a magical property to reroll.');
+  const cost=reforgeCost(item);if(player.gold<cost.gold||player.shards<cost.shards)return result(false,`Reforging needs ${cost.gold} gold and ${cost.shards} ember shards.`);
+  const old=item[affix],scale=(1+(item.level||1)*.18)*({normal:1,magic:1.35,rare:1.8,legendary:2.5}[item.rarity]||1);
+  const range=affix==='life'?[5,22]:affix==='crit'?[1,5]:affix==='bonus'?[2,9]:[5,18];
+  const min=Math.max(1,Math.round(range[0]*scale)),max=Math.round(range[1]*scale);
+  let next=Math.round(min+rng()*(max-min));if(next===old)next=next<max?next+1:Math.max(min,next-1);
+  player.gold-=cost.gold;player.shards-=cost.shards;item[affix]=next;item.reforges=(item.reforges||0)+1;item.durability=100;
+  return result(true,`${AFFIXES[affix]} reforged: ${old} → ${next}.`,{old,value:next});
+}
+export function repairCost(player){return Object.values(player.equipment).filter(i=>i&&i.durability<100).reduce((sum,i)=>sum+Math.ceil((100-i.durability)*.55)+2,0);}
+export function repairAll(player){
+  const cost=repairCost(player);if(!cost)return result(false,'Your equipment is in perfect condition.');
+  if(player.gold<cost)return result(false,`Repairs cost ${cost} gold.`);
+  player.gold-=cost;Object.values(player.equipment).filter(Boolean).forEach(i=>i.durability=100);return result(true,'All equipped items repaired.');
+}
+export function acceptGuideQuest(player){
+  if(player.quests.guideMet)return result(false,'The Warden still holds the archivist. Seek the crypt gate.');
+  const gift={id:'maelin-talisman',name:'Hearthbound Talisman',slot:'charm',rarity:'magic',level:1,spirit:8,life:6,identified:false,durability:100,reforges:0,icon:'◈'};
+  if(!addToContainer(player.inventory,gift))return result(false,'Make one cell of room for Maelin’s keepsake.');
+  player.quests.guideMet=true;player.gold+=50;player.shards+=2;player.identifyScrolls+=2;
+  return result(true,'A promise made · +50 gold, 2 shards, 2 scrolls, and a mysterious talisman.');
+}
+export function claimGuideReward(player){
+  if(!player.quests.wardenDefeated||player.quests.guideRewarded)return result(false,'Return after defeating the Hollow Warden.');
+  player.quests.guideRewarded=true;player.gold+=120;player.shards+=3;return result(true,'The debt is paid · +120 gold and 3 ember shards. Edrin awaits you in town.');
+}
+export function generateTown(player){
+  const size=64,tiles=Array.from({length:size},()=>Array(size).fill(0));
+  for(let y=22;y<=43;y++)for(let x=22;x<=43;x++)if(Math.hypot((x-32.5)*.9,y-32.5)<12.5)tiles[y][x]=1;
+  const props=[
+    {type:'building',sprite:8,x:37,y:28.5,width:235,height:220},
+    {type:'building',sprite:9,x:29.5,y:26.5,width:220,height:210},
+    {type:'building',sprite:10,x:25.5,y:34,width:215,height:210},
+    {type:'building',sprite:11,x:40,y:39,width:225,height:220},
+    {type:'building',sprite:12,x:35.5,y:32.5,width:100,height:115},
+    {type:'building',sprite:13,x:35.5,y:35.5,width:95,height:90,stash:true},
+    {type:'building',sprite:15,x:33.5,y:23.5,width:170,height:160,exit:true},
+  ];
+  for(const [x,y]of[[23,27],[23,38],[29,42],[40,24],[43,31],[41,42],[25,23]])props.push({type:'building',sprite:7,x,y,width:160,height:190});
+  for(const [x,y]of[[30,30],[36,32],[30,36],[34,25]])props.push({type:'brazier',x,y,variant:1});
+  // Buildings occupy terrain; walk routes stay in front of entrances.
+  for(const b of props.filter(p=>p.type==='building'&&!p.stash&&!p.exit&&p.sprite!==7)){
+    const radius=b.sprite===12?.4:1.2;
+    for(let y=Math.floor(b.y-radius);y<=b.y+radius;y++)for(let x=Math.floor(b.x-radius);x<=b.x+radius;x++)if(tiles[y]?.[x])tiles[y][x]=0;
+  }
+  const seen=new Set();for(let y=0;y<size;y++)for(let x=0;x<size;x++)seen.add(y*size+x);
+  return {size,seed:7901,tiles,rooms:[],start:{x:32,y:32.5},portal:{x:33.5,y:24.5},enemies:[],props,depth:0,seen,bossDead:false,town:true,npcs:NPCS.filter(n=>n.id!=='scholar'||player.quests.scholarRescued).map(n=>({...n}))};
+}

@@ -1,0 +1,11 @@
+import {defineConfig,devices} from '@playwright/test';
+
+export default defineConfig({
+  testDir:'./tests/browser',
+  fullyParallel:false,
+  workers:1,
+  timeout:60000,
+  use:{baseURL:'http://127.0.0.1:5173',launchOptions:{executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']},trace:'retain-on-failure'},
+  webServer:{command:'npm run dev -- --port 5173',url:'http://127.0.0.1:5173',reuseExistingServer:!process.env.CI},
+  projects:[{name:'desktop',use:{viewport:{width:1440,height:1000}}},{name:'mobile',use:{...devices['Pixel 7'],defaultBrowserType:'chromium'}}],
+});
