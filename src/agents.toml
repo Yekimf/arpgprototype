@@ -1,0 +1,9 @@
+# ~/.codex/config.toml OR your-project/.codex/config.toml
+
+[agents.planner]
+description = "Lead architect that drafts and delegates plans."
+config_file = "agents/planner.toml"   # Path relative to this config file
+
+[agents.worker]
+description = "Fast execution agent for discrete coding tasks."
+config_file = "agents/worker.toml"
