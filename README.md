@@ -10,6 +10,15 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.9
+
+- Walking uses separately jointed thighs, shins and feet, a planted stance, lifted recovery, longer directional strides, slight torso movement and depth ordering. The painted guard and original armed combat sheet are retained.
+- Unarmed attacks use a six-pose elbow-driven jab and a closed fist, with the hit timed to extension. Gloves use fitted wrist landmarks and material details; the offhand glove sits behind the shield.
+- Character creation is a camp scene with one male loyalist, a name and Begin journey. Calling and surcoat cards have been removed. Existing saved origins and attributes remain compatible; skills are still learned through all three masteries.
+- Leather jerkins, mail hauberks, plate cuirasses and cloth vestments have separate painted inventory cutouts. Their visual family follows the same equipment look used by the player model, including legacy item names.
+- Wilderness edges use visible timber barriers, a forest-floor backdrop and trees beyond the playable boundary. A solid garrison gate blocks walking through the keep arch; approach from the road and press F to enter after recovering the chapter account.
+- Click navigation uses diagonal routes with body clearance, no corner cutting, straight-line smoothing and reachable ground selection at blocked edges. Movement clamps to waypoints to prevent overshooting. World projection now aligns actor feet and click coordinates with the ground.
+
 ## Version 0.8
 
 - Emberfall has roughly twice the enclosed ground, widely spaced services, an open central square, and four gates into the continuous wilderness. The legacy town uses the same expanded layout.
@@ -96,11 +105,11 @@ Unit checks cover procedural connectivity, progression, equipment transactions, 
 
 Runtime assets are committed; ordinary builds do not generate artwork. `npm run art:pack` rebuilds compressed scenery, equipment layers, simple prologue scenes and sprite foot offsets. The game uses cached painted sprites, not a runtime 3D engine. `npm run profile` samples town and stronghold rendering at 1440×900 with Chromium CPU throttled 4×; run it separately from other browser work. UI resolution stays native while Options controls world resolution. Sprite caches use compact image identities instead of embedding entire data URLs in cache keys.
 
-The portable v0.8 HTML is about **6.1 MiB**. A production-build sample at 1440×900 with 4× CPU throttling measured:
+The portable v0.9 HTML is about **6.5 MiB**. A production-build sample at 1440×900 with 4× CPU throttling measured:
 
 | Area | Median frame | 95th percentile | Sampled JavaScript heap |
 | --- | --- | --- | --- |
-| Emberfall | 50.3 ms | 68.1 ms | 16.2 MiB |
-| Marchgate | 51.5 ms | 67.4 ms | 16.5 MiB |
+| Emberfall | 54.3 ms | 70.6 ms | 19.4 MiB |
+| Marchgate | 60.2 ms | 77.5 ms | 17.6 MiB |
 
-Outdoor terrain uses 144 prebuilt half-resolution chunks, approximately 30 MiB of pixel storage in addition to JavaScript heap. These constrained samples represent about 19 FPS under throttling; render quality and the frame ceiling remain adjustable in Options. They do not establish sustained performance on a particular desktop.
+Outdoor terrain uses 144 prebuilt half-resolution chunks, approximately 30 MiB of pixel storage in addition to JavaScript heap. These constrained samples represent about 18 / 16 FPS under throttling; render quality and the frame ceiling remain adjustable in Options. They do not establish sustained performance on a particular desktop.

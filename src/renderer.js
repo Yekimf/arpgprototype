@@ -18,8 +18,8 @@ export class Renderer {
   configure(settings){this.settings=settings;this.canvas.style.filter=settings.brightness===100?'none':`brightness(${settings.brightness/100})`;this.resize();}
   resize(){this.w=window.innerWidth;this.h=window.innerHeight;const cap=({performance:[960,600],balanced:[1280,800],high:[1920,1200]})[this.settings?.quality||'balanced'],dpr=Math.min(devicePixelRatio||1,1,cap[0]/this.w,cap[1]/this.h);this.canvas.width=this.w*dpr;this.canvas.height=this.h*dpr;this.ctx.setTransform(dpr,0,0,dpr,0,0);this.zoom=this.w<650?.85:this.h<540?.85:1.12;this.needsDraw=true;}
   iso(x,y){return {x:(x-y)*34,y:(x+y)*17};}
-  screen(x,y,z=0){const p=this.iso(x,y);return{x:(p.x-this.camera.x)*this.zoom+(this.originX??this.w/2),y:(p.y-this.camera.y+17-z)*this.zoom+this.h*.53};}
-  unproject(x,y,z=0){const a=(x-(this.originX??this.w/2))/this.zoom+this.camera.x,b=(y-this.h*.53)/this.zoom+this.camera.y-17+z;return{x:(a/34+b/17)/2,y:(b/17-a/34)/2};}
+  screen(x,y,z=0){const p=this.iso(x,y);return{x:(p.x-this.camera.x)*this.zoom+(this.originX??this.w/2),y:(p.y-this.camera.y-z)*this.zoom+this.h*.53};}
+  unproject(x,y,z=0){const a=(x-(this.originX??this.w/2))/this.zoom+this.camera.x,b=(y-this.h*.53)/this.zoom+this.camera.y+z;return{x:(a/34+b/17)/2,y:(b/17-a/34)/2};}
   poly(points,fill,stroke=null,width=1){const c=this.ctx;c.beginPath();points.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.stroke();}}
   ellipse(x,y,rx,ry,fill){const c=this.ctx;c.fillStyle=fill;c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fill();}
   line(points,color,width=1){const c=this.ctx;c.beginPath();points.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.strokeStyle=color;c.lineWidth=width;c.stroke();}
@@ -56,14 +56,16 @@ export class Renderer {
       const canvas=document.createElement('canvas');canvas.width=612;canvas.height=352;
       const c=canvas.getContext('2d'),old=this.ctx;if(d.outdoor){canvas.width=306;canvas.height=176;c.scale(.5,.5);}this.ctx=c;c.translate(ox,0);
       for(let y=y0;y<Math.min(y0+8,d.size);y++)for(let x=x0;x<Math.min(x0+8,d.size);x++){
-        const camp=d.townBounds&&x>=d.townBounds.x1&&x<=d.townBounds.x2&&y>=d.townBounds.y1&&y<=d.townBounds.y2;if(!d.tiles[y][x]&&!camp&&!d.water?.has(y*d.size+x)&&!(d.town&&Math.hypot(x-32.5,y-32.5)<22))continue;
+        const camp=d.townBounds&&x>=d.townBounds.x1&&x<=d.townBounds.x2&&y>=d.townBounds.y1&&y<=d.townBounds.y2;if(!d.tiles[y][x]&&!camp&&!d.water?.has(y*d.size+x)&&!d.outdoor&&!(d.town&&Math.hypot(x-32.5,y-32.5)<22))continue;
         const point=this.iso(x,y),v={x:point.x-base.x,y:point.y-base.y};
       const n=((x*73856093^y*19349663)>>>0)%100;if(d.water?.has(y*d.size+x)){this.poly([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17]],n<50?'#202d28':'#283731','#334036',.5);this.line([[v.x-15,v.y+16],[v.x+11,v.y+16]],'#72837425');continue;}
       const color=n<15?'#293d30':n<45?'#344238':n<70?'#3a483d':'#414c40';
+      const outside=d.outdoor&&!d.tiles[y][x];
       const road=d.roads?.has(y*d.size+x)||d.town&&(Math.abs(x-32.5)<1.7||Math.abs(y-32.5)<1.7);
       const tile=this.terrain(d.town||d.outdoor?(road?1:0):2,n%4,d.act||1);
       if(tile){c.drawImage(tile,v.x-34,v.y,68,34);this.line([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17],[v.x,v.y]],'#0b07053a',.5);}
       else this.poly([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17]],color,'#121f18',1.5);
+      if(outside)this.poly([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17]],'#17180f99');
       this.line([[v.x,v.y+2],[v.x+31,v.y+17]],'#66705a44');
       if(!d.town&&n%4===0)this.line([[v.x-24,v.y+16],[v.x-5,v.y+23],[v.x+1,v.y+20],[v.x+10,v.y+23]],'#14131166');
       if(n%7===0){this.ellipse(v.x+6,v.y+16,15,6,'#33483266');this.ellipse(v.x+12,v.y+18,7,3,'#60764435');}
@@ -102,6 +104,7 @@ export class Renderer {
     if(refresh){
       const canvas=oldView?.canvas||document.createElement('canvas');canvas.width=width;canvas.height=height;
       const x=Math.floor(this.camera.x-width/2),y=Math.floor(this.camera.y-height/2),ctx=canvas.getContext('2d'),old=this.ctx;ctx.translate(-x,-y);this.ctx=ctx;
+      if(d.outdoor)this.forestFloor(ctx,d,x,y,width,height);
       this.chunkBudget=d.outdoor?Math.ceil(d.size/8)**2:Math.max(48,Math.ceil(4*(viewW+396)*(viewH+246)/73984)+12);
       for(let cy=0;cy<Math.ceil(d.size/8);cy++)for(let cx=0;cx<Math.ceil(d.size/8);cx++){const center=this.iso(cx*8+4,cy*8+4);if(Math.abs(center.x-this.camera.x)>viewW+396||Math.abs(center.y-this.camera.y)>viewH+246)continue;const cached=this.groundChunk(d,cx,cy);ctx.drawImage(cached.canvas,cached.x,cached.y,612,352);if(cached.fog)ctx.drawImage(cached.fog,cached.x,cached.y);}
       this.ctx=old;this.groundView={canvas,x,y,cx:this.camera.x,cy:this.camera.y,seen:d.seen.size,time:this.time,d};
@@ -118,7 +121,7 @@ export class Renderer {
     c.save();c.translate(this.originX,this.h*.53);c.scale(this.zoom,this.zoom);c.translate(-this.camera.x,-this.camera.y);
     const viewW=this.w/this.zoom/2+120,viewH=this.h/this.zoom/2+140;
     this.drawGround(d,viewW,viewH);
-    if(game.pyre){const v=this.iso(p.x,p.y);this.fireField(v.x,v.y+17,pyreStats(p,game.stats).radius,11);}
+    if(game.pyre){const v=this.iso(p.x,p.y);this.fireField(v.x,v.y,pyreStats(p,game.stats).radius,11);}
     c.globalAlpha=1;
     // Back walls, crenellated masonry, and scattered objects share painter ordering.
     const visible=o=>{const v=this.iso(o.x,o.y);return Math.abs(v.x-this.camera.x)<viewW&&Math.abs(v.y-this.camera.y)<viewH;};
@@ -135,13 +138,15 @@ export class Renderer {
     objects.sort((a,b)=>(a.x+a.y)-(b.x+b.y));
     for(const o of objects){const v=this.iso(o.x,o.y);if(Math.abs(v.x-this.camera.x)>viewW||Math.abs(v.y-this.camera.y)>viewH)continue;
       const near=distance(o,p);c.globalAlpha=d.town||d.outdoor&&o.type!=='enemy'||o.type==='hero'?1:clamp(1-(near-6)*.07,.25,1);
-      c.save();c.translate(v.x,v.y+17);
+      c.save();c.translate(v.x,v.y);
       if(o.type==='hero')this.hero(game);
       else if(o.type==='enemy')this.enemy(o.enemy,game);
       else if(o.type==='waypoint')this.waypoint(o,game);
       else if(o.type==='field'){this.sprite(13,65,64,9);this.worldLabel(o.label,'F · EXAMINE',-65);}
       else if(o.type==='supplies')this.supplies(o,game);
       else if(o.type==='wall')this.wall(o);
+      else if(o.type==='road-gate')this.roadGate(o);
+      else if(o.type==='frontier')this.frontier(o);
       else if(o.type==='palisade')this.palisade(o);
       else if(o.type==='brazier')this.brazier(o);
       else if(o.type==='pillar')this.pillar(o);
@@ -163,6 +168,22 @@ export class Renderer {
     if(game.hurtFlash>0){c.fillStyle=`rgba(130,22,15,${game.hurtFlash*.18})`;c.fillRect(0,0,this.w,this.h);}
     if(p.hp/game.stats.maxHp<.28){const g=c.createRadialGradient(this.w/2,this.h/2,this.h*.3,this.w/2,this.h/2,this.w*.65);g.addColorStop(0,'transparent');g.addColorStop(1,'#741b2355');c.fillStyle=g;c.fillRect(0,0,this.w,this.h);}
     this.drawMap(game);
+  }
+  roadGate(o){
+    const c=this.ctx;for(let i=0;i<o.span;i++){c.save();c.translate(i*34,i*17);this.frontier({axis:'x'});this.line([[8,-33],[8,0]],'#7c7560',2);this.line([[23,-26],[23,9]],'#746c57',2);c.restore();}
+
+  }
+  forestFloor(ctx,d,x,y,width,height){
+    this.forestTiles??=new Map();let floor=this.forestTiles.get(d.act||1);
+    if(!floor){const tile=this.terrain(0,0,d.act||1);if(!tile)return;floor=document.createElement('canvas');floor.width=136;floor.height=68;const c=floor.getContext('2d');for(const [tx,ty]of [[0,0],[-68,-34],[68,-34],[-68,34],[68,34]])c.drawImage(tile,tx,ty);c.globalCompositeOperation='source-atop';c.fillStyle='#10170db0';c.fillRect(0,0,136,68);this.forestTiles.set(d.act||1,floor);}
+    ctx.fillStyle=ctx.createPattern(floor,'repeat');ctx.fillRect(x,y,width,height);
+  }
+  frontier(o){
+    const dir=o.axis==='x'?{x:34,y:17}:{x:-34,y:17};
+    this.line([[0,-4],[dir.x,-4+dir.y]],'#13100b',7);
+    this.line([[0,-27],[dir.x,-27+dir.y]],'#4b3c27',5);
+    this.line([[0,-14],[dir.x,-14+dir.y]],'#59452b',4);
+    for(let i=0;i<=2;i++){const x=dir.x*i/2,y=dir.y*i/2;this.poly([[x-3,y],[x-4,y-32],[x,y-39],[x+4,y-32],[x+3,y]],'#393326','#15140f');this.line([[x-1,y-5],[x-1,y-29]],'#8a765344',1);}
   }
   palisade(o){let canvas=this.palisadeCache.get(o.axis);if(!canvas){canvas=document.createElement('canvas');canvas.width=96;canvas.height=96;const old=this.ctx;this.ctx=canvas.getContext('2d');this.ctx.translate(48,70);this.paintPalisade(o);this.ctx=old;this.palisadeCache.set(o.axis,canvas);}this.ctx.drawImage(canvas,-48,-70);}
   paintPalisade(o){
@@ -351,7 +372,7 @@ export class Renderer {
   }
   effects(game){
     const c=this.ctx;
-    for(const e of game.effects){const p=this.iso(e.x,e.y),progress=1-e.life/e.maxLife;c.save();c.translate(p.x,p.y+17);c.globalAlpha=Math.min(1,e.life*3);
+    for(const e of game.effects){const p=this.iso(e.x,e.y),progress=1-e.life/e.maxLife;c.save();c.translate(p.x,p.y);c.globalAlpha=Math.min(1,e.life*3);
       if(e.type==='ground-fire'){this.fireField(0,0,e.radius,Math.floor(e.x));
       }else if(e.type==='whirl'){const a=this.time*18;for(let i=0;i<3;i++){c.strokeStyle=i?'#c7c2a655':'#d6d0b088';c.lineWidth=1.2;c.beginPath();c.ellipse(0,-19,45+i*5,22+i*2,a+i*.2,0,Math.PI*.9);c.stroke();}
       }else if(e.type==='nova'||e.type==='quake'){

@@ -11,7 +11,7 @@ async function fixture(page,{zone='town',act=1,level=1,nearLevel=false,veteran=f
 }
 async function navigate(page,dungeon,target=dungeon.portal){
  await page.waitForFunction(()=>!window.__reliquary.snapshot().loading);
- const from=(await state(page)).position,path=findPath(dungeon,from,target);
+ const from=(await state(page)).position,path=findPath(dungeon,from,target,{smooth:false});
  return page.evaluate(async path=>{
   const press=(key,down)=>document.body.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',{key,bubbles:true}));let active=[];
   const set=next=>{for(const k of active)if(!next.includes(k))press(k,false);for(const k of next)if(!active.includes(k))press(k,true);active=next;};
@@ -22,11 +22,11 @@ async function navigate(page,dungeon,target=dungeon.portal){
 }
 
 test('new character creation presents the complete prologue and starts with only a strike',async({page},info)=>{
- const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));expect(await page.evaluate(()=>localStorage.getItem('ashen-reliquary-save-v1'))).toBeNull();await expect(page.locator('.title-copy h1')).toContainText('ASHEN');await page.locator('[data-front="create"]').click();await page.locator('#character-name').fill('Ser Rowan');await page.locator('input[name="origin"][value="templar"]').check();await page.locator('input[name="appearance"][value="iron"]').check();await page.locator('#creation-form button[type="submit"]').click();
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));expect(await page.evaluate(()=>localStorage.getItem('ashen-reliquary-save-v1'))).toBeNull();await expect(page.locator('.title-copy h1')).toContainText('ASHEN');await page.locator('[data-front="create"]').click();await page.locator('#character-name').fill('Ser Rowan');await expect(page.locator('input[name="sex"][value="male"]')).toBeChecked();await expect(page.locator('[name="origin"]')).toHaveCount(0);await page.locator('#creation-form button[type="submit"]').click();
  for(let i=0;i<PROLOGUE.length;i++){await expect(page.locator('.cinematic-subtitles h2')).toHaveText(PROLOGUE[i].title);await expect(page.locator('.sketch-page')).toHaveAttribute('data-scene',String(i));await expect.poll(()=>page.locator('.sketch-page').evaluate(c=>c.width/c.height)).toBeGreaterThan(1.7);const canvasBounds=await page.locator('.sketch-page').evaluate(c=>{const r=c.getBoundingClientRect();return{covers:r.left<=1&&r.top<=1&&r.right>=innerWidth-1&&r.bottom>=innerHeight-1};});expect(canvasBounds.covers).toBe(true);await expect(page.locator('.cinematic-subtitles p')).toContainText(PROLOGUE[i].text.split('.')[0]);if(i===0){await page.locator('[data-front="hold"]').click();await expect(page.locator('#front-end')).toHaveClass(/scene-paused/);await page.locator('[data-front="hold"]').click();}await page.locator('[data-front="next"]').click();}
  await expect(page.locator('#front-end')).toBeHidden();let s=await state(page);expect(s.zone).toBe('town');expect(s.level).toBe(1);expect(s.points).toBe(0);expect(s.skills).toEqual({});expect(s.slots).toEqual([null,null,null,null]);expect(s.mouseSkill).toBe('basic');expect(s.campaign.act).toBe(1);
  await page.locator('[data-panel="skills"]').click();await expect(page.locator('[data-learn="cleave"]')).toBeDisabled();await page.locator('[data-action="close"]').last().click();await page.locator('[data-panel="inventory"]').click();await page.screenshot({path:`/tmp/arpg-v05/${info.project.name}-final-inventory.png`});await page.locator('[data-action="close"]').last().click();
- await page.reload();await expect(page.locator('[data-front="continue"]')).toContainText('Ser Rowan');await page.locator('[data-front="continue"]').click();await expect(page.locator('#area-loading')).toBeHidden();s=await state(page);expect(s.attributes.will).toBe(3);expect(errors).toEqual([]);
+ await page.reload();await expect(page.locator('[data-front="continue"]')).toContainText('Ser Rowan');await page.locator('[data-front="continue"]').click();await expect(page.locator('#area-loading')).toBeHidden();s=await state(page);expect(s.attributes.will).toBe(0);expect(errors).toEqual([]);
 });
 test('a real kill earns a level, a first learned skill, and allocatable attributes',async({page},info)=>{
  await fixture(page,{zone:'dungeon',nearLevel:true});const before=await state(page);let cdp;

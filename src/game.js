@@ -65,22 +65,23 @@ export function moveEntity(dungeon,entity,dx,dy,radius=.21) {
   if(isWalkable(dungeon,entity.x,entity.y+dy,radius)) entity.y+=dy;
 }
 
-export function findPath(dungeon,from,to) {
-  if(!isWalkable(dungeon,to.x,to.y))return [];
-  const width=dungeon.tiles[0].length,height=dungeon.tiles.length;
-  const start=Math.floor(from.y)*width+Math.floor(from.x),end=Math.floor(to.y)*width+Math.floor(to.x);
-  const parents=new Int32Array(width*height).fill(-1),queue=[start];parents[start]=start;
-  for(let i=0;i<queue.length&&parents[end]===-1;i++){
-    const at=queue[i],x=at%width,y=Math.floor(at/width);
-    for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){
-      const nx=x+dx,ny=y+dy,next=ny*width+nx;
-      if(dungeon.tiles[ny]?.[nx]&&parents[next]===-1){parents[next]=at;queue.push(next);}
-    }
+export function clearPath(d,a,b,radius=.23){const steps=Math.max(1,Math.ceil(distance(a,b)/.12));for(let i=0;i<=steps;i++){const t=i/steps;if(!isWalkable(d,a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,radius))return false;}return true;}
+export function findPath(dungeon,from,to,{smooth=true}={}) {
+  if(!isWalkable(dungeon,to.x,to.y,.23)||!isWalkable(dungeon,from.x,from.y,.21))return [];
+  if(smooth&&clearPath(dungeon,from,to))return [{x:to.x,y:to.y}];
+  const width=dungeon.tiles[0].length,height=dungeon.tiles.length,start=Math.floor(from.y)*width+Math.floor(from.x),end=Math.floor(to.y)*width+Math.floor(to.x),parents=new Int32Array(width*height).fill(-1),cost=new Float64Array(width*height).fill(Infinity),closed=new Uint8Array(width*height),heap=[];
+  const centre=id=>({x:id%width+.5,y:Math.floor(id/width)+.5});
+  const push=value=>{heap.push(value);let i=heap.length-1;while(i>0){const p=(i-1)>>1;if(heap[p].score<=value.score)break;heap[i]=heap[p];i=p;}heap[i]=value;};
+  const pop=()=>{const first=heap[0],last=heap.pop();if(heap.length){let i=0;while(i*2+1<heap.length){let child=i*2+1;if(child+1<heap.length&&heap[child+1].score<heap[child].score)child++;if(heap[child].score>=last.score)break;heap[i]=heap[child];i=child;}heap[i]=last;}return first;};
+  cost[start]=0;parents[start]=start;push({id:start,score:distance(from,to)});
+  while(heap.length){const {id}=pop();if(closed[id])continue;closed[id]=1;if(id===end)break;const at=centre(id),x=id%width,y=Math.floor(id/width);
+    for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=width||ny>=height)continue;const next=ny*width+nx,point=centre(next);if(closed[next]||!isWalkable(dungeon,point.x,point.y,.23)||dx&&dy&&(!dungeon.tiles[y]?.[nx]||!dungeon.tiles[ny]?.[x])||!clearPath(dungeon,at,point))continue;const value=cost[id]+Math.hypot(dx,dy);if(value>=cost[next])continue;cost[next]=value;parents[next]=id;push({id:next,score:value+distance(point,to)});}
   }
   if(parents[end]===-1)return [];
-  const path=[];let at=end;
-  while(at!==start){path.push({x:at%width+.5,y:Math.floor(at/width)+.5});at=parents[at];}
-  path.reverse();path.push({x:to.x,y:to.y});return path;
+  const raw=[{x:to.x,y:to.y}];let at=end;while(at!==start){raw.push(centre(at));at=parents[at];}raw.reverse();
+  if(!clearPath(dungeon,from,raw[0]))raw.unshift(centre(start));
+  if(!smooth)return raw;
+  const path=[];let anchor=from,index=0;while(index<raw.length){let next=index;while(next+1<raw.length&&clearPath(dungeon,anchor,raw[next+1]))next++;path.push(raw[next]);anchor=raw[next];index=next+1;}return path;
 }
 
 export const MASTERIES = {
@@ -139,7 +140,7 @@ export const xpNeeded=level=>Math.round(55+level*30+Math.pow(level,1.7)*10);
 export const ORIGINS={vanguard:{name:'Royal Vanguard',description:'You held the king’s shield wall. Strength and endurance are your inheritance.',attributes:{might:2,vitality:2,will:0,dexterity:0}},templar:{name:'Royal Chirurgeon',description:'You served the field hospitals. Steady hands and knowledge of herbs kept the wounded alive.',attributes:{might:0,vitality:1,will:3,dexterity:0}},outrider:{name:'King’s Outrider',description:'You carried the king’s word beyond the walls. Your blade is swift and certain.',attributes:{might:1,vitality:0,will:0,dexterity:3}}};
 export function createPlayer(options={}) {
   const origin=ORIGINS[options.origin]?options.origin:'vanguard';
-  return {name:String(options.name||'The Loyalist').trim().slice(0,24),origin,appearance:options.appearance==='iron'?'iron':'crimson',progressionVersion:2,attributes:{...ORIGINS[origin].attributes},attributePoints:0,x:0,y:0,level:1,xp:0,gold:0,points:0,skills:{},slots:[null,null,null,null],mouseSkill:'basic',equipment:{weapon:{name:'King’s Service Sword',slot:'weapon',rarity:'normal',damage:5,level:1,icon:'⚔',id:'starter-sword'},armor:{name:'Weathered Hauberk',slot:'armor',rarity:'normal',armor:3,level:1,icon:'⛊',id:'starter-armor'},charm:null,boots:{id:'starter-greaves',name:'Worn Greaves',slot:'boots',rarity:'normal',level:1,look:'steel'},helm:{id:'starter-helm',name:'Worn Sallet',slot:'helm',rarity:'normal',level:1,armor:1,look:'sallet'},gloves:{id:'starter-gauntlets',name:'Worn Gauntlets',slot:'gloves',rarity:'normal',level:1,look:'steel'},belt:null,ring:null,ring2:null,shield:{id:'starter-buckler',name:'Scarred Buckler',slot:'shield',rarity:'normal',level:1,armor:1,block:4,look:'round'}},inventory:[],stash:[],shards:0,identifyScrolls:0,buyback:[],shopStock:null,quests:{guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false},hp:120,mana:80,potions:3,kills:0,deaths:0};
+  return {sex:'male',name:String(options.name||'The Loyalist').trim().slice(0,24),origin,appearance:options.appearance==='iron'?'iron':'crimson',progressionVersion:2,attributes:{...ORIGINS[origin].attributes},attributePoints:0,x:0,y:0,level:1,xp:0,gold:0,points:0,skills:{},slots:[null,null,null,null],mouseSkill:'basic',equipment:{weapon:{name:'King’s Service Sword',slot:'weapon',rarity:'normal',damage:5,level:1,icon:'⚔',id:'starter-sword'},armor:{name:'Weathered Hauberk',slot:'armor',rarity:'normal',armor:3,level:1,icon:'⛊',id:'starter-armor'},charm:null,boots:{id:'starter-greaves',name:'Worn Greaves',slot:'boots',rarity:'normal',level:1,look:'steel'},helm:{id:'starter-helm',name:'Worn Sallet',slot:'helm',rarity:'normal',level:1,armor:1,look:'sallet'},gloves:{id:'starter-gauntlets',name:'Worn Gauntlets',slot:'gloves',rarity:'normal',level:1,look:'steel'},belt:null,ring:null,ring2:null,shield:{id:'starter-buckler',name:'Scarred Buckler',slot:'shield',rarity:'normal',level:1,armor:1,block:4,look:'round'}},inventory:[],stash:[],shards:0,identifyScrolls:0,buyback:[],shopStock:null,quests:{guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false},hp:120,mana:80,potions:3,kills:0,deaths:0};
 }
 export function grantExperience(player,amount){
   if(!Number.isFinite(amount)||amount<=0)return 0;player.xp+=amount;let levels=0;

@@ -1,3 +1,4 @@
+import {frontierEdges} from './wilderness-boundary.js';
 import {chapterFor,dressEnemy} from './campaign-content.js';
 import {generateTown,TOWN_BOUNDS} from './settlement.js';
 import {generateDungeon,makeEnemy,random,distance,isWalkable} from './game.js';
@@ -53,6 +54,7 @@ export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
    for(let x=townBounds.x1;x<=townBounds.x2;x++)for(const y of [townBounds.y1,townBounds.y2])if(Math.abs(x-48.5)>2.7){tiles[y][x]=0;props.push({type:'palisade',axis:'x',x:x+.5,y:y+.5});}
    for(let y=townBounds.y1+1;y<townBounds.y2;y++)for(const x of [townBounds.x1,townBounds.x2])if(Math.abs(y-51.5)>2.7){tiles[y][x]=0;props.push({type:'palisade',axis:'y',x:x+.5,y:y+.5});}
  }
+ const sealNorth=()=>{for(let y=0;y<18;y++)for(let x=0;x<size;x++){tiles[y][x]=0;roads.delete(y*size+x);}};sealNorth();
  let id=1;
  for(let y=8;y<89;y+=5)for(let x=8;x<89;x+=5){const at={x:x+rng()*3,y:y+rng()*3};if(!isWalkable({tiles},at.x,at.y)||townBounds&&at.x>townBounds.x1-6&&at.x<townBounds.x2+6&&at.y>townBounds.y1-6&&at.y<townBounds.y2+6||distance(at,start)<9||distance(at,portal)<4)continue;if(rng()<.5)enemies.push(dressEnemy(makeEnemy(id++,at.x,at.y,'skeleton',actFor(act).level+chapter*2,rng()<.075),act,rng));}
  // Preserve several routes through each grove. Decorative trees never block a road.
@@ -62,6 +64,12 @@ export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
  props.push({type:'building',sprite:15,x:portal.x,y:portal.y-1,width:225,height:230,exit:true});
  const waypoint={x:56.5,y:30.5},supplies={x:67.5,y:27.5};carve(waypoint.x,waypoint.y,2);carve(supplies.x,supplies.y,2);carve(portal.x,portal.y,3);
  carve(37.5,29.5,2);
+ // The keep's gate is a solid barrier. Approach its south side and interact;
+ // the arch is not a walk-through opening onto the back of the map.
+ sealNorth();
+ for(let x=1;x<size-1;x++)if(tiles[18][x]&&(x<74||x>79))props.push({type:'frontier',axis:'x',x,y:18});
+ props.push({type:'road-gate',x:74,y:18,span:6});
+ props.push(...frontierEdges(tiles,water));
  const d={seed,size,tiles,rooms,start,portal,enemies,props,roads,water,depth:act,seen:new Set(),bossDead:false,outdoor:true,act,kind:'wilderness',chapter,field:{x:37.5,y:29.5,label:ch.task},waypoint,supplies,exitReady:true,townBounds,npcs:[]};
  if(camp){d.npcs=generateTown(player).npcs.map(n=>({...n,x:n.x+16,y:n.y+18}));d.townWaypoint={x:49,y:52};for(let y=townBounds.y1-2;y<=townBounds.y2+2;y++)for(let x=townBounds.x1-2;x<=townBounds.x2+2;x++)d.seen.add(y*size+x);}
  return d;

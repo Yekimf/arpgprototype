@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generateDungeon,random,isWalkable,moveEntity,findPath,createPlayer,playerStats,learnSkill,canLearn,masteryPoints,generateItem,xpNeeded} from '../src/game.js';
+import {generateDungeon,random,isWalkable,moveEntity,findPath,clearPath,createPlayer,playerStats,learnSkill,canLearn,masteryPoints,generateItem,xpNeeded} from '../src/game.js';
 
 test('100 generated dungeons have connected rooms, reachable bosses, and safe spawn points',()=>{
   for(let seed=0;seed<100;seed++){
@@ -42,7 +42,7 @@ test('masteries enforce tier requirements, rank caps, and point costs',()=>{
 test('click movement finds a walkable route around obstacles to the boss',()=>{
   const d=generateDungeon(19284),path=findPath(d,d.start,d.portal);
   assert.ok(path.length>2);assert.deepEqual(path.at(-1),d.portal);
-  let previous=d.start;for(const step of path){assert.ok(isWalkable(d,step.x,step.y));assert.ok(Math.hypot(step.x-previous.x,step.y-previous.y)<=1.01);previous=step;}
+  let previous=d.start;for(const step of path){assert.ok(isWalkable(d,step.x,step.y));assert.ok(clearPath(d,previous,step));previous=step;}
   assert.deepEqual(findPath(d,d.start,{x:0,y:0}),[]);
 });
 test('passives, equipment, and cross-mastery convergence affect actual combat stats',()=>{

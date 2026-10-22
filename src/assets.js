@@ -32,3 +32,6 @@ import stone from './art/runtime/inventory-stone.webp?inline';
 export const GUARD_ART=localAsset(guard);
 export const ORIGINAL_ART=localAsset(original);
 export const STONE_ART=localAsset(stone);
+
+import armorIcons from './art/runtime/armor-icons.webp?inline';
+export const ARMOR_ART=localAsset(armorIcons);

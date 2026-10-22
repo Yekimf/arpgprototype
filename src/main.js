@@ -1,3 +1,4 @@
+import {planWalk} from './navigation.js';
 import {bossPlan} from './boss-abilities.js';
 import {CHAPTERS,chapterFor} from './campaign-content.js';
 import {DEFAULTS,loadSettings,saveSettings,sanitizeSettings,optionsMarkup} from './settings.js';
@@ -172,9 +173,9 @@ function hurt(amount,element='physical'){
 function basicAttack(target=null){
   if(game.zone==='town'||game.channel||game.dodgeTime>0||game.attackCooldown>0||game.paused||player.hp<=0)return false;
   if(player.equipment.weapon)player.equipment.weapon.durability=Math.max(0,(player.equipment.weapon.durability??100)-.12);
-  const unarmed=!player.equipment.weapon;game.attackStyle=unarmed?'punch':'strike';game.castColor=null;game.attackCooldown=.48/game.stats.attackSpeed;game.attackAnim=unarmed?.3:.38;game.castLock=unarmed?.2:.28;const aim=target||aimPoint();facePoint(aim);const ax=aim.x-player.x,ay=aim.y-player.y,len=Math.hypot(ax,ay)||1;
+  const unarmed=!player.equipment.weapon;game.attackStyle=unarmed?'punch':'strike';game.castColor=null;game.attackCooldown=.48/game.stats.attackSpeed;game.attackAnim=unarmed?.32:.38;game.castLock=unarmed?.2:.28;const aim=target||aimPoint();facePoint(aim);const ax=aim.x-player.x,ay=aim.y-player.y,len=Math.hypot(ax,ay)||1;
   if(!unarmed)effect('slash',player.x,player.y,.28,{dx:ax/len,dy:ay/len,radius:game.stats.reach});
-  game.melee={remaining:unarmed?.1:.14,ax:ax/len,ay:ay/len,unarmed};
+  game.melee={remaining:unarmed?.145:.14,ax:ax/len,ay:ay/len,unarmed};
   return true;
 }
 function cast(slot){return castSkill(player.slots[slot]);}
@@ -280,7 +281,7 @@ function update(dt){
   for(const id in game.cooldowns)game.cooldowns[id]=Math.max(0,game.cooldowns[id]-dt);
   player.mana=Math.min(game.stats.maxMana,player.mana+game.stats.regen*dt);
   tickFlask(player,game.stats,dt,game.zone==='town');if(player.hp>0)player.hp=Math.min(game.stats.maxHp,player.hp+dt*game.stats.lifeRegen);
-  let m=movement();const manual=Math.hypot(m.x,m.y)>.05;
+  let m=movement(),stepLimit=Infinity;const manual=Math.hypot(m.x,m.y)>.05;
   if(manual){game.target=null;game.path=null;game.interactTarget=null;game.combatTarget=null;game.attackPending=false;}
   if(game.primaryHeld&&game.primaryMode==='move'&&mouseScreen&&game.moveRefresh<=0&&game.pointerOverWorld&&!manual){
     game.moveRefresh=.16;walkTo(renderer.unproject(mouseScreen.x,mouseScreen.y),false);
@@ -292,14 +293,14 @@ function update(dt){
   }
   if(!manual&&game.target){
     if(game.target.dead){game.target=null;game.path=null;}
-    while(game.path?.length&&distance(player,game.path[0])<.2)game.path.shift();
+    while(game.path?.length&&distance(player,game.path[0])<.08)game.path.shift();
     const waypoint=game.path?.[0]||game.target||player;
     const dx=waypoint.x-player.x,dy=waypoint.y-player.y,len=Math.hypot(dx,dy);
-    if(len>.2){m={x:dx/len,y:dy/len};}else game.target=null;
+    if(len>.035){m={x:dx/len,y:dy/len};stepLimit=len;}else game.target=null;
   }
   const beforeMove={x:player.x,y:player.y};
   if(game.dodgeTime>0){game.dodgeTime=Math.max(0,game.dodgeTime-dt);m=game.dodgeVector;moveEntity(game.dungeon,player,m.x*13*dt,m.y*13*dt);}
-  else if(game.castLock<=0)moveEntity(game.dungeon,player,m.x*game.stats.speed*dt*(game.playerSlow>0?.6:1),m.y*game.stats.speed*dt*(game.playerSlow>0?.6:1));
+  else if(game.castLock<=0){const step=Math.min(stepLimit,game.stats.speed*dt*(game.playerSlow>0?.6:1));moveEntity(game.dungeon,player,m.x*step,m.y*step);}
   game.moving=distance(beforeMove,player)>.0001;if(game.moving){game.lastMove={...m};game.walkPhase+=distance(beforeMove,player)*8/1.8;if(game.attackAnim<=0)game.facing={...m};}
 
   if(game.moving)dialogue.close();
@@ -519,15 +520,10 @@ $('world').addEventListener('contextmenu',e=>e.preventDefault());
 $('world').addEventListener('pointerenter',()=>game.pointerOverWorld=true);
 $('world').addEventListener('pointerleave',()=>game.pointerOverWorld=false);
 $('world').addEventListener('pointermove',e=>{if(e.pointerType!=='touch'){mouseScreen={x:e.clientX,y:e.clientY};game.pointerOverWorld=true;game.aim=aimPoint();}});
-function setMoveTarget(target){game.target=target;game.path=findPath(game.dungeon,player,target);}
+function setMoveTarget(target){const plan=planWalk(game.dungeon,player,target,findPath);if(!plan){game.target=null;game.path=null;return false;}game.target=plan.target;game.path=plan.path;return true;}
 function walkTo(point,marker=true){
-  let target=point;
-  if(!isWalkable(game.dungeon,target.x,target.y)){
-    const options=[];for(let y=Math.floor(point.y)-1;y<=Math.floor(point.y)+1;y++)for(let x=Math.floor(point.x)-1;x<=Math.floor(point.x)+1;x++)if(isWalkable(game.dungeon,x+.5,y+.5))options.push({x:x+.5,y:y+.5});
-    target=options.sort((a,b)=>distance(a,point)-distance(b,point))[0];if(!target||distance(target,point)>1.5)return false;
-  }
-  const path=findPath(game.dungeon,player,target);if(!path.length)return false;
-  game.target={...target};game.path=path;if(marker)effect('destination',target.x,target.y,.65,{radius:.35});return true;
+  const plan=planWalk(game.dungeon,player,point,findPath);if(!plan){if(marker)toast('No clear path to that ground.',1200);return false;}
+  game.target=plan.target;game.path=plan.path;if(marker)effect('destination',plan.target.x,plan.target.y,.65,{radius:.35});return true;
 }
 $('world').addEventListener('pointerdown',e=>{
   if(game.paused||game.loading)return;dialogue.close();e.preventDefault();$('world').focus({preventScroll:true});$('skill-picker').classList.add('hidden');townUI.hud.hideTooltip();
