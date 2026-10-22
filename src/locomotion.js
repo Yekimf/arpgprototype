@@ -8,20 +8,12 @@ export function facingPose(direction){
  const screen={x:Math.sin(a),y:-Math.cos(a)},flatLength=Math.hypot(screen.x,screen.y/.5),forward={x:screen.x/flatLength,y:screen.y/.5/flatLength};
  return {index,screen,forward,back:screen.y<-.01,mirror:screen.x<-.01,profile:.72+.28*Math.abs(screen.y),turn:screen.x*screen.y*.11};
 }
-// Hip and heel lanes are parallel in the ground plane. They never swap sides.
-// Forward travel is separate from stance width, so side-on strides remain long
-// without opening the legs laterally when approaching or leaving the camera.
-export function walkingLeg(phase,leg,face,forward){
- const sign=leg===0?-1:1,u=((phase/(2*Math.PI)+leg*.5)%1+1)%1,stance=u<.5,t=stance?u*2:(u-.5)*2;
- const travel=stance?.5-t:-.5+(1-Math.cos(t*Math.PI))/2,lift=stance?0:Math.sin(t*Math.PI)*15,side={x:-forward.y,y:forward.x*.5};
- const hipCenter={x:(face.legs[0].hip[0]+face.legs[1].hip[0])*160,y:(face.legs[0].hip[1]+face.legs[1].hip[1])*160+22};
+// Keep each painted leg intact. Only translate it vertically through alternating
+// lifted/planted poses, with fixed narrow tracks and no knee or boot warping.
+export function walkingLeg(phase,leg,face){
+ const part=face.legs[leg],center=(face.legs[0].ankle[0]+face.legs[1].ankle[0])*160;
  const floor=(face.legs[0].ankle[1]+face.legs[1].ankle[1])*160;
- return {hip:{x:hipCenter.x+side.x*sign*19,y:hipCenter.y+side.y*sign*19},heel:{x:hipCenter.x+side.x*sign*17+forward.x*112*travel,y:floor+side.y*sign*17+forward.y*36*travel-lift},stance,lift,lane:sign*17};
-}
-
-// Re-aim the painted boot on the ground without rotating its upright cuff.
-// Both toes share one projected heading; the ankle stays attached to the shin.
-export function walkingFoot(forward,toe){
- const width=.68,heading=forward.x*.95;
- return {width,shear:heading-width*toe.x/toe.y};
+ const lift=Math.max(0,Math.sin(phase+leg*Math.PI))*14;
+ const heel={x:center+(leg===0?-22:22),y:floor-lift};
+ return {x:heel.x-part.ankle[0]*320,y:heel.y-part.ankle[1]*320,heel,lift};
 }
