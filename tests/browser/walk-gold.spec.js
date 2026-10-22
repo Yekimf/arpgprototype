@@ -1,8 +1,9 @@
 import {test,expect} from '@playwright/test';
-import {createPlayer,generateDungeon} from '../../src/game.js';
+import {generateDungeon} from '../../src/game.js';
+import {createEquippedPlayer} from '../fixtures.js';
 import {followPath} from './helpers.js';
 const state=page=>page.evaluate(()=>window.__reliquary.snapshot());
-async function load(page,zone='dungeon'){const p=createPlayer();p.level=8;p.equipment.weapon.damage=5000;p.equipment.armor.armor=10000;p.skills={chain:1};p.slots=['chain',null,null,null];await page.addInitScript(p=>localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify({version:1,player:p,depth:1,seed:42710,zone:p.testZone})),{...p,testZone:zone});await page.goto('/');await page.locator('[data-front=continue]').click();await expect(page.locator('#area-loading')).toBeHidden();}
+async function load(page,zone='dungeon'){const p=createEquippedPlayer();p.level=8;p.equipment.weapon.damage=5000;p.equipment.armor.armor=10000;p.skills={chain:1};p.slots=['chain',null,null,null];await page.addInitScript(p=>localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify({version:1,player:p,depth:1,seed:42710,zone:p.testZone})),{...p,testZone:zone});await page.goto('/');await page.locator('[data-front=continue]').click();await expect(page.locator('#area-loading')).toBeHidden();}
 test('the painted guard uses sixteen walk frames and keeps its facing when stopped',async({page})=>{
  await load(page,'town');await page.keyboard.down('ArrowRight');const columns=new Set();for(let i=0;i<25;i++){await page.waitForTimeout(22);const s=await state(page);if(s.moving){expect(s.animation.directions).toBe(16);columns.add(s.animation.column);}}await page.keyboard.up('ArrowRight');expect(columns.size).toBeGreaterThan(8);expect(Math.max(...columns)).toBeGreaterThan(8);await expect.poll(()=>state(page).then(s=>s.animation.action)).toBe('idle');const row=(await state(page)).animation.row;await page.mouse.move(10,20);await page.waitForTimeout(100);expect((await state(page)).animation.row).toBe(row);await page.screenshot({path:'test-results/narrow-walk-guard.png'});
 });

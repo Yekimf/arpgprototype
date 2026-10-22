@@ -1,18 +1,18 @@
 import {speak,closeConversationOrPanel} from './helpers.js';
 import {test,expect} from '@playwright/test';
-import {createPlayer} from '../../src/game.js';
+import {createEquippedPlayer} from '../fixtures.js';
 
 const snapshot=page=>page.evaluate(()=>window.__reliquary.snapshot());
 const save=page=>page.evaluate(()=>JSON.parse(localStorage.getItem('ashen-reliquary-save-v1')).player);
 async function seedTown(page,extra={}){
-  const player=Object.assign(createPlayer(),{level:8,skills:{cleave:1,bolt:1,nova:1},slots:['cleave','bolt','nova',null],mouseSkill:'bolt'},extra);
+  const player=Object.assign(createEquippedPlayer(),{level:8,skills:{cleave:1,bolt:1,nova:1},slots:['cleave','bolt','nova',null],mouseSkill:'bolt'},extra);
   await page.addInitScript(data=>localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify(data)),{version:1,player,depth:1,seed:42710,zone:'town'});
 }
 async function talk(page,id,title){await speak(page,id,['merchant','smith'].includes(id)?id:null);if(['guide','scholar'].includes(id))await expect(page.locator('#npc-dialogue header')).toHaveText(id==='guide'?'Sister Maelin':'Edrin');else await expect(page.locator('#modal-title')).toHaveText(title);}
 const close=closeConversationOrPanel;
 
 test('town guide, identification scroll, merchant, buyback, repairs, and reforging work',async({page},info)=>{
-  const equipment=createPlayer().equipment;equipment.armor.durability=45;
+  const equipment=createEquippedPlayer().equipment;equipment.armor.durability=45;
   await seedTown(page,{gold:200,equipment});const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.locator('[data-front="continue"]').click();await expect(page.locator('#area-loading')).toBeHidden();
   await expect.poll(()=>snapshot(page).then(s=>s.artLoaded)).toBe(true);
   expect((await snapshot(page)).zone).toBe('town');expect((await snapshot(page)).enemies).toBe(0);
@@ -63,7 +63,7 @@ test('rescued archivist offers free identification and guide reward is saved onc
 });
 
 test('safe starting town, dungeon departure, town portal, and return preserve the expedition',async({page})=>{
-  const equipment=createPlayer().equipment;equipment.weapon.damage=2000;equipment.armor.armor=10000;
+  const equipment=createEquippedPlayer().equipment;equipment.weapon.damage=2000;equipment.armor.armor=10000;
   await seedTown(page,{equipment});await page.goto('/');await page.locator('[data-front="continue"]').click();await expect(page.locator('#area-loading')).toBeHidden();
   await page.keyboard.press('t');await page.locator('[data-town-action="depart"]').click();
   expect((await snapshot(page)).zone).toBe('dungeon');const initial=(await snapshot(page)).enemies;

@@ -1,9 +1,9 @@
 import {test,expect} from '@playwright/test';
-import {createPlayer} from '../../src/game.js';
+import {createEquippedPlayer} from '../fixtures.js';
 import {createCampaign,generateWilderness} from '../../src/campaign.js';
 import {speak,followPath} from './helpers.js';
 const snapshot=page=>page.evaluate(()=>window.__reliquary.snapshot());
-async function seed(page,{zone='town',capture=false}={}){const p=createPlayer();p.campaign=createCampaign();p.equipment.armor.armor=10000;p.inventory=[{id:'cursor-boots',name:'Test Greaves',slot:'boots',rarity:'normal',armor:5,identified:true}];await page.addInitScript(({p,zone,capture})=>{localStorage.setItem('ashen-reliquary-options-v1',JSON.stringify({cursorCapture:capture}));localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify({version:1,player:p,zone,seed:42710,depth:1}));},{p,zone,capture});await page.goto('/');await page.locator('[data-front=continue]').click();await expect(page.locator('#area-loading')).toBeHidden();}
+async function seed(page,{zone='town',capture=false}={}){const p=createEquippedPlayer();p.campaign=createCampaign();p.equipment.armor.armor=10000;p.inventory=[{id:'cursor-boots',name:'Test Greaves',slot:'boots',rarity:'normal',armor:5,identified:true}];await page.addInitScript(({p,zone,capture})=>{localStorage.setItem('ashen-reliquary-options-v1',JSON.stringify({cursorCapture:capture}));localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify({version:1,player:p,zone,seed:42710,depth:1}));},{p,zone,capture});await page.goto('/');await page.locator('[data-front=continue]').click();await expect(page.locator('#area-loading')).toBeHidden();}
 // Relative movement follows the browser Pointer Lock event contract. Physical
 // mouse buttons still go through Chromium, including the right button.
 async function virtualMove(page,x,y){await page.evaluate(({x,y})=>{const p=window.__reliquary.snapshot().cursor;document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,movementX:x-p.x,movementY:y-p.y,pointerType:'mouse'}));},{x,y});}
@@ -18,6 +18,6 @@ test('quest conversations show an exclamation marker and an illustrated six-seal
 });
 
 test('Marchgate dominates the forest approach and opens a much larger fortress',async({page})=>{
- test.setTimeout(90000);const p=createPlayer();p.campaign=createCampaign();p.campaign.records.push('field-1-0');p.equipment.boots.speed=7;p.equipment.armor.armor=10000;p.equipment.armor.life=10000;p.equipment.weapon.damage=5000;p.skills={nova:1};p.slots=[null,null,'nova',null];
+ test.setTimeout(90000);const p=createEquippedPlayer();p.campaign=createCampaign();p.campaign.records.push('field-1-0');p.equipment.boots.speed=7;p.equipment.armor.armor=10000;p.equipment.armor.life=10000;p.equipment.weapon.damage=5000;p.skills={nova:1};p.slots=[null,null,'nova',null];
  await page.addInitScript(p=>localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify({version:1,player:p,zone:'wilderness',seed:42710,depth:1})),p);await page.goto('/');await page.locator('[data-front=continue]').click();await expect(page.locator('#area-loading')).toBeHidden();const d=generateWilderness(42817,1);const route=await followPath(page,d,{x:76.5,y:26.5});expect(route.i).toBe(route.length);await page.screenshot({path:'test-results/marchgate-forest.png'});const approach=await followPath(page,d,d.portal);expect(approach.i).toBe(approach.length);await page.keyboard.press('f');await expect(page.locator('#area-loading')).toBeHidden();await expect.poll(()=>snapshot(page).then(s=>s.areaSize)).toBe(144);const s=await snapshot(page);expect(Math.hypot(s.returnGate.x-s.portal.x,s.returnGate.y-s.portal.y)).toBeGreaterThan(120);expect(s.returnGate.y).toBeGreaterThan(s.position.y);expect(s.facing).toEqual({x:0,y:-1});await page.screenshot({path:'test-results/marchgate-barbican.png'});
 });

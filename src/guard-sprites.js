@@ -1,4 +1,4 @@
-import {GUARD_ART,FEMALE_GUARD_ART,ITEM_ART,ORIGINAL_ART} from './assets.js';
+import {GUARD_ART,ITEM_ART,ORIGINAL_ART} from './assets.js';
 import {appearanceOf} from './itemization.js';
 import {facingPose,walkingLeg,WALK_FRAMES} from './locomotion.js';
 import {joint,point,punchPose} from './animation-rig.js';
@@ -9,12 +9,11 @@ const FACE={
 const W=128,H=144,S=320;
 const poly=(c,points)=>{c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x*S,y*S):c.moveTo(x*S,y*S));c.closePath();};
 export class GuardSprites{
- constructor(){this.art=new Image();this.art.src=GUARD_ART;this.femaleArt=new Image();this.femaleArt.src=FEMALE_GUARD_ART;this.items=new Image();this.items.src=ITEM_ART;this.original=new Image();this.original.src=ORIGINAL_ART;this.cache=new Map();}
- get ready(){return [this.art,this.femaleArt,this.items,this.original].every(a=>a.complete&&a.naturalWidth>0);}
- tile(c,index){const art=this.painting||this.art,s=art.naturalWidth/4;c.drawImage(art,index%4*s,Math.floor(index/4)*s,s,s,0,0,S,S);}
+ constructor(){this.art=new Image();this.art.src=GUARD_ART;this.items=new Image();this.items.src=ITEM_ART;this.original=new Image();this.original.src=ORIGINAL_ART;this.cache=new Map();}
+ get ready(){return [this.art,this.items,this.original].every(a=>a.complete&&a.naturalWidth>0);}
+ tile(c,index){const s=this.art.naturalWidth/4;c.drawImage(this.art,index%4*s,Math.floor(index/4)*s,s,s,0,0,S,S);}
  clipTile(c,index,points,exclude=null){c.save();poly(c,points);c.clip();if(exclude){c.beginPath();c.rect(0,0,S,S);c.ellipse(exclude[0]*S,exclude[1]*S,50,72,0,0,Math.PI*2);c.clip('evenodd');}this.tile(c,index);c.restore();}
  frame(p,back,column,heading={x:.9,y:back?-.4:.4},direction=null){const look=appearanceOf(p),key=JSON.stringify(look)+'/'+back+'/'+column+'/'+Math.round(heading.x*10)+'/'+Math.round(heading.y*10)+'/'+(direction?.index??'legacy');if(this.cache.has(key))return this.cache.get(key);if(!this.ready)return null;
-  this.painting=p.sex==='female'?this.femaleArt:this.art;
   const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;const c=canvas.getContext('2d');c.scale(W/S,128/S);c.translate(0,10);
   const face=back?FACE.back:FACE.front,offset=back?1:0,body=({none:2,original:0,leather:4,chain:6,plate:8,robe:10})[look.armor]??0,walking=column>0&&column<=WALK_FRAMES,attack=column>WALK_FRAMES,phase=walking?(column-1)/WALK_FRAMES*2*Math.PI:0,progress=attack?(column-WALK_FRAMES-1)/(look.weapon==='none'?5:3):0;
   // Preserve the idle leg paintings: a rigid vertical step, no joint posing.
@@ -34,7 +33,7 @@ export class GuardSprites{
   this.clipTile(c,2+offset,face.body);this.clipTile(c,body+offset,face.body,face.shield);
   if(look.armor==='plate'){c.save();c.globalCompositeOperation='source-atop';c.fillStyle='#abb7bd13';poly(c,face.body);c.fill();c.restore();}
   // A planted attack uses the old hand-painted combat sheet for the original outfit.
-  const nativeAttack=p.sex!=='female'&&attack&&look.armor==='original'&&look.helm==='sallet'&&look.weapon==='sword'&&look.shield==='round'&&look.boots==='steel'&&look.gloves==='steel';
+  const nativeAttack=attack&&look.armor==='original'&&look.helm==='sallet'&&look.weapon==='sword'&&look.shield==='round'&&look.boots==='steel'&&look.gloves==='steel';
   if(nativeAttack){c.clearRect(-10,-10,340,350);const s=this.original.naturalWidth/4;c.drawImage(this.original,(column-WALK_FRAMES-1)*s,(back?3:1)*s,s,s,0,0,S,S);this.accessories(c,look,back);c.restore();this.cache.set(key,canvas);return canvas;}
   for(let arm=1;arm>=0;arm--){
    const shoulder=point(arm===0?face.arm:face.offArm),elbow=point(arm===0?face.elbow:face.offElbow),hand=point(arm===0?face.hand:face.offHand),punch=attack&&look.weapon==='none',jab=punch?arm===0?punchPose(progress,back?-1:1):look.shield==='none'?{x:back?30:-30,y:-28}:{x:0,y:0}:null;

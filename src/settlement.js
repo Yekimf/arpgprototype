@@ -49,7 +49,7 @@ export function arrange(items,dimensions=BAG,sort=false){
   return items.filter(i=>i.bagX<0).length;
 }
 export function migratePlayer(player){
-  player.sex=player.sex==='female'?'female':'male';
+  player.sex='male';
   const legacy=player.progressionVersion!==2;
   player.slots=Array.from({length:4},(_,i)=>player.slots?.[i]??null);
   if(legacy&&player.slots.includes('lance'))player.skills.lance??=1;

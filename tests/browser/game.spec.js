@@ -1,8 +1,9 @@
 import {test,expect} from '@playwright/test';
-import {createPlayer,generateDungeon,ALL_SKILLS} from '../../src/game.js';
+import {createEquippedPlayer} from '../fixtures.js';
+import {generateDungeon,ALL_SKILLS} from '../../src/game.js';
 
 async function seedGame(page,extra={},zone='dungeon'){
-  const player=createPlayer();Object.assign(player,{level:8,points:4,skills:{cleave:1,bolt:1,nova:1,lance:1},slots:['cleave','bolt','nova','lance'],mouseSkill:'bolt'},extra);
+  const player=createEquippedPlayer();Object.assign(player,{level:8,points:4,skills:{cleave:1,bolt:1,nova:1,lance:1},slots:['cleave','bolt','nova','lance'],mouseSkill:'bolt'},extra);
   await page.addInitScript(save=>localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify(save)),{version:1,player,seed:42710,depth:1,zone});
 }
 const state=page=>page.evaluate(()=>window.__reliquary.snapshot());
@@ -47,7 +48,7 @@ test('spatial inventory comparison, equipment, stash, and local save persist',as
 });
 
 test('all advanced abilities execute and death recovery preserves the character',async({page,browser})=>{
-  const p=createPlayer();p.equipment.charm={name:'Test reservoir',slot:'charm',rarity:'rare',spirit:1000,icon:'◈'};
+  const p=createEquippedPlayer();p.equipment.charm={name:'Test reservoir',slot:'charm',rarity:'rare',spirit:1000,icon:'◈'};
   const skills=Object.fromEntries(ALL_SKILLS.map(s=>[s.id,1]));
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await seedGame(page,{skills,slots:['quake','meteor','chain'],mana:900,equipment:p.equipment});await page.goto('/');await page.locator('[data-front="continue"]').click();await expect(page.locator('#area-loading')).toBeHidden();
@@ -61,7 +62,7 @@ test('all advanced abilities execute and death recovery preserves the character'
   for(let slot=0;slot<3;slot++)await page.locator(`[data-slot="${slot}"]`).dispatchEvent('pointerdown');
   await page.waitForTimeout(500);s=await state(page);for(const id of ['whirl','vortex'])expect(s.cooldowns[id]).toBeGreaterThan(0);expect(s.pyre).not.toBeNull();
   // A second page with a fragile fixture exercises actual enemy damage and recovery.
-  const isolated=await browser.newContext({viewport:page.viewportSize(),hasTouch:await page.evaluate(()=>matchMedia('(pointer:coarse)').matches)}),fragile=await isolated.newPage(),f=createPlayer();fragile.on('pageerror',e=>errors.push(e.message));f.hp=1;f.gold=100;
+  const isolated=await browser.newContext({viewport:page.viewportSize(),hasTouch:await page.evaluate(()=>matchMedia('(pointer:coarse)').matches)}),fragile=await isolated.newPage(),f=createEquippedPlayer();fragile.on('pageerror',e=>errors.push(e.message));f.hp=1;f.gold=100;
   await seedGame(fragile,f);await fragile.goto('/');await fragile.locator('[data-front="continue"]').click();
   await expect(fragile.locator('#modal-title')).toHaveText('Not yet forgotten.',{timeout:15000});
   await fragile.locator('[data-action="revive"]').click();
@@ -73,7 +74,7 @@ test('all advanced abilities execute and death recovery preserves the character'
 test('a full expedition can defeat the Warden, earn loot, and descend',async({page},info)=>{
   test.skip(info.project.name==='mobile','Desktop navigation covers floor progression; mobile input is covered separately.');
   // Routing fixture survives physical and elemental damage; combat balance is separate.
-  const p=createPlayer();p.equipment.weapon.damage=2000;p.equipment.armor.armor=10000;p.equipment.armor.life=10000;p.hp=20000;
+  const p=createEquippedPlayer();p.equipment.weapon.damage=2000;p.equipment.armor.armor=10000;p.equipment.armor.life=10000;p.hp=20000;
   await seedGame(page,{equipment:p.equipment,hp:p.hp});await page.goto('/');await page.locator('[data-front="continue"]').click();await expect(page.locator('#area-loading')).toBeHidden();
   const d=generateDungeon(42710),start=[Math.floor(d.start.x),Math.floor(d.start.y)],end=[Math.floor(d.portal.x),Math.floor(d.portal.y)],queue=[start],parents=new Map([[start.join(','),null]]);
   for(let i=0;i<queue.length;i++){const[x,y]=queue[i];if(x===end[0]&&y===end[1])break;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=`${nx},${ny}`;if(d.tiles[ny]?.[nx]&&!parents.has(k)){parents.set(k,[x,y]);queue.push([nx,ny]);}}}

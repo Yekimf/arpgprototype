@@ -1,9 +1,9 @@
 import {speak} from './helpers.js';
 import {test,expect} from '@playwright/test';
-import {createPlayer} from '../../src/game.js';
+import {createEquippedPlayer} from '../fixtures.js';
 const snapshot=page=>page.evaluate(()=>window.__reliquary.snapshot());
 async function load(page,zone='town'){
-  const player=Object.assign(createPlayer(),{level:8,skills:{cleave:1,bolt:1,nova:1,lance:1},slots:['cleave','bolt','nova','lance'],mouseSkill:'bolt'});player.gold=2000;player.shards=12;player.quests={guideMet:true,scholarRescued:true,wardenDefeated:true,guideRewarded:true};
+  const player=Object.assign(createEquippedPlayer(),{level:8,skills:{cleave:1,bolt:1,nova:1,lance:1},slots:['cleave','bolt','nova','lance'],mouseSkill:'bolt'});player.gold=2000;player.shards=12;player.quests={guideMet:true,scholarRescued:true,wardenDefeated:true,guideRewarded:true};
   player.equipment.armor.armor=10000;player.equipment.charm={id:'reservoir',name:'Runic Reservoir',slot:'charm',rarity:'rare',level:2,spirit:1000,life:25};player.mana=1000;
   player.inventory=[{id:'hover-sword',name:'Moonlit Falchion',slot:'weapon',rarity:'rare',level:2,damage:24,life:20,crit:5,identified:true,bagX:8,bagY:2},{id:'hover-ring',name:'Gilded Signet',slot:'ring',rarity:'magic',level:2,spirit:10,identified:true,bagX:9,bagY:5}];
   await page.addInitScript(data=>localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify(data)),{version:1,player,seed:42710,depth:1,zone});

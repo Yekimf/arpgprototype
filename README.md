@@ -10,6 +10,11 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.14.0
+
+- Removed the female character option and its art from the game for now. Existing female saves use the male model while retaining their progress and equipment.
+- New characters start with only the service sword and buckler equipped. Body armour, helmet, gloves and boots start empty; the camp preview uses this same starting loadout. Earned equipment remains on existing characters.
+
 ## Version 0.13.1
 
 - Repainted the female guard with a leaner silhouette, a defined waist, slimmer limbs and smaller shoulder plates. Leather, mail, plate and robes now have fitted panels and waist shaping suited to her build while keeping the worn royal-guard materials. Existing female saves use the updated artwork automatically.
