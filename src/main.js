@@ -1,3 +1,5 @@
+import {bossPlan} from './boss-abilities.js';
+import {CHAPTERS,chapterFor} from './campaign-content.js';
 import {DEFAULTS,loadSettings,saveSettings,sanitizeSettings,optionsMarkup} from './settings.js';
 import {collectGold,goldReward} from './economy.js';
 import {itemArt} from './item-art.js';
@@ -12,10 +14,11 @@ import './front-end.css';
 import './retro.css';
 import './classic-inventory.css';
 import './desktop.css';
+import './gothic.css';
 import {NPCDialogue} from './npc-dialogue.js';
 import {STORY_ART,LEATHER_ART,MAP_ART,GUARD_ART,STONE_ART} from './assets.js';
 import {FrontEnd} from './front-end.js';
-import {ACTS,actFor,createCampaign,ensureCampaign,discoverLocation,attuneWaypoint,canTravel,locationId,defeatCampaignBoss,canAdvance,advanceCampaign,campaignObjective,generateWilderness,generateStronghold,inSanctuary} from './campaign.js';
+import {ACTS,actFor,createCampaign,ensureCampaign,discoverLocation,attuneWaypoint,canTravel,locationId,defeatCampaignBoss,canAdvance,advanceCampaign,chapterOf,captainId,fieldKey,completeField,nextChapter,campaignObjective,generateWilderness,generateStronghold,inSanctuary} from './campaign.js';
 import {renderCampaignPanel} from './campaign-ui.js';
 import {generateDungeon,makeEnemy,grantExperience,spendAttribute,skillLevel,ORIGINS,random,distance,moveEntity,isWalkable,findPath,createPlayer,playerStats,mitigateDamage,MASTERIES,ALL_SKILLS,getSkill,rankOf,masteryPoints,learnSkill,canLearn,clamp,xpNeeded,generateItem} from './game.js';
 import {Renderer} from './renderer.js';
@@ -40,7 +43,7 @@ game.settings=settings;game.sound=settings.sound;renderer.configure(settings);
 const townUI=new TownUI(game,{save,toast,openPanel,closePanel,enterDungeon,sound});
 const dialogue=new NPCDialogue(game,{project:(x,y)=>renderer.screen(x,y),openPanel,save,toast});
 const SKILL_KEYS=['q','w','e','r'];
-Object.assign(game,{primaryHeld:false,secondaryHeld:false,primaryMode:null,combatTarget:null,attackPending:false,walkPhase:0,facing:{x:1,y:0},actionFacing:{x:1,y:0},castLock:0,pointerOverWorld:false,hudWidth:0,moveRefresh:0,combatRefresh:0,act:player.campaign?.act||1,areas:new Map(),frontScreen:true,supplyKills:-1,playerSlow:0});
+Object.assign(game,{primaryHeld:false,secondaryHeld:false,primaryMode:null,combatTarget:null,attackPending:false,walkPhase:0,facing:{x:1,y:0},actionFacing:{x:1,y:0},castLock:0,pointerOverWorld:false,hudWidth:0,moveRefresh:0,combatRefresh:0,act:player.campaign?.act||1,chapter:saved?.chapter??chapterOf(player,saved?.act||1),areas:new Map(),frontScreen:true,supplyKills:-1,playerSlow:0});
 
 function setZoneUI(){
   const town=game.zone==='town';
@@ -64,31 +67,31 @@ function setZoneUI(){
 }
 function enterTown(initial=false){
   if(player.campaign){
-    if(!initial){rememberArea();if(!inSanctuary(game.dungeon,player))game.expedition={kind:game.dungeon.kind,act:game.act};}
-    enterCampaignArea('wilderness',1,false,true);const at=game.dungeon.start;player.x=at.x;player.y=at.y;game.zone='town';game.target=null;game.path=null;game.channel=null;
+    if(!initial){rememberArea();if(!inSanctuary(game.dungeon,player))game.expedition={kind:game.dungeon.kind,act:game.act,chapter:game.chapter};}
+    enterCampaignArea('wilderness',1,false,true,0);const at=game.dungeon.start;player.x=at.x;player.y=at.y;game.zone='town';game.target=null;game.path=null;game.channel=null;
     // The rescued archivist joins the existing camp without regenerating its field.
     if(player.quests.scholarRescued&&!game.dungeon.npcs.some(n=>n.id==='scholar')){const n=generateTown(player).npcs.find(n=>n.id==='scholar');game.dungeon.npcs.push({...n,x:n.x+16,y:n.y+18});renderer.cachedDungeon=null;}
     player.shopStock??=generateStock(player.level,game.seed);renderer.camera={...renderer.iso(player.x,player.y)};setZoneUI();reveal();buildFlow();if(!initial){save();toast('EMBERFALL · The last friendly fire.');}return;
   }
-  if(player.campaign&&!initial){rememberArea();if(game.zone!=='town')game.expedition={kind:game.dungeon.kind,act:game.act};}
+  if(player.campaign&&!initial){rememberArea();if(game.zone!=='town')game.expedition={kind:game.dungeon.kind,act:game.act,chapter:game.chapter};}
   if(!player.campaign&&!initial&&game.zone==='dungeon')game.expedition={dungeon:game.dungeon,loot:game.loot,position:{x:player.x,y:player.y},depth:game.depth,seed:game.seed};
   clearAttackOrder();game.zone='town';game.dungeon=generateTown(player);game.loot=[];game.projectiles=[];game.effects=[];game.floaters=[];game.target=null;game.path=null;game.channel=null;game.interactTarget=null;game.mouseDown=false;
   if(player.campaign){game.dungeon.waypoint={x:33,y:34};game.dungeon.act=player.campaign.act;game.act=player.campaign.act;}
   player.x=game.dungeon.start.x;player.y=game.dungeon.start.y;
   player.shopStock??=generateStock(player.level,game.seed);
-  renderer.camera={...renderer.iso(player.x,player.y)};buildFlow();setZoneUI();
+  renderer.camera={...renderer.iso(player.x,player.y)};buildFlow();setZoneUI();prepareArea();
   if(!initial){save();toast('EMBERFALL · You are safe here.');}
 }
 function enterDungeon(){
-  if(player.campaign){const dest=game.expedition||{kind:'wilderness',act:player.campaign.act};game.expedition=null;enterCampaignArea(dest.kind,dest.act);return;}
+  if(player.campaign){const dest=game.expedition||{kind:'wilderness',act:player.campaign.act,chapter:chapterOf(player)};game.expedition=null;enterCampaignArea(dest.kind,dest.act,false,false,dest.chapter||0);return;}
   if(game.expedition){
-    const expedition=game.expedition;clearAttackOrder();game.zone='dungeon';game.dungeon=expedition.dungeon;game.loot=expedition.loot;game.depth=expedition.depth;game.seed=expedition.seed;player.x=expedition.position.x;player.y=expedition.position.y;game.expedition=null;game.target=null;game.path=null;game.interactTarget=null;game.channel=null;game.projectiles=[];game.effects=[];game.floaters=[];renderer.camera={...renderer.iso(player.x,player.y)};buildFlow();setZoneUI();
+    const expedition=game.expedition;clearAttackOrder();game.zone='dungeon';game.dungeon=expedition.dungeon;game.loot=expedition.loot;game.depth=expedition.depth;game.seed=expedition.seed;player.x=expedition.position.x;player.y=expedition.position.y;game.expedition=null;game.target=null;game.path=null;game.interactTarget=null;game.channel=null;game.projectiles=[];game.effects=[];game.floaters=[];renderer.camera={...renderer.iso(player.x,player.y)};buildFlow();setZoneUI();prepareArea();
   }else newFloor(game.depth,game.seed);
   save();toast('The Hollow Crypt · Press T to return to town.');
 }
 function townPortal(){
   clearAttackOrder();
-  if(game.paused)return;if(game.zone==='town'){if(player.campaign){openPanel('worldmap');return;}openPanel('departure');return;}
+  if(game.paused||game.loading)return;if(game.zone==='town'){if(player.campaign){openPanel('worldmap');return;}openPanel('departure');return;}
   if(game.channel)return;game.target=null;game.path=null;game.channel={remaining:3};game.mouseDown=false;
   toast('Opening a town portal · Hold still for 3 seconds',3100);effect('ring',player.x,player.y,3,{radius:1.3,color:'#a8bbd0'});
 }
@@ -98,9 +101,9 @@ function newFloor(depth,seed){
   game.depth=depth;game.seed=seed;game.dungeon=generateDungeon(seed,depth);game.loot=[];game.effects=[];game.projectiles=[];game.floaters=[];game.target=null;
   const start=game.dungeon.start;player.x=start.x;player.y=start.y;game.aim={x:player.x+2,y:player.y};game.flowTimer=0;
   renderer.camera={...renderer.iso(player.x,player.y)};
-  setZoneUI();reveal();buildFlow();
+  setZoneUI();reveal();buildFlow();prepareArea();
 }
-if(player.campaign&&saved?.zone&&saved.zone!=='town')enterCampaignArea(saved.zone==='wilderness'?'wilderness':'stronghold',saved.act||player.campaign.act,false,true);
+if(player.campaign&&saved?.zone&&saved.zone!=='town')enterCampaignArea(saved.zone==='wilderness'?'wilderness':'stronghold',saved.act||player.campaign.act,false,true,saved.chapter??chapterOf(player,saved.act||1));
 else if(saved?.zone==='dungeon')newFloor(game.depth,game.seed);else enterTown(true);
 player.hp=clamp(player.hp||game.stats.maxHp,1,game.stats.maxHp);player.mana=clamp(player.mana,0,game.stats.maxMana);
 
@@ -109,7 +112,7 @@ function applySettings(){Object.assign(settings,sanitizeSettings(settings));game
 applySettings();
 function save(){
   if(!validSave&&!player.campaign)return false;
-  try{localStorage.setItem(SAVE_KEY,JSON.stringify({version:1,player,depth:game.depth,seed:game.seed,zone:game.zone,act:game.act}));return true;}catch{return false;}
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify({version:1,player,depth:game.depth,seed:game.seed,zone:game.zone,act:game.act,chapter:game.chapter}));return true;}catch{return false;}
 }
 function toast(text,duration=2700){clearTimeout(toastTimer);$('toast').textContent=text;$('toast').classList.remove('hidden');toastTimer=setTimeout(()=>$('toast').classList.add('hidden'),duration);}
 function sound(freq=200,length=.08,type='triangle',volume=.035){
@@ -169,9 +172,9 @@ function hurt(amount,element='physical'){
 function basicAttack(target=null){
   if(game.zone==='town'||game.channel||game.dodgeTime>0||game.attackCooldown>0||game.paused||player.hp<=0)return false;
   if(player.equipment.weapon)player.equipment.weapon.durability=Math.max(0,(player.equipment.weapon.durability??100)-.12);
-  game.castColor=null;game.attackCooldown=.48/game.stats.attackSpeed;game.attackAnim=.38;game.castLock=.28;const aim=target||aimPoint();facePoint(aim);const ax=aim.x-player.x,ay=aim.y-player.y,len=Math.hypot(ax,ay)||1;
-  effect('slash',player.x,player.y,.28,{dx:ax/len,dy:ay/len,radius:1.85});
-  game.melee={remaining:.14,ax:ax/len,ay:ay/len};
+  const unarmed=!player.equipment.weapon;game.attackStyle=unarmed?'punch':'strike';game.castColor=null;game.attackCooldown=.48/game.stats.attackSpeed;game.attackAnim=unarmed?.3:.38;game.castLock=unarmed?.2:.28;const aim=target||aimPoint();facePoint(aim);const ax=aim.x-player.x,ay=aim.y-player.y,len=Math.hypot(ax,ay)||1;
+  if(!unarmed)effect('slash',player.x,player.y,.28,{dx:ax/len,dy:ay/len,radius:game.stats.reach});
+  game.melee={remaining:unarmed?.1:.14,ax:ax/len,ay:ay/len,unarmed};
   return true;
 }
 function cast(slot){return castSkill(player.slots[slot]);}
@@ -182,6 +185,7 @@ function castSkill(id,quiet=false){
   if(game.zone==='town'){if(!quiet)toast('Emberfall is a sanctuary. Save your strength for the crypt.',1700);return;}
   if(game.channel){game.channel=null;toast('Portal interrupted.',1000);}
   const skill=getSkill(id),rank=rankOf(player,id);
+  if(!player.equipment.weapon&&['cleave','whirl'].includes(id)){if(!quiet)toast('Equip a weapon to use this technique.',1600);return;}
   if(!skill||!rank)return toast('Learn and equip an ability in Masteries · K');
   if(id==='inferno'){if(quiet||(game.cooldowns.inferno||0)>0)return;togglePyre(game);game.cooldowns.inferno=.3;toast(game.pyre?'MARTYR’S PYRE · Your life feeds the flame.':'Martyr’s Pyre extinguished.',1500);return true;}
   if((game.cooldowns[id]||0)>0)return;
@@ -226,7 +230,7 @@ function potion(){
 }
 
 function interact(){
-  if(game.paused)return;
+  if(game.paused||game.loading)return;
   if(player.campaign){const target=campaignTargets().filter(t=>distance(t,player)<2.8).sort((a,b)=>distance(a,player)-distance(b,player))[0];if(target){performInteraction(target.interaction);return;}}
   if(game.zone==='town'){
     const npc=game.dungeon.npcs.filter(n=>distance(n,player)<3).sort((a,b)=>distance(a,player)-distance(b,player))[0];
@@ -264,9 +268,9 @@ function movement(){
   return{x:dx,y:dy};
 }
 function update(dt){
-  game.time+=dt;if(game.paused)return;
+  game.time+=dt;if(game.paused||game.loading)return;
   game.playerSlow=Math.max(0,game.playerSlow-dt);
-  if(game.melee){game.melee.remaining-=dt;if(game.melee.remaining<=0){const {ax,ay}=game.melee;game.melee=null;let hit=false;for(const e of game.dungeon.enemies){const range=distance(e,player);if(e.dead||range>game.stats.reach)continue;const dot=((e.x-player.x)*ax+(e.y-player.y)*ay)/(range||1);if(dot>.35){damageEnemy(e,game.stats.damage);hit=true;effect('impact',e.x,e.y,.23);}}sound(hit?180:120,.1,'triangle');}}
+  if(game.melee){game.melee.remaining-=dt;if(game.melee.remaining<=0){const {ax,ay,unarmed}=game.melee;game.melee=null;let hit=false;for(const e of game.dungeon.enemies){const range=distance(e,player);if(e.dead||range>game.stats.reach)continue;const dot=((e.x-player.x)*ax+(e.y-player.y)*ay)/(range||1);if(dot>.35){damageEnemy(e,game.stats.damage);hit=true;effect('impact',e.x,e.y,.23);if(unarmed)break;}}sound(hit?180:120,.1,'triangle');}}
 
   if(game.dungeon.pendingBoss){game.dungeon.pendingBoss.remaining-=dt;if(game.dungeon.pendingBoss.remaining<=0){const next=game.dungeon.pendingBoss.id;game.dungeon.pendingBoss=null;finalBoss(next);}}
   if(mouseScreen)game.aim=aimPoint();
@@ -299,7 +303,7 @@ function update(dt){
   game.moving=distance(beforeMove,player)>.0001;if(game.moving){game.lastMove={...m};game.walkPhase+=distance(beforeMove,player)*8/1.8;if(game.attackAnim<=0)game.facing={...m};}
 
   if(game.moving)dialogue.close();
-  if(player.campaign&&game.dungeon.outdoor){const nextZone=inSanctuary(game.dungeon,player)?'town':'wilderness';if(nextZone!==game.zone){game.zone=nextZone;setZoneUI();if(nextZone==='wilderness'){discoverLocation(player,'wilderness',game.act);toast(actFor(game.act).wilds+' · Follow the road to Marchgate.',2500);}else toast('Emberfall · Sanctuary',2000);}}
+  if(player.campaign&&game.dungeon.outdoor){const nextZone=inSanctuary(game.dungeon,player)?'town':'wilderness';if(nextZone!==game.zone){game.zone=nextZone;setZoneUI();if(nextZone==='wilderness'){discoverLocation(player,'wilderness',game.act);toast(chapterFor(game.act,game.chapter).wilds+' · '+chapterFor(game.act,game.chapter).task,2500);}else toast('Emberfall · Sanctuary',2000);}}
   game.stepTimer=(game.stepTimer||0)-dt;
   if(game.moving&&game.stepTimer<=0){game.stepTimer=.22;effect('dust',beforeMove.x,beforeMove.y,.4);}
   if(game.channel){
@@ -320,15 +324,21 @@ function update(dt){
   const nearbyEnemies=game.dungeon.enemies.filter(e=>!e.dead&&Math.abs(e.x-player.x)<19&&Math.abs(e.y-player.y)<19);
   const buckets=new Map();for(const e of nearbyEnemies){const key=Math.floor(e.x)+','+Math.floor(e.y);if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(e);}
   for(const e of nearbyEnemies){
-    if(e.dead)continue;e.pyreGlow=Math.max(0,(e.pyreGlow||0)-dt);e.hit=Math.max(0,e.hit-dt);e.slow=Math.max(0,e.slow-dt);e.attackAnim=Math.max(0,(e.attackAnim||0)-dt);e.cooldown-=dt;e.phase+=dt;
+    if(e.dead)continue;e.pyreGlow=Math.max(0,(e.pyreGlow||0)-dt);e.hit=Math.max(0,e.hit-dt);e.slow=Math.max(0,e.slow-dt);e.attackAnim=Math.max(0,(e.attackAnim||0)-dt);e.cooldown-=dt;e.phase+=dt;e.moveTimer=Math.max(0,(e.moveTimer||0)-dt);
     if(e.burn>0){e.burn-=dt;e.burnTick=(e.burnTick||0)-dt;if(e.burnTick<=0){e.burnTick=.7;if(e.burnPower>0)damageEnemy(e,e.burnPower,'fire',false);}}
     if(e.dead)continue;
     const dist=distance(e,player),boss=e.type==='warden';
-    if(boss&&e.bossId&&dist<10){e.special=(e.special??4)-dt;if(e.special<=0){bossSpecial(e);e.special=e.bossId==='wanderer'?3.8:6;}}
+    if(boss&&e.bossId&&game.zone!=='town'&&dist<10){e.special=(e.special??4)-dt;if(e.special<=0){bossSpecial(e);e.special=e.bossId==='wanderer'?3.8:6;}}
     if(game.zone==='town')continue;if(dist<(boss?9:6.5))e.aggro=true;if(!e.aggro||dist>18)continue;
+    if(e.charge){e.charge.delay-=dt;if(e.charge.delay<=0){e.charge.remaining-=dt;moveEntity(game.dungeon,e,e.charge.dx*7*dt,e.charge.dy*7*dt);if(dist<1.3&&!e.charge.hit){hurt(e.damage*1.3);e.charge.hit=true;}if(e.charge.remaining<=0)e.charge=null;}continue;}
     if(e.windup>0){e.windup-=dt;if(e.windup<=0){e.attackAnim=.3;if(boss){effect('quake',e.x,e.y,.65,{radius:2.6,color:'#b7a579'});if(dist<2.7){hurt(e.damage*1.6,e.phaseType==='frost'?'cold':e.phaseType==='fire'?'fire':'physical');if(e.phaseType==='frost'||e.phaseType==='flood')game.playerSlow=2;}e.cooldown=3.2;}else{if(dist<1.35)hurt(e.damage);e.cooldown=1.2;}}continue;}
     if(boss&&dist<2.6&&e.cooldown<=0){e.windup=.85;continue;}
-    if(e.type==='wraith'&&dist<6&&e.cooldown<=0){const dx=player.x-e.x,dy=player.y-e.y;game.projectiles.push({x:e.x,y:e.y,dx:dx/dist,dy:dy/dist,speed:3.4,life:2.8,damage:e.damage,kind:'aether',hostile:true});e.cooldown=2.5;continue;}
+    if(e.role&&e.cooldown<=0){
+      if(e.role==='bomber'&&dist<7){effect('meteor-warning',player.x,player.y,1.2,{radius:1.3,pending:true,damage:e.damage,hostile:true,element:'fire',color:e.tint});e.cooldown=4;continue;}
+      if(['archer','hexer','venom'].includes(e.role)&&dist<6){const dx=(player.x-e.x)/dist,dy=(player.y-e.y)/dist;game.projectiles.push({x:e.x,y:e.y,dx,dy,speed:e.role==='archer'?6:3,life:2.5,damage:e.damage,kind:e.role==='archer'?'blade':'aether',element:e.role==='hexer'&&e.faction===4?'cold':e.role==='archer'?'physical':'aether',hostile:true});e.cooldown=e.role==='venom'?3.8:2.7;continue;}
+      if(e.role==='lunge'&&dist>2&&dist<5){e.charge={delay:.65,remaining:.4,dx:(player.x-e.x)/dist,dy:(player.y-e.y)/dist};e.cooldown=4;effect('ring',e.x,e.y,.65,{radius:.8,color:e.tint});continue;}
+    }
+    if(!e.role&&e.type==='wraith'&&dist<6&&e.cooldown<=0){const dx=player.x-e.x,dy=player.y-e.y;game.projectiles.push({x:e.x,y:e.y,dx:dx/dist,dy:dy/dist,speed:3.4,life:2.8,damage:e.damage,kind:'aether',hostile:true});e.cooldown=2.5;continue;}
     if(dist<1.05){if(e.cooldown<=0)e.windup=.32;continue;}
     if(e.type==='wraith'&&dist<3)continue;
     let dx=(player.x-e.x)/dist,dy=(player.y-e.y)/dist;
@@ -361,7 +371,7 @@ function update(dt){
   }
   game.effects=game.effects.filter(e=>e.life>0);for(const f of game.floaters)f.life-=dt;game.floaters=game.floaters.filter(f=>f.life>0);
   for(const loot of [...game.loot])if(distance(loot,player)<(loot.item?1.05:1.6))pickup(loot);
-  if(player.campaign&&game.dungeon.waypoint&&distance(player,game.dungeon.waypoint)<2.3&&attuneWaypoint(player,game.zone==='town'?'town':game.dungeon.kind,game.act)){toast('WAYPOINT ATTUNED · '+(game.zone==='wilderness'?actFor(game.act).wilds:actFor(game.act).stronghold)+' · G',3500);effect('ring',game.dungeon.waypoint.x,game.dungeon.waypoint.y,1.2,{radius:2,color:'#7bcad1'});save();}
+  if(player.campaign&&game.dungeon.waypoint&&distance(player,game.dungeon.waypoint)<2.3&&attuneWaypoint(player,game.zone==='town'?'town':game.dungeon.kind,game.act,game.chapter)){toast('WAYPOINT ATTUNED · '+(game.zone==='wilderness'?chapterFor(game.act,game.chapter).wilds:chapterFor(game.act,game.chapter).stronghold)+' · G',3500);effect('ring',game.dungeon.waypoint.x,game.dungeon.waypoint.y,1.2,{radius:2,color:'#7bcad1'});save();}
   saveTimer+=dt;if(saveTimer>5){save();saveTimer=0;}
 }
 
@@ -388,11 +398,12 @@ function updateHud(dt){
     button.classList.toggle('empty-skill',!skill);button.classList.toggle('sustained-active',id==='inferno'&&!!game.pyre);const skillArt=button.querySelector('.ability-art');if(skillArt.dataset.skill!==(id||'empty')){skillArt.dataset.skill=id||'empty';skillArt.innerHTML=skillIcon(id||'empty');}button.querySelector('.ability-name').textContent=skill?.name||'Unlearned';button.title=skill?`${skill.name} · ${skill.cost} spirit · ${skill.cooldown}s cooldown`:'Assign an ability in Masteries';
     if(skill?.toggle){const pyre=pyreStats(player,s);button.title=`Martyr’s Pyre · Toggle · ${pyre.dps.toFixed(0)} fire damage / sec · ${pyre.selfDps.toFixed(1)} life consumed / sec`; }const overlay=button.querySelector('i');overlay.style.display=cd>0&&!skill?.toggle?'flex':'none';overlay.textContent=cd.toFixed(1);button.style.opacity=skill&&player.mana<skill.cost?'.5':'1';
   });
-  const mouseSkill=getSkill(player.mouseSkill)||{icon:'⚔',name:'Strike'},mouseButton=$('mouse-slot'),mouseCd=game.cooldowns[player.mouseSkill]||0;const mouseArt=mouseButton.querySelector('.ability-art');if(mouseArt.dataset.skill!==player.mouseSkill){mouseArt.dataset.skill=player.mouseSkill;mouseArt.innerHTML=skillIcon(player.mouseSkill);}mouseButton.querySelector('.ability-name').textContent=mouseSkill.name;mouseButton.title=`Right mouse: ${mouseSkill.name} · Click to rebind`;mouseButton.querySelector('i').style.display=mouseCd>0?'flex':'none';mouseButton.querySelector('i').textContent=mouseCd.toFixed(1);
+  const basicId=player.equipment.weapon?'basic':'punch',basicName=player.equipment.weapon?'Strike':'Punch';const primary=$('basic-slot');if(primary.dataset.attack!==basicId){primary.dataset.attack=basicId;primary.querySelector('.ability-art').innerHTML=skillIcon(basicId);primary.querySelector('.ability-name').textContent=basicName;primary.title=basicName+' · Left click enemy';}const mouseSkill=getSkill(player.mouseSkill)||{name:basicName},mouseButton=$('mouse-slot'),mouseCd=game.cooldowns[player.mouseSkill]||0;const mouseArt=mouseButton.querySelector('.ability-art');if(mouseArt.dataset.skill!==(player.mouseSkill==='basic'?basicId:player.mouseSkill)){mouseArt.dataset.skill=player.mouseSkill==='basic'?basicId:player.mouseSkill;mouseArt.innerHTML=skillIcon(mouseArt.dataset.skill);}mouseButton.querySelector('.ability-name').textContent=mouseSkill.name;mouseButton.title=`Right mouse: ${mouseSkill.name} · Click to rebind`;mouseButton.querySelector('i').style.display=mouseCd>0?'flex':'none';mouseButton.querySelector('i').textContent=mouseCd.toFixed(1);
   for(const[id,cd]of[['dodge-slot',game.dodgeCooldown]]){const overlay=$(id).querySelector('i');overlay.style.display=cd>0?'flex':'none';overlay.textContent=cd.toFixed(1);}
   const enemy=nearestEnemy(8,game.aim),boss=game.dungeon.enemies.find(e=>e.type==='warden'&&!e.dead&&distance(e,player)<9),target=boss||(enemy&&distance(enemy,game.aim)<1.4?enemy:null);
-  $('enemy-health').classList.toggle('hidden',!target);
-  if(target){$('enemy-name').textContent=target.type==='warden'?(target.name||'The Hollow Warden'):target.type==='wraith'?'Sepulchral Wraith':target.type==='crawler'?'Crypt Crawler':target.elite?'Oathbound Remnant':'Restless Remnant';$('enemy-fill').style.width=`${target.hp/target.maxHp*100}%`;$('enemy-kind').textContent=target.type==='warden'?(target.bossId==='wanderer'?'THE SOURCE OF THE BARGAIN':target.bossId==='king'?'THE USURPER':target.bossId?'CORRUPTED KNIGHT · ROUND TABLE':'ANCIENT · BOSS'):target.elite?'CHAMPION · UNDEAD':'UNDEAD';}
+  $('enemy-health').classList.toggle('hidden',!target||target.type==='warden');
+  const encounter=game.dungeon.enemies.find(e=>e.type==='warden'&&!e.dead&&(e.aggro||distance(e,player)<10));$('boss-health').classList.toggle('hidden',!encounter||game.zone==='town');if(encounter){$('boss-name').textContent=encounter.name||'The Hollow Warden';$('boss-fill').style.width=`${clamp(encounter.hp/encounter.maxHp*100,0,100)}%`;$('boss-phase').textContent=`${encounter.hp/encounter.maxHp<.5?'ENRAGED':'BOUND BY THE BARGAIN'} · ${encounter.moveTimer>0?encounter.moveName||'':encounter.bossId?.startsWith('captain')?'GARRISON COMMANDER':'FALLEN KNIGHT'}`;}
+  if(target){$('enemy-name').textContent=target.type==='warden'?(target.name||'The Hollow Warden'):target.name|| (target.type==='wraith'?'Sepulchral Wraith':target.type==='crawler'?'Crypt Crawler':target.elite?'Oathbound Remnant':'Restless Remnant');$('enemy-fill').style.width=`${target.hp/target.maxHp*100}%`;$('enemy-kind').textContent=target.type==='warden'?(target.bossId==='wanderer'?'THE SOURCE OF THE BARGAIN':target.bossId==='king'?'THE USURPER':target.bossId?'CORRUPTED KNIGHT · ROUND TABLE':'ANCIENT · BOSS'):target.elite?'CHAMPION · UNDEAD':'UNDEAD';}
 }
 
 function openPanel(panel){
@@ -412,15 +423,15 @@ function renderPanel(){
   if(renderCampaignPanel(game,game.panel))return;
   if(game.panel==='skills'){
     const key=game.selectedMastery,mastery=MASTERIES[key],points=masteryPoints(player,key);
-    modal.innerHTML=title('THREE PATHS. ONE FATE.','Shape your legacy')+`<p>Weave any of the three masteries into your build. Invest points to unlock deeper powers.</p><div class="mastery-tabs">${Object.entries(MASTERIES).map(([k,m])=>`<button class="${k===key?'active':''}" data-mastery="${k}">${m.name}<small>${m.subtitle}</small></button>`).join('')}</div><div class="skill-summary"><span><strong>${player.points}</strong> points available · <strong>${points}</strong> invested in ${mastery.name}</span><button class="text-button" data-action="respec">Respec · ${respecCost()} gold</button></div><div class="skill-tree">${mastery.nodes.map(n=>{
+    modal.innerHTML=title('THREE PATHS. ONE FATE.','Masteries')+`<p>Weave any of the three masteries into your build. Invest points to unlock deeper powers.</p><div class="mastery-tabs">${Object.entries(MASTERIES).map(([k,m])=>`<button class="${k===key?'active':''}" data-mastery="${k}">${m.name}<small>${m.subtitle}</small></button>`).join('')}</div><div class="skill-summary"><span><strong>${player.points}</strong> points available · <strong>${points}</strong> invested in ${mastery.name}</span><button class="text-button" data-action="respec">Respec · ${respecCost()} gold</button></div><div class="skill-tree">${mastery.nodes.map(n=>{
       const rank=rankOf(player,n.id),locked=points<n.req||player.level<skillLevel(n.id),value=n.base+Math.max(0,rank-1)*n.step;
       return `<article class="skill-node ${locked?'locked':''} ${rank?'learned':''}"><span class="node-icon">${skillIcon(n.id)}</span><h3>${n.name}</h3><span class="rank">${n.active?'ACTIVE':'PASSIVE'} · ${rank} / ${n.max}</span><p>${n.description.replace('{v}',value)}</p>${n.id==='inferno'?`<p class="pyre-readout">${Math.round(pyreStats(player,game.stats).dps)} fire damage / sec · ${pyreStats(player,game.stats).selfDps.toFixed(1)} life consumed / sec<br>Fire resistance and life regeneration sustain the flame.</p>`:''}<span class="rank">${locked?(player.level<skillLevel(n.id)?`REQUIRES LEVEL ${skillLevel(n.id)}`:`REQUIRES ${n.req} INVESTED POINTS`):n.toggle?'TOGGLE · LIFE-FUELLED AURA':n.active?`${n.cost} SPIRIT · ${n.cooldown}s COOLDOWN`:`${rank?'NEXT RANK: '+(n.base+rank*n.step):'AVAILABLE TO LEARN'}`}</span><div class="node-actions"><button class="small-button" data-learn="${n.id}" ${!canLearn(player,n.id)?'disabled':''}>${rank===n.max?'Max rank':rank?'Rank up +':'Learn +'}</button>${n.active&&rank?`<select data-bind="${n.id}" aria-label="Assign ${n.name} to skill slot"><option value="">Equip…</option>${[0,1,2,3].map(s=>`<option value="${s}">${SKILL_KEYS[s].toUpperCase()}${player.slots[s]===n.id?' ✓':''}</option>`).join('')}</select>`:''}</div></article>`;
-    }).join('')}</div><div class="modal-footer"><small>Level up: +2 skill points · +5 attributes · Warden defeated: +2 points<br>Masteries and equipment combine. Experiment freely.</small><button class="primary-button" data-action="close">Return to ${game.zone==='town'?'Emberfall':'the crypt'}</button></div>`;
+    }).join('')}</div><div class="modal-footer"><small>Level up: +2 skill points · +5 attributes · Commander defeated: +1 point<br>Masteries and equipment combine. Experiment freely.</small><button class="primary-button" data-action="close">Return to ${game.zone==='town'?'Emberfall':'the road'}</button></div>`;
   }else if(game.panel==='character'){
     const s=game.stats,stats=[['Level',player.level],['Life',s.maxHp],['Spirit',s.maxMana],['Weapon damage',s.damage],['Armor',s.armor],['Critical chance',`${s.crit}%`],['Damage multiplier',`${Math.round(s.bonus*100)}%`],['Spirit regeneration',`${s.regen.toFixed(1)} / sec`],['Fire damage',`${Math.round(s.fire*100)}%`],['Cold / aether damage',`${Math.round(s.cold*100)}%`],['Cooldown reduction',`${Math.round((1-s.cdr)*100)}%`],['Movement speed',s.speed.toFixed(2)],['Fire resistance',s.fireResist+'%'],['Cold resistance',s.coldResist+'%'],['Storm resistance',s.lightningResist+'%'],['Life regeneration',s.lifeRegen.toFixed(1)+' / sec'],['Block chance',s.block+'%'],['Evasion',s.evasion+'%'],['Attack speed',s.attackSpeed.toFixed(2)+'×'],['Flask recovery',s.flaskGain+'%'],['Weapon reach',s.reach.toFixed(2)],['Enemies defeated',player.kills],['Deepest descent',game.depth],['Deaths',player.deaths],['Next level',`${player.xp} / ${xpNeeded(player.level)} XP`]];
-    modal.innerHTML=title('LOYAL TO THE TRUE KING',escapeText(player.name||'The Loyalist'))+`<p>Level ${player.level} · ${ORIGINS[player.origin]?.name||'Royal guard'} · ${Math.floor(player.xp)} / ${xpNeeded(player.level)} experience</p>${attributePanel()}<div class="stats-grid">${stats.map(([n,v])=>`<div class="stat"><span>${n}</span><strong>${v}</strong></div>`).join('')}</div><div class="build-tags">${Object.entries(MASTERIES).map(([k,m])=>`<span>${m.name} · ${masteryPoints(player,k)} points</span>`).join('')}</div><div class="modal-footer"><button class="text-button" data-action="new-confirm">Begin a new chronicle</button><button class="primary-button" data-action="close">Return to ${game.zone==='town'?'Emberfall':'the crypt'}</button></div>`;
+    modal.innerHTML=title('LOYAL TO THE TRUE KING',escapeText(player.name||'The Loyalist'))+`<p>Level ${player.level} · ${ORIGINS[player.origin]?.name||'Royal guard'} · ${Math.floor(player.xp)} / ${xpNeeded(player.level)} experience</p>${attributePanel()}<div class="stats-grid">${stats.map(([n,v])=>`<div class="stat"><span>${n}</span><strong>${v}</strong></div>`).join('')}</div><div class="build-tags">${Object.entries(MASTERIES).map(([k,m])=>`<span>${m.name} · ${masteryPoints(player,k)} points</span>`).join('')}</div><div class="modal-footer"><button class="text-button" data-action="new-confirm">Begin a new chronicle</button><button class="primary-button" data-action="close">Return to ${game.zone==='town'?'Emberfall':'the road'}</button></div>`;
   }else if(game.panel==='help'){
-    modal.innerHTML=title('YOUR JOURNEY BEGINS','The Kingsroad')+`<p>The Kingsroad is held by the usurper’s patrols. Leave Emberfall through its north gate, reach Marchgate, and bring Edrin home. Each fallen knight opens another road toward Crownfall.</p><div class="help-grid">${[['Move','Click / hold ground'],['Attack a target','Left click enemy'],['Attack in place','Shift + left click'],['Selected spell','Hold right click'],['Active abilities','Q · W · E · R'],['Evade (invulnerable)','Space'],['Healing flask','1'],['Talk / loot / descend','F'],['Town portal / crypt gate','T'],['Overlay automap','Tab'],['World map / waypoints','G'],['Show loot labels','Hold Alt'],['Masteries / inventory','K / I'],['Character / map zoom','C / M'],['Pause / close panel','Esc'],['Quick equip / identify','Shift / Alt + click item'],['Quick trade / stash transfer','Ctrl + click item'],['Arrange inventory','S while inventory open'],['Close automap','Tab or Escape']].map(([n,k])=>`<p><span>${n}</span><kbd>${k}</kbd></p>`).join('')}</div><div class="modal-rule"></div><p>Begin with a basic strike. At each level earn <b>2 skill points</b> (K) and <b>5 attribute points</b> (C). Skills unlock at levels 2, 4, and 8. Mix any masteries; invest 3 and 7 points to unlock advanced abilities. Equip learned skills in one of four slots. Dodge the Warden’s marked attacks. Life and spirit regenerate continuously. Life flasks cost 20 charges, recover life over three seconds, and have no cooldown. Combat and slow passive recovery replenish their charges.</p><p>Your character, gear, and current dungeon seed save automatically on this device. Reloading preserves your character and town services. An expedition restarts at its saved depth. Speak to Maelin for your first quest. Rescue Edrin to unlock free identification. Visit Orrin to trade and Garran to repair or reforge. No account needed.</p><div class="modal-footer"><small>Free the corrupted knights. Confront the mad king and the Wanderer in Crownfall.</small><button class="primary-button" data-action="close">Return to the journey</button></div>`;
+    modal.innerHTML=title('YOUR JOURNEY BEGINS','The Kingsroad')+`<p>The Kingsroad is held by the usurper’s patrols. Leave Emberfall through its north gate, recover the patrol orders, breach Marchgate and follow the convoy to Edrin’s prison. Read recovered accounts in the journal (J). Each fallen knight opens another road toward Crownfall.</p><div class="help-grid">${[['Move','Click / hold ground'],['Attack a target','Left click enemy'],['Attack in place','Shift + left click'],['Selected spell','Hold right click'],['Active abilities','Q · W · E · R'],['Evade (invulnerable)','Space'],['Healing flask','1'],['Talk / loot / descend','F'],['Town portal / crypt gate','T'],['Overlay automap','Tab'],['World map / waypoints','G'],['Quest journal','J'],['Show loot labels','Hold Alt'],['Masteries / inventory','K / I'],['Character / map zoom','C / M'],['Pause / close panel','Esc'],['Quick equip / identify','Shift / Alt + click item'],['Quick trade / stash transfer','Ctrl + click item'],['Arrange inventory','S while inventory open'],['Close automap','Tab or Escape']].map(([n,k])=>`<p><span>${n}</span><kbd>${k}</kbd></p>`).join('')}</div><div class="modal-rule"></div><p>Begin with a basic strike. At each level earn <b>2 skill points</b> (K) and <b>5 attribute points</b> (C). Skills unlock at levels 2, 4, and 8. Mix any masteries; invest 3 and 7 points to unlock advanced abilities. Equip learned skills in one of four slots. Dodge the Warden’s marked attacks. Life and spirit regenerate continuously. Life flasks cost 20 charges, recover life over three seconds, and have no cooldown. Combat and slow passive recovery replenish their charges.</p><p>Your character, gear, and current dungeon seed save automatically on this device. Reloading preserves your character and town services. An expedition restarts at its saved depth. Speak to Maelin for your first quest. Rescue Edrin to unlock free identification. Visit Orrin to trade and Garran to repair or reforge. No account needed.</p><div class="modal-footer"><small>Free the corrupted knights. Confront the mad king and the Wanderer in Crownfall.</small><button class="primary-button" data-action="close">Return to the journey</button></div>`;
   }else if(game.panel==='pause'){
     modal.classList.add('pause-menu');modal.innerHTML=title('EMBERFALL CHRONICLES','Rest a moment')+`<p class="pause-location">${escapeText(player.name)} · Level ${player.level}<br>${escapeText($('location').textContent)} · ${player.gold.toLocaleString()} gold carried</p><div class="pause-actions"><button class="primary-button" data-action="close">Resume journey <kbd>Esc</kbd></button><button data-action="options">Options</button><button data-action="help">Controls & shortcuts</button><button data-action="save-now">Save journey</button><button data-action="main-menu">Return to title</button></div><p class="pause-note">Combat is paused. Your character is saved in this browser.</p>`;save();
   }else if(game.panel==='options'){
@@ -493,8 +504,8 @@ window.addEventListener('keydown',event=>{
   if(key==='escape'){if(game.largeMap&&!game.panel){game.largeMap=false;$('map-overlay').classList.add('hidden');return;}if(game.dialogue){dialogue.close();return;}if(!$('skill-picker').classList.contains('hidden'))$('skill-picker').classList.add('hidden');else game.panel?closePanel():openPanel('pause');return;}
   if(key==='s'&&HUD_PANELS.includes(game.panel)){townUI.handleClick({target:{closest:selector=>selector==='[data-town-action]'?{dataset:{townAction:'sort'}}:null}});return;}
   if(event.repeat){if(!game.paused)keys.add(key);return;}
-  if(key==='i'||key==='k'||key==='c'||key==='g'){openPanel({i:'inventory',k:'skills',c:'character',g:'worldmap'}[key]);return;}
-  if(game.paused)return;keys.add(key);
+  if(key==='i'||key==='k'||key==='c'||key==='g'||key==='j'){openPanel({i:'inventory',k:'skills',c:'character',g:'worldmap',j:'journal'}[key]);return;}
+  if(game.paused||game.loading)return;keys.add(key);
   if(SKILL_KEYS.includes(key)){cast(SKILL_KEYS.indexOf(key));return;}
   if(key===' ')dodge();if(key==='1')potion();if(key==='f')interact();if(key==='alt')game.showLoot=true;
   if(key==='t')townPortal();
@@ -519,7 +530,7 @@ function walkTo(point,marker=true){
   game.target={...target};game.path=path;if(marker)effect('destination',target.x,target.y,.65,{radius:.35});return true;
 }
 $('world').addEventListener('pointerdown',e=>{
-  if(game.paused)return;dialogue.close();e.preventDefault();$('world').focus({preventScroll:true});$('skill-picker').classList.add('hidden');townUI.hud.hideTooltip();
+  if(game.paused||game.loading)return;dialogue.close();e.preventDefault();$('world').focus({preventScroll:true});$('skill-picker').classList.add('hidden');townUI.hud.hideTooltip();
   if(e.pointerType!=='touch'){mouseScreen={x:e.clientX,y:e.clientY};game.pointerOverWorld=true;}
   game.aim=aimPoint();
   if(e.button===2){game.secondaryHeld=true;game.combatTarget=null;game.target=null;game.path=null;castSkill(player.mouseSkill);return;}
@@ -545,12 +556,12 @@ window.addEventListener('pointerup',e=>{
 });
 window.addEventListener('pointercancel',()=>{clearAttackOrder();game.mouseDown=false;});
 let previous=performance.now();
-function frame(now){if(now-previous<1000/settings.frameLimit-.5){requestAnimationFrame(frame);return;}const dt=Math.min((now-previous)/1000,.04);previous=now;if(!document.hidden&&!game.frontScreen){update(dt);if(!game.paused||renderer.needsDraw||game.lastRenderedPanel!==game.panel){renderer.draw(game,game.paused?0:dt);renderer.needsDraw=false;game.lastRenderedPanel=game.panel;}updateHud(dt);if(game.dialogue)dialogue.position();}requestAnimationFrame(frame);}
+function frame(now){if(now-previous<1000/settings.frameLimit-.5){requestAnimationFrame(frame);return;}const dt=Math.min((now-previous)/1000,.04);previous=now;if(!document.hidden&&!game.frontScreen&&!game.loading){update(dt);if(!game.paused||renderer.needsDraw||game.lastRenderedPanel!==game.panel){renderer.draw(game,game.paused?0:dt);renderer.needsDraw=false;game.lastRenderedPanel=game.panel;}updateHud(dt);if(game.dialogue)dialogue.position();}requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 setTimeout(()=>{if(!validSave)toast('Welcome to Emberfall · Speak to Maelin with F.',5000);},7500);
 
 // Read-only diagnostics are useful for smoke tests without granting in-game powers.
-window.__reliquary={project:(x,y,z=0)=>renderer.screen(x,y,z),snapshot:()=>({settings:{...settings},mapCenter:{x:player.x,y:player.y},goldEarned:player.goldEarned||0,bankGold:player.bankGold||0,level:player.level,hp:player.hp,mana:player.mana,points:player.points,position:{x:player.x,y:player.y},depth:game.depth,zone:game.zone,act:game.act,campaign:player.campaign?structuredClone(player.campaign):null,frontScreen:game.frontScreen,flask:{...ensureFlask(player)},pyre:game.pyre?pyreStats(player,game.stats):null,appearance:appearanceOf(player),combatStats:{...game.stats},attributes:{...player.attributes},attributePoints:player.attributePoints,xp:player.xp,waypoint:game.dungeon.waypoint?{...game.dungeon.waypoint,screen:renderer.screen(game.dungeon.waypoint.x,game.dungeon.waypoint.y)}:null,portal:{...game.dungeon.portal,screen:renderer.screen(game.dungeon.portal.x,game.dungeon.portal.y)},enemies:game.dungeon.enemies.filter(e=>!e.dead).length,enemyHealth:game.dungeon.enemies.reduce((sum,e)=>sum+Math.max(0,e.hp),0),loot:game.loot.length,inventory:player.inventory.length,paused:game.paused,panel:game.panel,skills:{...player.skills},slots:[...player.slots],cooldowns:{...game.cooldowns},seed:game.seed,bossDead:game.dungeon.bossDead,gold:player.gold,shards:player.shards,quests:{...player.quests},npcs:game.dungeon.npcs?.map(n=>({id:n.id,worldX:n.x,worldY:n.y,...renderer.screen(n.x,n.y)})),artLoaded:renderer.artLoaded,areaSeed:game.dungeon.seed,areaSize:game.dungeon.size,sanctuary:game.dungeon.townBounds,dialogue:game.dialogue||null,groundChunks:renderer.groundCache.size,animation:{...renderer.heroFrame},attackAnim:game.attackAnim,moving:game.moving,aim:{...game.aim},heroScreen:renderer.screen(player.x,player.y,24),mouseSkill:player.mouseSkill,projectiles:game.projectiles.map(b=>({...renderer.screen(b.x,b.y,24),dx:renderer.iso(b.dx,b.dy).x,dy:renderer.iso(b.dx,b.dy).y,kind:b.kind})),visibleEnemies:game.dungeon.enemies.filter(e=>!e.dead&&game.dungeon.seen.has(Math.floor(e.y)*game.dungeon.size+Math.floor(e.x))).map(e=>({id:e.id,bossId:e.bossId,name:e.name,hp:e.hp,x:e.x,y:e.y,screen:renderer.screen(e.x,e.y,24)}))})};
+window.__reliquary={spriteSignature:()=>{const canvas=renderer.guard.frame(player,false,0);if(!canvas)return null;let hash=2166136261;for(const value of canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data)hash=Math.imul(hash^value,16777619);return hash>>>0;},project:(x,y,z=0)=>renderer.screen(x,y,z),snapshot:()=>({settings:{...settings},mapCenter:{x:player.x,y:player.y},goldEarned:player.goldEarned||0,bankGold:player.bankGold||0,level:player.level,hp:player.hp,mana:player.mana,points:player.points,position:{x:player.x,y:player.y},depth:game.depth,zone:game.zone,act:game.act,chapter:game.chapter,loading:!!game.loading,attackStyle:game.attackStyle,terrainPrepared:renderer.preparedDungeon===game.dungeon,campaign:player.campaign?structuredClone(player.campaign):null,frontScreen:game.frontScreen,flask:{...ensureFlask(player)},pyre:game.pyre?pyreStats(player,game.stats):null,appearance:appearanceOf(player),combatStats:{...game.stats},attributes:{...player.attributes},attributePoints:player.attributePoints,xp:player.xp,waypoint:game.dungeon.waypoint?{...game.dungeon.waypoint,screen:renderer.screen(game.dungeon.waypoint.x,game.dungeon.waypoint.y)}:null,portal:{...game.dungeon.portal,screen:renderer.screen(game.dungeon.portal.x,game.dungeon.portal.y)},enemies:game.dungeon.enemies.filter(e=>!e.dead).length,enemyHealth:game.dungeon.enemies.reduce((sum,e)=>sum+Math.max(0,e.hp),0),loot:game.loot.length,inventory:player.inventory.length,paused:game.paused,panel:game.panel,skills:{...player.skills},slots:[...player.slots],cooldowns:{...game.cooldowns},seed:game.seed,bossDead:game.dungeon.bossDead,gold:player.gold,shards:player.shards,quests:{...player.quests},npcs:game.dungeon.npcs?.map(n=>({id:n.id,worldX:n.x,worldY:n.y,...renderer.screen(n.x,n.y)})),artLoaded:renderer.artLoaded,exploredTiles:game.dungeon.seen.size,field:game.dungeon.field?{...game.dungeon.field}:null,boss:game.dungeon.enemies.filter(e=>e.type==='warden'&&!e.dead).map(e=>({name:e.name,bossId:e.bossId,moveName:e.moveName,hp:e.hp,maxHp:e.maxHp})),areaSeed:game.dungeon.seed,areaSize:game.dungeon.size,sanctuary:game.dungeon.townBounds,dialogue:game.dialogue||null,groundChunks:renderer.groundCache.size,animation:{...renderer.heroFrame},attackAnim:game.attackAnim,moving:game.moving,aim:{...game.aim},heroScreen:renderer.screen(player.x,player.y,24),mouseSkill:player.mouseSkill,projectiles:game.projectiles.map(b=>({...renderer.screen(b.x,b.y,24),dx:renderer.iso(b.dx,b.dy).x,dy:renderer.iso(b.dx,b.dy).y,kind:b.kind})),visibleEnemies:game.dungeon.enemies.filter(e=>!e.dead&&game.dungeon.seen.has(Math.floor(e.y)*game.dungeon.size+Math.floor(e.x))).map(e=>({id:e.id,bossId:e.bossId,name:e.name,hp:e.hp,x:e.x,y:e.y,screen:renderer.screen(e.x,e.y,24)}))})};
 
 const frontEnd=new FrontEnd({player,hasSave:validSave,onPause:()=>{game.frontScreen=true;game.paused=true;clearAttackOrder();keys.clear();game.target=null;game.path=null;},onPlay:()=>{game.frontScreen=false;game.paused=Boolean(game.panel);$('world').focus({preventScroll:true});save();},onCreate:options=>{for(const key of Object.keys(player))delete player[key];Object.assign(player,migratePlayer(createPlayer(options)),{campaign:createCampaign()});game.act=1;game.depth=1;game.areas.clear();game.pyre=null;game.whirl=null;game.expedition=null;game.cooldowns={};game.seed=Math.floor(Math.random()*1e9);game.stats=playerStats(player);player.hp=game.stats.maxHp;player.mana=game.stats.maxMana;enterTown(true);game.frontScreen=true;game.paused=true;save();}});
 
@@ -559,31 +570,32 @@ function attributePanel(){
  return `<section class="attributes-panel"><h3>Attributes · ${player.attributePoints||0} points available</h3>${Object.entries(descriptions).map(([key,text])=>`<div class="attribute-row"><span>${key[0].toUpperCase()+key.slice(1)}</span><small>${text}</small><strong>${player.attributes?.[key]||0}</strong><button data-attribute="${key}" ${!(player.attributePoints>0)?'disabled':''} aria-label="Increase ${key}">+</button></div>`).join('')}</section>`;
 }
 function setCampaignZoneUI(){
- const town=game.zone==='town',a=actFor(game.act),wild=game.zone==='wilderness',name=town?'Emberfall Sanctuary':wild?a.wilds:a.stronghold;
+ const town=game.zone==='town',a=actFor(game.act),ch=chapterFor(game.act,game.chapter),wild=game.zone==='wilderness',name=town?'Emberfall Sanctuary':wild?ch.wilds:ch.stronghold;
  $('floor-label').textContent=town?'SANCTUARY':wild?'THE OUTER KINGDOM':`CORRUPTED SEAT · ACT ${game.act}`;
  $('map-depth').textContent=town?'⌂':['I','II','III','IV','V'][a.id-1];$('location').textContent=name;
  document.querySelector('.chapter>.eyebrow').textContent=`ACT ${['I','II','III','IV','V'][a.id-1]} · ${a.title.toUpperCase()}`;
  document.querySelector('.map-heading>span').textContent=name.toUpperCase();document.querySelector('.map-caption').innerHTML='<span class="map-dot"></span> TAB · AUTOMAP <span class="key-cap">G · WORLD</span>';
  document.querySelector('.quest-panel>.eyebrow').innerHTML='<span class="tiny-diamond">◆</span> AN OATH UNBROKEN';document.querySelector('.quest-panel>h2').textContent=a.title;document.querySelector('.quest-panel>p').textContent='Free the Round Table. Break the bargain.';
- $('objective').textContent=campaignObjective(player,town?'town':wild?'wilderness':'stronghold',game.act);$('quest-progress').textContent=town?'Trade · Rest · Prepare':`Patrols still hold the road`;
+ $('objective').textContent=campaignObjective(player,town?'town':wild?'wilderness':'stronghold',game.act,game.chapter);$('quest-progress').textContent=town?'Trade · Rest · Prepare':`Chapter ${game.chapter+1} / 4 · ${wild?ch.task:ch.captain||a.knight}`;
  $('journey-button').textContent=town?game.expedition?'Return to the road →':'Journey to the Kingsroad →':'Town portal · T';$('town-services').classList.toggle('hidden',!town);
  document.querySelector('[data-npc="scholar"]').disabled=!player.quests.scholarRescued;document.querySelector('[data-npc="scholar"] small').textContent=player.quests.scholarRescued?'IDENTIFY RELICS':'ARCHIVIST · MISSING';
  $('seed-label').textContent=`AURETH · ${town?'LAST REFUGE':a.title.toUpperCase()}`;document.querySelector('.zone-intro h1').textContent=name;document.querySelector('.zone-intro .eyebrow').textContent=town?'BENEATH THE LAST FRIENDLY BANNER':`ACT ${game.act} · ${a.title.toUpperCase()}`;document.querySelector('.zone-intro>div').textContent=town?'The loyal gather where the old light burns.':wild?'Beyond these roads lies a kingdom that has forgotten the dawn.':a.knight;
 }
-function rememberArea(){if(!player.campaign||!game.dungeon?.kind)return;game.areas.set(locationId(game.act,game.dungeon.kind),{dungeon:game.dungeon,loot:game.loot,position:{x:player.x,y:player.y}});}
-function finalBoss(id){const at=game.dungeon.portal,e=makeEnemy(900+game.dungeon.enemies.length,at.x,at.y,'warden',3.6,true);Object.assign(e,{bossId:id,name:id==='king'?'King Vaelor, the Usurper':'The Veiled Wanderer',phaseType:id,tint:id==='king'?'#bb815c':'#a67fd0',hp:id==='king'?1150:1450,maxHp:id==='king'?1150:1450,special:2});game.dungeon.enemies.push(e);game.dungeon.bossDead=false;return e;}
-function enterCampaignArea(kind,act=player.campaign.act,viaWaypoint=false,initial=false){
+function rememberArea(){if(!player.campaign||!game.dungeon?.kind)return;game.areas.set(locationId(game.act,game.dungeon.kind,game.chapter),{dungeon:game.dungeon,loot:game.loot,position:{x:player.x,y:player.y}});}
+function finalBoss(id){const at=game.dungeon.portal,e=makeEnemy(900+game.dungeon.enemies.length,at.x,at.y,'warden',game.depth,true);Object.assign(e,{bossId:id,name:id==='king'?'King Vaelor, the Usurper':'The Veiled Wanderer',phaseType:id,tint:id==='king'?'#bb815c':'#a67fd0',hp:id==='king'?6500:8500,maxHp:id==='king'?6500:8500,special:2});game.dungeon.enemies.push(e);game.dungeon.bossDead=false;return e;}
+function enterCampaignArea(kind,act=player.campaign.act,viaWaypoint=false,initial=false,chapter=chapterOf(player,act)){
  if(!player.campaign||!['wilderness','stronghold'].includes(kind)||act>player.campaign.act||act<1||act>5)return false;
- if(!initial)rememberArea();clearAttackOrder();game.path=null;game.target=null;game.interactTarget=null;game.channel=null;game.mouseDown=false;game.act=act;game.depth=act;game.zone=kind==='wilderness'?'wilderness':'dungeon';
- const key=locationId(act,kind),cached=game.areas.get(key);game.dungeon=cached?.dungeon||(kind==='wilderness'?generateWilderness(game.seed+act*107,act,player):generateStronghold(game.seed+act*211,act));game.loot=cached?.loot||[];game.projectiles=[];game.effects=[];game.floaters=[];game.melee=null;
- if(!cached&&kind==='stronghold'&&player.campaign.defeated.includes(`knight-${act}`)){
+ if(!initial)rememberArea();clearAttackOrder();game.path=null;game.target=null;game.interactTarget=null;game.channel=null;game.mouseDown=false;game.act=act;game.chapter=chapter;game.depth=actFor(act).level+chapter*2;game.zone=kind==='wilderness'?'wilderness':'dungeon';
+ const key=locationId(act,kind,chapter),cached=game.areas.get(key);game.dungeon=cached?.dungeon||(kind==='wilderness'?generateWilderness(game.seed+act*107+chapter*7919,act,player,chapter):generateStronghold(game.seed+act*211+chapter*7919,act,chapter));game.loot=cached?.loot||[];game.projectiles=[];game.effects=[];game.floaters=[];game.melee=null;
+ if(!cached&&kind==='stronghold'&&player.campaign.defeated.includes(captainId(act,chapter))){
   for(const e of game.dungeon.enemies)if(e.type==='warden'){e.dead=true;e.hp=0;}
   game.dungeon.bossDead=true;
-  if(act===5&&!player.campaign.completed)finalBoss(player.campaign.defeated.includes('king')?'wanderer':'king');
+  if(act===5&&chapter===3&&!player.campaign.completed)finalBoss(player.campaign.defeated.includes('king')?'wanderer':'king');
  }
- const at=viaWaypoint?game.dungeon.waypoint:cached?.position||game.dungeon.start;player.x=at.x;player.y=at.y;if(inSanctuary(game.dungeon,player))game.zone='town';game.aim={x:player.x+2,y:player.y};renderer.camera={...renderer.iso(player.x,player.y)};discoverLocation(player,kind,act);reveal();buildFlow();setZoneUI();save();
+ const at=viaWaypoint?game.dungeon.waypoint:cached?.position||game.dungeon.start;player.x=at.x;player.y=at.y;if(inSanctuary(game.dungeon,player))game.zone='town';game.aim={x:player.x+2,y:player.y};renderer.camera={...renderer.iso(player.x,player.y)};discoverLocation(player,kind,act,chapter);reveal();buildFlow();setZoneUI();save();
  const intro=$('zone-intro');intro.style.animation='none';void intro.offsetWidth;intro.style.animation='intro 4s forwards';
- if(!initial)toast(`${kind==='wilderness'?actFor(act).wilds:actFor(act).stronghold} · G world map`,2500);
+ prepareArea();
+ if(!initial)toast(`${kind==='wilderness'?chapterFor(act,chapter).wilds:chapterFor(act,chapter).stronghold} · G world map`,2500);
  return true;
 }
 function campaignTargets(){
@@ -591,17 +603,19 @@ function campaignTargets(){
  if(d.townWaypoint)targets.push({...d.townWaypoint,interaction:'worldmap',label:'Emberfall waypoint',height:50,width:36});
  if(d.returnGate)targets.push({...d.returnGate,interaction:'return-wilderness',label:'Return to the wilderness',height:70,width:40});
  if(d.waypoint)targets.push({...d.waypoint,interaction:'worldmap',label:'Open waypoint & world map',height:50,width:36});
+ if(d.field)targets.push({...d.field,interaction:'field-record',height:65,width:35});
  if(d.supplies)targets.push({...d.supplies,interaction:'supplies',label:'Roadside provisions',height:65,width:30});
- if(game.zone==='wilderness')targets.push({...d.portal,interaction:'campaign-exit',label:`Enter ${actFor(game.act).stronghold}`,height:165,width:65});
- else if(d.bossDead)targets.push({...d.portal,interaction:game.act===5?'victory':'actcomplete',label:game.act===5?'The bargain is broken':'Continue the king’s road',height:100,width:40});
+ if(game.zone==='wilderness')targets.push({...d.portal,interaction:'campaign-exit',label:`Enter ${chapterFor(game.act,game.chapter).stronghold}`,height:165,width:65});
+ else if(d.bossDead)targets.push({...d.portal,interaction:game.chapter<3?'chaptercomplete':game.act===5?'victory':'actcomplete',label:game.chapter<3?'Read the recovered account':game.act===5?'The bargain is broken':'Continue the king’s road',height:100,width:40});
  return targets;
 }
-function performInteraction(action){const npc=game.dungeon.npcs?.find(n=>n.id===action);if(npc){dialogue.open(npc);return;}if(action==='return-wilderness'){enterCampaignArea('wilderness',game.act);const at=game.dungeon.portal;player.x=at.x;player.y=at.y+2;game.zone='wilderness';renderer.camera={...renderer.iso(player.x,player.y)};setZoneUI();return;}if(action==='campaign-exit')enterCampaignArea('stronghold',game.act);else openPanel(action);}
+function performInteraction(action){const npc=game.dungeon.npcs?.find(n=>n.id===action);if(npc){dialogue.open(npc);return;}if(action==='return-wilderness'){enterCampaignArea('wilderness',game.act,false,false,game.chapter);const at=game.dungeon.portal;player.x=at.x;player.y=at.y+2;game.zone='wilderness';renderer.camera={...renderer.iso(player.x,player.y)};setZoneUI();return;}if(action==='field-record'){if(completeField(player,game.act,game.chapter)){grantExperience(player,120+game.depth*20);game.stats=playerStats(player);player.gold+=35+game.depth*8;toast('Field account recovered · J to read your journal',3000);save();setZoneUI();}openPanel('journal');return;}if(action==='campaign-exit'){if(!player.campaign.records.includes(fieldKey(game.act,game.chapter))){toast(chapterFor(game.act,game.chapter).task+' before approaching the garrison.',3000);return;}enterCampaignArea('stronghold',game.act,false,false,game.chapter);}else openPanel(action);}
 function handleCampaignClick(event){
  const map=event.target.closest('[data-map-act]');if(map){const act=Number(map.dataset.mapAct);if(player.campaign&&act<=player.campaign.act){game.mapAct=act;renderPanel();}return true;}
  const wp=event.target.closest('[data-waypoint]');if(wp){const id=wp.dataset.waypoint,near=game.zone==='town'||game.dungeon.waypoint&&distance(player,game.dungeon.waypoint)<3;
-  if(!near||!canTravel(player,id))return true;closePanel();if(id==='emberfall')enterTown();else{const [,act,kind]=id.split('-');enterCampaignArea(kind,Number(act),true);}save();return true;}
+  if(!near||!canTravel(player,id))return true;closePanel();if(id==='emberfall')enterTown();else{const [,act,kind,part]=id.split('-');enterCampaignArea(kind,Number(act),true,false,part?Number(part)-1:0);}save();return true;}
  const action=event.target.closest('[data-campaign-action]')?.dataset.campaignAction;if(!action)return false;
+ if(action==='next-chapter'){const chapter=game.chapter;if(chapter<3&&player.campaign.defeated.includes(captainId(game.act,chapter))){if(chapter===chapterOf(player,game.act))nextChapter(player,game.act);closePanel();game.expedition=null;enterCampaignArea('wilderness',game.act,false,false,chapter+1);}return true;}
  if(action==='home'){closePanel();enterTown();}
  if(action==='advance'){if(canAdvance(player,game.act)&&game.act<5){const next=game.act+1;if(next>player.campaign.act)advanceCampaign(player);closePanel();game.expedition=null;enterCampaignArea('wilderness',next);}}
  if(action==='resupply'){
@@ -612,20 +626,25 @@ function handleCampaignClick(event){
 function campaignBossKilled(e){
  if(!defeatCampaignBoss(player,e.bossId))return;
  player.points++;player.shards+=2;refillFlask(player,40);
- if(game.act===1){player.quests.wardenDefeated=true;player.quests.scholarRescued=true;}
- if(game.act===5&&e.bossId!=='wanderer'){
+ if(game.act===1&&game.chapter>=2){player.quests.scholarRescued=true;if(game.chapter===3)player.quests.wardenDefeated=true;}
+ if(game.act===5&&game.chapter===3&&e.bossId!=='wanderer'){
   const next=e.bossId==='knight-5'?'king':'wanderer';game.dungeon.pendingBoss={id:next,remaining:1.4};toast(next==='king'?'THE USURPER DESCENDS · King Vaelor draws his blade.':'THE BARGAIN UNRAVELS · The Veiled Wanderer reveals himself.',4500);
- }else{game.dungeon.bossDead=true;toast(e.bossId==='wanderer'?'THE BARGAIN IS BROKEN · Aureth will see another dawn.':`${e.name} has fallen. The next road is open.`,5000);if(e.bossId==='wanderer')setTimeout(()=>{if(!game.frontScreen&&player.hp>0)openPanel('victory');},1500);}
+ }else{game.dungeon.bossDead=true;toast(e.bossId==='wanderer'?'THE BARGAIN IS BROKEN · Aureth will see another dawn.':`${e.name} has fallen. Read the recovered account at the gate.`,5000);if(e.bossId==='wanderer')setTimeout(()=>{if(!game.frontScreen&&player.hp>0)openPanel('victory');},1500);}
  setZoneUI();save();sound(560,.7,'sine');
 }
 function bossSpecial(e){
- const dx=player.x-e.x,dy=player.y-e.y,angle=Math.atan2(dy,dx),type=e.phaseType;
- if(['thorns','flood','frost','wanderer'].includes(type)){
-  const count=type==='wanderer'?8:3;for(let i=0;i<count;i++){const a=count===8?i*Math.PI/4:angle+(i-1)*.3;game.projectiles.push({x:e.x,y:e.y,dx:Math.cos(a),dy:Math.sin(a),speed:type==='wanderer'?4.3:3,life:2.5,damage:e.damage*.8,hostile:true,kind:'aether',element:type==='frost'?'cold':type==='thorns'?'physical':'aether'});}effect('ring',e.x,e.y,.5,{radius:2,color:e.tint});
- }else if(type==='fire'||type==='king'){
-  for(let i=0;i<3;i++)effect('meteor-warning',player.x+(i-1)*1.4,player.y+(i%2)*1.3,.95,{radius:1.2,pending:true,damage:e.damage,hostile:true,element:type==='oath'?'physical':'fire',color:e.tint});
- }else if(type==='oath'){
-  effect('meteor-warning',player.x,player.y,.8,{radius:2,pending:true,damage:e.damage,hostile:true,element:type==='oath'?'physical':'fire',color:e.tint});
+ const plan=bossPlan(e,player,e.beat||0);e.beat=(e.beat||0)+1;e.moveName=plan.name;e.moveTimer=2;
+ for(const command of plan.commands){
+  if(command.kind==='shot')game.projectiles.push({...command,kind:command.element==='fire'?'fire':'aether',hostile:true});
+  if(command.kind==='mark'&&isWalkable(game.dungeon,command.x,command.y))effect('meteor-warning',command.x,command.y,command.delay,{radius:command.radius,pending:true,damage:command.damage,hostile:true,element:command.element,color:e.tint});
+  if(command.kind==='charge'){e.charge={remaining:1.1,delay:.9,dx:command.dx,dy:command.dy};effect('ring',e.x,e.y,.9,{radius:1.4,color:e.tint});}
+  if(command.kind==='blink'&&isWalkable(game.dungeon,command.x,command.y)){effect('ring',e.x,e.y,.4,{radius:1.4,color:e.tint});e.x=command.x;e.y=command.y;}
+  if(command.kind==='summon'){e.summoned=true;for(let i=0;i<3;i++){const x=e.x+Math.cos(i*2.1)*1.2,y=e.y+Math.sin(i*2.1)*1.2;if(isWalkable(game.dungeon,x,y))game.dungeon.enemies.push(makeEnemy(1000+game.dungeon.enemies.length,x,y,'skeleton',game.depth,true));}}
  }
- if(type==='king'&&e.hp/e.maxHp<.5&&!e.summoned){e.summoned=true;for(let i=0;i<3;i++){const x=e.x+Math.cos(i*2.1)*1.2,y=e.y+Math.sin(i*2.1)*1.2;if(isWalkable(game.dungeon,x,y))game.dungeon.enemies.push(makeEnemy(1000+i,x,y,'skeleton',3,true));}toast('Vaelor calls the remnants of his royal guard.',2000);}
+}
+
+async function prepareArea(){
+ const token={};game.loading=token;const root=$('area-loading');root.classList.remove('hidden');root.querySelector('h2').textContent=inSanctuary(game.dungeon,player)?'Emberfall Sanctuary':player.campaign?chapterFor(game.act,game.chapter)[game.dungeon.outdoor?'wilds':'stronghold']:game.zone==='town'?'Emberfall':'The Hollow Crypt';root.querySelector('progress').value=0;
+ try{await renderer.prepareDungeon(game.dungeon,value=>{if(game.loading===token)root.querySelector('progress').value=value;});if(game.loading!==token)return;game.loading=null;root.classList.add('hidden');renderer.needsDraw=true;}
+ catch(error){if(game.loading!==token)return;root.querySelector('p').textContent='The area could not be prepared. Reload the game to retry.';console.error(error);}
 }

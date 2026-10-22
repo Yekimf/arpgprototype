@@ -7,7 +7,7 @@ async function load(page,zone='town'){
   player.equipment.armor.armor=10000;player.equipment.charm={id:'reservoir',name:'Runic Reservoir',slot:'charm',rarity:'rare',level:2,spirit:1000,life:25};player.mana=1000;
   player.inventory=[{id:'hover-sword',name:'Moonlit Falchion',slot:'weapon',rarity:'rare',level:2,damage:24,life:20,crit:5,identified:true,bagX:8,bagY:2},{id:'hover-ring',name:'Gilded Signet',slot:'ring',rarity:'magic',level:2,spirit:10,identified:true,bagX:9,bagY:5}];
   await page.addInitScript(data=>localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify(data)),{version:1,player,seed:42710,depth:1,zone});
-  await page.goto('/');await page.locator('[data-front="continue"]').click();await expect.poll(()=>snapshot(page).then(s=>s.artLoaded)).toBe(true);
+  await page.goto('/');await page.locator('[data-front="continue"]').click();await expect(page.locator('#area-loading')).toBeHidden();await expect.poll(()=>snapshot(page).then(s=>s.artLoaded)).toBe(true);
 }
 async function bounds(page){
   return page.locator('#modal').evaluate(e=>{const r=e.getBoundingClientRect();return {fits:r.top>=0&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth,noScroll:e.scrollHeight<=e.clientHeight+1,sections:[...e.querySelectorAll('.hud-bag-section')].filter(s=>s.offsetHeight).every(s=>s.scrollHeight<=s.clientHeight+1),actions:e.querySelector('#hud-item-actions').getBoundingClientRect().bottom<=r.bottom};});

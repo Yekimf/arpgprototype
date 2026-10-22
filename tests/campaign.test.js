@@ -20,7 +20,7 @@ test('all five wilderness roads and strongholds have connected entrances, waypoi
    assert.ok(findPath(d,d.start,d.portal).length,`${a.id}/${seed} portal`);assert.ok(findPath(d,d.start,d.waypoint).length,`${a.id}/${seed} waypoint`);assert.equal(d.spirit,undefined);assert.equal(d.shrine,undefined);assert.ok(findPath(d,d.start,d.supplies).length,`${a.id}/${seed} shrine`);
    for(const e of d.enemies)assert.ok(isWalkable(d,e.x,e.y,.05));
   }
-  const d=generateStronghold(seed,a.id);assert.equal(d.enemies.find(e=>e.type==='warden').bossId,`knight-${a.id}`);
+  const d=generateStronghold(seed,a.id);assert.equal(d.enemies.find(e=>e.type==='warden').bossId,`captain-${a.id}-0`);
  }
 });
 test('waypoints stay locked until attuned and campaign acts require their knight',()=>{
@@ -36,7 +36,7 @@ test('Emberfall sits inside a broad connected wilderness with four physical exit
  for(let seed=1;seed<=12;seed++){
   const p=createPlayer(),d=generateWilderness(seed,1,p),b=d.townBounds;
   assert.equal(d.size,96);assert.ok(d.tiles.flat().filter(Boolean).length>5000);
-  for(const target of [{x:48.5,y:36.5},{x:48.5,y:67.5},{x:34.5,y:51.5},{x:64.5,y:51.5},d.portal,d.townWaypoint,...d.npcs])assert.ok(findPath(d,d.start,target).length,`seed ${seed}, route ${JSON.stringify(target)}`);
+  for(const target of [{x:48.5,y:b.y1-2.5},{x:48.5,y:b.y2+2.5},{x:b.x1-2.5,y:51.5},{x:b.x2+2.5,y:51.5},d.portal,d.townWaypoint,...d.npcs])assert.ok(findPath(d,d.start,target).length,`seed ${seed}, route ${JSON.stringify(target)}`);
   assert.ok(d.enemies.length>35);for(const e of d.enemies)assert.equal(e.x>b.x1&&e.x<b.x2&&e.y>b.y1&&e.y<b.y2,false);
   assert.ok(d.water.size>100);assert.ok(d.roads.size>100);assert.ok(d.props.some(p=>p.type==='palisade'));
  }

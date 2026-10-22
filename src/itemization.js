@@ -42,7 +42,7 @@ export function createRelic(rng,depth,guaranteedRare=false){
  const roll=rng(),rarity=guaranteedRare?(roll<.2?'legendary':'rare'):roll<.03?'legendary':roll<.22?'rare':roll<.65?'magic':'normal';
  // Select a slot before its base so accessories do not crowd out equipment drops.
  const slots=['weapon','armor','helm','shield','gloves','boots','belt','ring','charm'],slot=slots[Math.floor(rng()*slots.length)],choices=BASES.filter(b=>b.slot===slot),base=choices[Math.floor(rng()*choices.length)],power=1+Math.max(0,depth-1)*.27;
- const item={id:`${Date.now()}-${Math.floor(rng()*1e8)}`,name:base.name,base:base.id,slot,look:base.look,art:base.art,rarity,level:depth,requiredLevel:Math.max(1,Math.floor((depth-1)*2)+1),identified:rarity==='normal',durability:100,reforges:0,affixes:[]};
+ const item={id:`${Date.now()}-${Math.floor(rng()*1e8)}`,name:base.name,base:base.id,slot,look:base.look,art:base.art,rarity,level:depth,requiredLevel:Math.max(1,Math.floor(depth)),identified:rarity==='normal',durability:100,reforges:0,affixes:[]};
  for(const [key,value] of Object.entries(base))if(Array.isArray(value))item[key]=scaled(value,rng,power,precision(key));
  if(base.reach)item.reach=base.reach;if(base.attackSpeed)item.attackSpeed=base.attackSpeed;
  item.quality=(item.damage||item.armor)?Math.floor(rng()*6)*2:0;item.baseTier=depth>=5?'elite':depth>=3?'exceptional':'standard';item.baseName=base.name;item.name=(item.baseTier==='elite'?'Royal ':item.baseTier==='exceptional'?'Tempered ':'')+base.name;for(const stat of ['damage','armor'])if(item[stat])item[stat]=Math.round(item[stat]*(1+item.quality/100));

@@ -10,15 +10,18 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
-## Version 0.7
+## Version 0.8
 
-- Six spare line illustrations replace the detailed, shaded prologue. Each drawing fades in as a whole on an uninterrupted paper background. Captions and browser narration remain optional; scenes can be paused, advanced or skipped. There is no simulated drawing animation.
-- Maelin, Orrin, Garran and Edrin provide practical information. Objectives, road notes, quest conversations and the ending follow the revised story. Roadside provisions replace divine shrines. The old king remains part of the backstory, but never appears as a spirit.
-- The HUD uses separate instruments over the world: life and mana globes, a flask beside life, QWER in the middle, LMB/RMB beside mana, and compact navigation tabs below. There is no full-width bottom rail.
-- The corner minimap follows the player. **Tab** opens the larger, centered explored-area automap without pausing combat. **G** opens the kingdom map and discovered waypoints.
-- Buildings use measured sprite foot offsets and smaller contact shadows. The existing painted equipment layers, rigid walking strides, cached terrain and bounded enemy simulation remain in place.
-- Inventory, vendor, forge and stash use the same marble, dark sockets and metal borders. Long item descriptions scroll independently. A custom pointer drag retains the metal cursor instead of starting a native OS drag.
-- Pause offers resume, options, controls, manual save and return to title. Options actually change render quality, frame ceiling, world brightness, map opacity, effects volume, sound, damage numbers, persistent loot labels and interface motion. Options are stored separately from the character.
+- Emberfall has roughly twice the enclosed ground, widely spaced services, an open central square, and four gates into the continuous wilderness. The legacy town uses the same expanded layout.
+- Five acts now contain **four chapters each**: twenty approaches and twenty larger strongholds. Recover a field account before breaching each stronghold, defeat its commander, then read the aftermath to continue. Each province ends with its fallen knight. Act V ends with Brennan, Vaelor and the Wanderer.
+- A saved **quest journal (J)** develops the coup through intercepted orders, witnesses, prisoners and the knights’ failures. Three commanders precede each knight; Edrin is rescued in Act I’s third chapter. Stage-specific waypoints and progression persist. Old saves retain defeated knights and unlocked acts.
+- Fifteen named enemy variants across five regional rosters add spearmen, hounds, arbalists, drowned levies, witches, furnace troops, bombardiers, penitents, cantors and royal executioners. Painted archetypes share assets, with faction equipment overlays and different attack behavior: ranged bolts, delayed bombs, lunges and heavier melee attacks.
+- The seven principal bosses use distinct alternating attacks, marked danger zones and stronger second phases. A dedicated boss bar shows the encounter name, health, phase and current named ability.
+- Empty hands use a short, faster, single-target **punch**, shorter reach, a jab animation and fist icons. Sweeping Cut and Whirling Guard require a weapon.
+- The interface uses darker leather, stone grain, worn iron borders and muted rust/brass colours across masteries, character screens, conversations and equipment services.
+- A loading screen prepares the entire outdoor terrain and static scenery before play. World scenery stays visible; only the automap and enemy discovery depend on exploration. Outdoor ground uses half-resolution cached chunks to keep the complete region within a practical desktop memory budget.
+
+The requested **two hours per act, with longer acts approaching four hours, remains a pacing target**. The new chapter content and progression are implemented, but those durations have not been established by human playtesting. There are no timers, mandatory waiting periods or repeated-kill quotas. Further encounters, bespoke area art and balance passes are needed to substantiate that playtime.
 
 ## Controls and shortcuts
 
@@ -34,7 +37,7 @@ The root HTML embeds all code, styles and runtime art. It works offline. Use a d
 | Talk / use a gate / collect nearby loot | Click the object or press F nearby |
 | Town portal | T, then hold still for three seconds |
 | Inventory / masteries / character | I / K / C |
-| Automap / kingdom map | Tab / G |
+| Automap / kingdom map / quest journal | Tab / G / J |
 | Loot labels | Hold Alt, or enable persistent labels in Options |
 | Equip / unequip quickly | Shift + click an inventory or equipment item |
 | Buy / sell quickly | Ctrl + click vendor stock or a carried item while trading |
@@ -63,9 +66,11 @@ New characters begin at level 1 with a service sword and basic attack. Each leve
 
 Martyr’s Pyre, available at level 4 after three Cinderweaver points, burns nearby enemies using maximum life, mana and fire bonuses. It consumes 9% of maximum life per second before fire resistance and switches off at 5% life. Resistance, regeneration and flask recovery support it. Returning to town extinguishes it.
 
-Emberfall is inside the open Kingsroad Wilds. Walk through the camp gates into the wilderness; accepting a quest does not teleport you. Follow the north road to Marchgate. Five seeded wilderness/stronghold pairs lead through Aldren, Morcant, Gareth, Yseld and Brennan, then King Vaelor and the Veiled Wanderer. Each knight opens the next act. The kingdom map records attuned waypoints, which can be used from town or another waypoint. Roadside provisions restore life, mana and flasks; clear another enemy before renewing the same cache.
+Emberfall is inside the open Kingsroad Wilds. Walk through the camp gates into the wilderness; accepting a quest does not teleport you. Follow the north road to Marchgate. Twenty seeded wilderness/stronghold pairs lead through five provinces. Each act has a separate enemy roster and four chapters. Three garrison commanders lead to Aldren, Morcant, Gareth, Yseld or Brennan. Each fallen knight opens the next act; the final chapter then leads to King Vaelor and the Veiled Wanderer. Act starting area levels are 1, 10, 20, 30 and 40, rising by two per chapter. Item requirements now follow area level so later-act drops remain equipable within the level cap.
 
-This remains a campaign prototype. Areas share a painted scenery kit, with distinct names, routes, progression and boss patterns. Tests use powerful fixtures to verify the full campaign route; they do not establish final combat or economy balance.
+The kingdom map lists all eight waypoints for each province. Attune them by visiting; use them from town or another waypoint. Roadside provisions restore life, mana and flasks; clear another enemy before renewing the same cache. The journal records completed field tasks and commander aftermaths once, without repeat rewards.
+
+This remains a campaign prototype. Areas share a painted scenery kit and procedural layouts. Enemy variants reuse three painted body archetypes. Strongholds have up to 22 rooms. Automated route tests use powerful fixtures to verify progression; they do not establish final combat balance or hours of gameplay.
 
 ## Saves
 
@@ -87,8 +92,15 @@ npm run test:standalone
 
 Vite listens on all interfaces. `npm run build` creates the normal static build and **`dist/ashen-reliquary.html`**, the portable build. The root HTML is the verified release copy. Opening `dist/index.html` alone is not the standalone distribution. The offline test uses an isolated, network-disabled document with storage denied because managed Chromium blocks direct `file:` navigation.
 
-Unit checks cover procedural connectivity, progression, equipment transactions, charge recovery, aura damage, resistance, quality, keepsakes, appraisals, bank transfers, settings and the revised story. Desktop browser checks exercise creation, all six scenes, full campaign routing, combat, equipment visuals, inventory bounds, services, shortcuts, dragging, map tracking, actual options changes and persistence. `CHROMIUM_PATH` selects another Chromium binary.
+Unit checks cover procedural connectivity, progression, equipment transactions, charge recovery, aura damage, resistance, quality, keepsakes, appraisals, bank transfers, settings and the revised story. Unit route checks cover every chapter approach and stronghold. Desktop browser checks exercise creation, all six scenes, a complete field-task/commander/aftermath chapter, reload into the next chapter, the five act-ending knight encounters and final bosses, combat, equipment visuals, inventory bounds, services, shortcuts, dragging, map tracking, actual options changes and persistence. `CHROMIUM_PATH` selects another Chromium binary.
 
-Runtime assets are committed; ordinary builds do not generate artwork. `npm run art:pack` rebuilds compressed scenery, equipment layers, simple prologue scenes and sprite foot offsets. The game uses cached painted sprites, not a runtime 3D engine. `npm run profile` samples town and stronghold rendering at 1440×900 with Chromium CPU throttled 4×; run it separately from other browser work. UI resolution stays native while Options controls world resolution.
+Runtime assets are committed; ordinary builds do not generate artwork. `npm run art:pack` rebuilds compressed scenery, equipment layers, simple prologue scenes and sprite foot offsets. The game uses cached painted sprites, not a runtime 3D engine. `npm run profile` samples town and stronghold rendering at 1440×900 with Chromium CPU throttled 4×; run it separately from other browser work. UI resolution stays native while Options controls world resolution. Sprite caches use compact image identities instead of embedding entire data URLs in cache keys.
 
-The v0.7 portable HTML is about **6.1 MiB**, down from 10.7 MiB in v0.6. On the same 4× CPU-throttled browser profile, town median frames measured 48.1 ms and stronghold frames 44.9 ms (v0.6: 48.0 / 46.9 ms); sampled heap fell from about 66 MiB to 41 MiB. These are constrained benchmark results, not a 60 FPS guarantee. The Performance quality setting and 30 FPS ceiling are available for slower desktops.
+The portable v0.8 HTML is about **6.1 MiB**. A production-build sample at 1440×900 with 4× CPU throttling measured:
+
+| Area | Median frame | 95th percentile | Sampled JavaScript heap |
+| --- | --- | --- | --- |
+| Emberfall | 50.3 ms | 68.1 ms | 16.2 MiB |
+| Marchgate | 51.5 ms | 67.4 ms | 16.5 MiB |
+
+Outdoor terrain uses 144 prebuilt half-resolution chunks, approximately 30 MiB of pixel storage in addition to JavaScript heap. These constrained samples represent about 19 FPS under throttling; render quality and the frame ceiling remain adjustable in Options. They do not establish sustained performance on a particular desktop.

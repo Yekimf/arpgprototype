@@ -6,11 +6,11 @@ export function random(seed) {
   return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let n = Math.imul(seed ^ seed >>> 15, 1 | seed); n = n + Math.imul(n ^ n >>> 7, 61 | n) ^ n; return ((n ^ n >>> 14) >>> 0) / 4294967296; };
 }
 
-export function generateDungeon(seed, depth = 1) {
-  const rng = random(seed), size = 64;
+export function generateDungeon(seed, depth = 1, options = {}) {
+  const rng = random(seed), size = options.size||64;
   const tiles = Array.from({length: size}, () => Array(size).fill(0));
   const rooms = [{x: 27, y: 27, w: 11, h: 10}];
-  for (let tries = 0; tries < 220 && rooms.length < 15; tries++) {
+  for (let tries = 0; tries < 220 && rooms.length < (options.roomCount||15); tries++) {
     const w = 6 + Math.floor(rng() * 6), h = 6 + Math.floor(rng() * 5);
     const room = {x: 3 + Math.floor(rng() * (size - w - 6)), y: 3 + Math.floor(rng() * (size - h - 6)), w, h};
     if (!rooms.some(r => room.x < r.x + r.w + 3 && room.x + room.w + 3 > r.x && room.y < r.y + r.h + 3 && room.y + room.h + 3 > r.y)) rooms.push(room);
@@ -129,7 +129,7 @@ export function playerStats(player) {
   const items=Object.values(player.equipment).filter(Boolean);
   const total=key=>items.reduce((s,i)=>s+(requiresIdentification(i)?0:(i[key]||0)*(['damage','armor'].includes(key)&&i.durability<=0?.5:1)),0);
   const r=id=>rankOf(player,id), invested=Object.keys(MASTERIES).filter(k=>masteryPoints(player,k)>=3).length,a=player.attributes||{},might=a.might||0,vitality=a.vitality||0,will=a.will||0,dexterity=a.dexterity||0;
-  return {maxHp:120+(player.level-1)*16+r('vigor')*18+total('life')+vitality*6,maxMana:80+r('spirit')*12+total('spirit')+will*4,damage:18+(player.level-1)*2+total('damage')+might*1.5,armor:3+r('vigor')*2+r('ward')*4+total('armor')+vitality*.25,crit:7+r('precision')*3+total('crit')+dexterity*.4,reach:player.equipment.weapon?.reach||1.85,attackSpeed:(player.equipment.weapon?.attackSpeed||1)*(1+total('attackRate')/100),fireResist:clamp(total('fireResist'),0,75),coldResist:clamp(total('coldResist'),0,75),lightningResist:clamp(total('lightningResist'),0,75),lifeRegen:.8+total('lifeRegen'),flaskGain:total('flaskGain'),flaskRecovery:total('flaskRecovery'),block:clamp(total('block'),0,60),evasion:clamp(total('evasion'),0,50),speed:Math.max(2.4,3.8+total('speed')),regen:5+r('spirit')*.6+will*.08,bonus:1+(total('bonus')+r('convergence')*5*invested)/100,fire:1+r('kindling')*.08+total('fireDamage')/100,cold:1+r('resonance')*.08,cdr:1-r('flow')*.04};
+  return {maxHp:120+(player.level-1)*16+r('vigor')*18+total('life')+vitality*6,maxMana:80+r('spirit')*12+total('spirit')+will*4,damage:18+(player.level-1)*2+total('damage')+might*1.5,armor:3+r('vigor')*2+r('ward')*4+total('armor')+vitality*.25,crit:7+r('precision')*3+total('crit')+dexterity*.4,reach:player.equipment.weapon?(player.equipment.weapon.reach||1.85):1.15,attackSpeed:(player.equipment.weapon?.attackSpeed||(player.equipment.weapon?1:1.35))*(1+total('attackRate')/100),fireResist:clamp(total('fireResist'),0,75),coldResist:clamp(total('coldResist'),0,75),lightningResist:clamp(total('lightningResist'),0,75),lifeRegen:.8+total('lifeRegen'),flaskGain:total('flaskGain'),flaskRecovery:total('flaskRecovery'),block:clamp(total('block'),0,60),evasion:clamp(total('evasion'),0,50),speed:Math.max(2.4,3.8+total('speed')),regen:5+r('spirit')*.6+will*.08,bonus:1+(total('bonus')+r('convergence')*5*invested)/100,fire:1+r('kindling')*.08+total('fireDamage')/100,cold:1+r('resonance')*.08,cdr:1-r('flow')*.04};
 }
 export function mitigateDamage(amount,stats,element='physical',guard=0){
   const resistance=element==='fire'?stats.fireResist:element==='cold'?stats.coldResist:element==='aether'||element==='lightning'?stats.lightningResist:0;

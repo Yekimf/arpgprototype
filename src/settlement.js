@@ -5,11 +5,13 @@ import {generateItem, random, requiresIdentification} from './game.js';
 export const BAG={width:10,height:4}, STASH={width:10,height:8};
 export const EQUIPMENT={helm:'Head',charm:'Amulet',weapon:'Main hand',armor:'Body armor',shield:'Off hand',gloves:'Hands',belt:'Belt',ring:'Left ring',ring2:'Right ring',boots:'Feet'};
 export const AFFIXES={damage:'Weapon damage',armor:'Armour',life:'Life',crit:'Critical chance',bonus:'All damage',spirit:'Spirit',fireResist:'Fire resistance',coldResist:'Cold resistance',lightningResist:'Storm resistance',lifeRegen:'Life regeneration',fireDamage:'Fire damage',flaskGain:'Flask charge recovery',attackRate:'Attack speed',block:'Block chance'};
+// Shared camp footprint; the campaign places this layout at (+16, +18).
+export const TOWN_BOUNDS={x1:16,y1:16,x2:50,y2:51};
 export const NPCS=[
-  {id:'guide',name:'Sister Maelin',role:'HEALER & GUIDE',x:31.5,y:30.5,sprite:1,description:'Keeper of the last light'},
-  {id:'merchant',name:'Orrin',role:'PROVISIONS & TRADE',x:29.5,y:34.5,sprite:3,description:'A fair price for a hard road'},
-  {id:'smith',name:'Garran',role:'BLACKSMITH & REFORGING',x:36.5,y:31.5,sprite:3,description:'What breaks can be made stronger'},
-  {id:'scholar',name:'Edrin',role:'ARCHIVIST · IDENTIFICATION',x:34.5,y:36.5,sprite:2,description:'Every relic remembers'},
+  {id:'guide',name:'Sister Maelin',role:'HEALER & GUIDE',x:28,y:27,sprite:1,description:'Keeper of the last light'},
+  {id:'merchant',name:'Orrin',role:'PROVISIONS & TRADE',x:25,y:35,sprite:3,description:'A fair price for a hard road'},
+  {id:'smith',name:'Garran',role:'BLACKSMITH & REFORGING',x:40,y:29,sprite:3,description:'What breaks can be made stronger'},
+  {id:'scholar',name:'Edrin',role:'ARCHIVIST · IDENTIFICATION',x:36.5,y:41,sprite:2,description:'Every relic remembers'},
 ];
 export const SLOT_ART={weapon:4,armor:6,helm:7,gloves:8,boots:9,belt:10,ring:11,charm:12,shield:13};
 export function itemSize(item){
@@ -173,25 +175,25 @@ export function claimGuideReward(player){
 }
 export function generateTown(player){
   const size=64,tiles=Array.from({length:size},()=>Array(size).fill(0));
-  for(let y=22;y<=43;y++)for(let x=22;x<=43;x++)if(Math.hypot((x-32.5)*.9,y-32.5)<12.5)tiles[y][x]=1;
+  for(let y=TOWN_BOUNDS.y1;y<=TOWN_BOUNDS.y2;y++)for(let x=TOWN_BOUNDS.x1;x<=TOWN_BOUNDS.x2;x++)tiles[y][x]=1;
   const props=[
-    {type:'building',sprite:8,x:37,y:28.5,width:235,height:220},
-    {type:'building',sprite:9,x:29.5,y:26.5,width:220,height:210},
-    {type:'building',sprite:10,x:25.5,y:34,width:215,height:210},
-    {type:'building',sprite:11,x:40,y:39,width:225,height:220},
-    {type:'building',sprite:12,x:35.5,y:32.5,width:100,height:115},
-    {type:'building',sprite:13,x:35.5,y:35.5,width:95,height:90,stash:true},
-    {type:'building',sprite:15,x:33.5,y:23.5,width:170,height:160,exit:true},
+    {type:'building',sprite:8,x:41,y:25.5,width:235,height:220},
+    {type:'building',sprite:9,x:25,y:22.5,width:220,height:210},
+    {type:'building',sprite:10,x:21,y:34,width:215,height:210},
+    {type:'building',sprite:11,x:43,y:43,width:225,height:220},
+    {type:'building',sprite:12,x:38,y:28,width:100,height:115},
+    {type:'building',sprite:13,x:36.5,y:37.5,width:95,height:90,stash:true},
+    {type:'building',sprite:15,x:32.5,y:16.5,width:170,height:160,exit:true},
   ];
-  for(const [x,y]of[[23,27],[23,38],[29,42],[40,24],[43,31],[41,42],[25,23]])props.push({type:'building',sprite:7,x,y,width:160,height:190});
-  for(const [x,y]of[[30,30],[36,32],[30,36],[34,25]])props.push({type:'brazier',x,y,variant:1});
+  for(const [x,y]of[[17,23],[17,44],[25,50],[44,18],[49,30],[48,49],[19,18]])props.push({type:'building',sprite:7,x,y,width:160,height:190});
+  for(const [x,y]of[[29,28],[39,30],[26,36],[33,19],[38,42],[32,40]])props.push({type:'brazier',x,y,variant:1});
   // Buildings occupy terrain; walk routes stay in front of entrances.
   for(const b of props.filter(p=>p.type==='building'&&!p.stash&&!p.exit&&p.sprite!==7)){
     const radius=b.sprite===12?.4:1.2;
     for(let y=Math.floor(b.y-radius);y<=b.y+radius;y++)for(let x=Math.floor(b.x-radius);x<=b.x+radius;x++)if(tiles[y]?.[x])tiles[y][x]=0;
   }
   const seen=new Set();for(let y=0;y<size;y++)for(let x=0;x<size;x++)seen.add(y*size+x);
-  return {size,seed:7901,tiles,rooms:[],start:{x:32,y:32.5},portal:{x:33.5,y:24.5},enemies:[],props,depth:0,seen,bossDead:false,town:true,npcs:NPCS.filter(n=>n.id!=='scholar'||player.quests.scholarRescued).map(n=>({...n}))};
+  return {size,seed:7901,tiles,rooms:[],start:{x:32,y:32.5},portal:{x:32.5,y:17.5},enemies:[],props,depth:0,seen,bossDead:false,town:true,npcs:NPCS.filter(n=>n.id!=='scholar'||player.quests.scholarRescued).map(n=>({...n}))};
 }
 
 export function temperItem(player,id){const item=[...player.inventory,...Object.values(player.equipment).filter(Boolean)].find(i=>i.id===id);if(!item||requiresIdentification(item))return result(false,'Choose identified equipment.');const stat=item.damage?'damage':item.armor?'armor':null;if(!stat)return result(false,'Only weapons and armour can be tempered.');const quality=item.quality||0;if(quality>=20)return result(false,'This item is already masterfully tempered.');const gold=18+Math.ceil(item.level||1)*8;if(player.gold<gold||player.shards<1)return result(false,`Tempering needs ${gold} gold and 1 ember.`);const bonus=(item.affixes||[]).filter(a=>a.stat===stat).reduce((n,a)=>n+a.value,0),base=(item[stat]-bonus)/(1+quality/100),next=Math.min(20,quality+5);item[stat]=Math.round(base*(1+next/100))+bonus;item.quality=next;item.durability=100;player.gold-=gold;player.shards--;return result(true,`Tempered to ${next}% quality. Durability restored.`);}

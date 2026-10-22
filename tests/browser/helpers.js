@@ -9,6 +9,7 @@ export async function speak(page,id,service=null){
 }
 export async function closeConversationOrPanel(page){if(await page.locator('#npc-dialogue').isVisible())await page.locator('[data-talk="leave"]').click();else await page.locator('[data-action="close"]').last().click();}
 export async function followPath(page,dungeon,target=dungeon.portal){
+ await page.waitForFunction(()=>!window.__reliquary.snapshot().loading);
  const {findPath}=await import('../../src/game.js');const from=await page.evaluate(()=>window.__reliquary.snapshot().position),path=findPath(dungeon,from,target);expect(path.length).toBeGreaterThan(0);
  return page.evaluate(async path=>{
   const press=(key,down)=>document.body.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',{key,bubbles:true}));let active=[];
