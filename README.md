@@ -10,6 +10,11 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.10.1
+
+- All six prologue scenes now use sepia ink, rough cross-hatching, muted washes and weathered golden parchment, following the supplied visual reference. Each illustration fills the screen and fades in as one image; there is no drawing-on effect or framed cutout.
+- The original story and optional captions, narration, pause and skip controls remain. Artwork is packed into the offline file (about 9.7 MiB for v0.10.1).
+
 ## Version 0.10
 
 - Original illustrated crown-and-stone title logo, ruined-kingdom backdrop, subtle drifting mist and embers. Title effects stop when leaving the screen and respect reduced-motion settings.
@@ -110,7 +115,7 @@ Vite listens on all interfaces. `npm run build` creates the normal static build 
 
 Unit checks cover procedural connectivity, progression, equipment transactions, charge recovery, aura damage, resistance, quality, keepsakes, appraisals, bank transfers, settings and the revised story. Unit route checks cover every chapter approach and stronghold. Desktop browser checks exercise creation, all six scenes, a complete field-task/commander/aftermath chapter, reload into the next chapter, the five act-ending knight encounters and final bosses, combat, equipment visuals, inventory bounds, services, shortcuts, dragging, map tracking, actual options changes and persistence. `CHROMIUM_PATH` selects another Chromium binary.
 
-Runtime assets are committed; ordinary builds do not generate artwork. `npm run art:pack` rebuilds compressed scenery, equipment layers, simple prologue scenes, sprite foot offsets and menu illustrations. The game uses cached painted sprites, not a runtime 3D engine. `npm run profile` samples town and stronghold rendering at 1440×900 with Chromium CPU throttled 4×; run it separately from other browser work. UI resolution stays native while Options controls world resolution. Sprite caches use compact image identities instead of embedding entire data URLs in cache keys.
+Runtime assets are committed; ordinary builds do not generate artwork. `npm run art:pack` rebuilds compressed scenery, equipment layers, parchment prologue scenes, sprite foot offsets and menu illustrations. The game uses cached painted sprites, not a runtime 3D engine. `npm run profile` samples town and stronghold rendering at 1440×900 with Chromium CPU throttled 4×; run it separately from other browser work. UI resolution stays native while Options controls world resolution. Sprite caches use compact image identities instead of embedding entire data URLs in cache keys.
 
 The portable v0.10 HTML is about **7.2 MiB**, including all new menu art. The previous v0.9 production-build sample at 1440×900 with 4× CPU throttling measured:
 

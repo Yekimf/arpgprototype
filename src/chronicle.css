@@ -1,0 +1,8 @@
+/* Full-screen chronicle pages; keep the original ink and paper colours intact. */
+.front-end.cinematic-screen{background:#bd925e}
+.cinematic-screen[data-scene] .sketch-page{object-fit:cover!important;object-position:50% 48%!important;filter:none;animation:none!important}
+.cinematic-screen .cinematic-top{color:#382619;text-shadow:0 1px 1px #edd3a2;font-size:10px}
+.cinematic-screen .cinematic-top button,.cinematic-screen .cinematic-controls button{color:#352115;background:#d8b581df;border:1px solid #73502e88;box-shadow:inset 0 0 9px #79542c22;text-shadow:0 1px #ebcf99;font:12px Georgia}
+.cinematic-screen .cinematic-subtitles{width:min(850px,88%);bottom:78px}
+.cinematic-screen .cinematic-subtitles p{color:#24170f;text-shadow:0 1px 2px #f2d6a4,0 0 7px #e8c28c,0 0 14px #e8c28c;font:16px/1.7 Georgia}
+.cinematic-screen .cinematic-progress{background:#62402177}.cinematic-screen .scene-dots i{border-color:#65452d}.cinematic-screen .scene-dots i.active{background:#65452d}

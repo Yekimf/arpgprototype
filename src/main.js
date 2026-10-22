@@ -18,6 +18,7 @@ import './desktop.css';
 import './gothic.css';
 import './menu-art.css';
 import './service-panels.css';
+import './chronicle.css';
 import {NPCDialogue} from './npc-dialogue.js';
 import {STORY_ART,LEATHER_ART,MAP_ART,GUARD_ART,STONE_ART} from './assets.js';
 import {FrontEnd} from './front-end.js';

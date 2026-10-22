@@ -3,12 +3,12 @@ import world from './art/runtime/world-atlas.webp?inline';
 import items from './art/runtime/items-atlas.webp?inline';
 import campaign from './art/runtime/campaign-atlas.webp?inline';
 import worldmap from './art/runtime/world-map.webp?inline';
-import scene1 from './art/runtime/outline-1.webp?inline';
-import scene2 from './art/runtime/outline-2.webp?inline';
-import scene3 from './art/runtime/outline-3.webp?inline';
-import scene4 from './art/runtime/outline-4.webp?inline';
-import scene5 from './art/runtime/outline-5.webp?inline';
-import scene6 from './art/runtime/outline-6.webp?inline';
+import scene1 from './art/runtime/chronicle-1.webp?inline';
+import scene2 from './art/runtime/chronicle-2.webp?inline';
+import scene3 from './art/runtime/chronicle-3.webp?inline';
+import scene4 from './art/runtime/chronicle-4.webp?inline';
+import scene5 from './art/runtime/chronicle-5.webp?inline';
+import scene6 from './art/runtime/chronicle-6.webp?inline';
 // Blob URLs keep atlas references short enough for CSS custom properties while
 // retaining all image bytes inside the offline build.
 function localAsset(source){
