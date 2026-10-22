@@ -24,7 +24,8 @@ test('town guide, identification scroll, merchant, buyback, repairs, and reforgi
   await page.locator('[data-town-action="identify"]').click();await expect(page.locator('#item-detail')).toContainText('Hearthbound Talisman');
   await page.locator('[data-town-action="equip"]').click();await expect(page.locator('[data-equip-slot="charm"]')).toHaveAttribute('aria-label',/Hearthbound/);await close(page);
   await talk(page,'merchant','Orrin’s wares');
-  const stock=(await save(page)).shopStock.sort((a,b)=>a.price-b.price)[0];
+  const visible=await page.locator('[data-stock-id]').evaluateAll(nodes=>nodes.map(n=>n.dataset.stockId));
+  const stock=(await save(page)).shopStock.filter(i=>visible.includes(i.id)).sort((a,b)=>a.price-b.price)[0];
   await page.locator(`[data-stock-id="${stock.id}"]`).click();await page.locator('[data-town-action="buy"]').click();
   const afterBuy=(await snapshot(page)).gold;
   await page.locator(`[data-pack-id="${stock.id}"]`).click();await page.locator('[data-town-action="sell"]').click();

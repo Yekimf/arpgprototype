@@ -1,0 +1,32 @@
+/* Two physical stone sheets; no scrolling stock lists or compressed paper doll. */
+.modal.hud-panel.dual-service{max-width:calc(100vw - 16px);right:8px;padding:0!important;display:flex;flex-direction:row;gap:20px;background:none;border:0;box-shadow:none;overflow:visible;width:var(--panel-w)!important;height:var(--panel-h)!important}
+.modal.hud-panel.dual-service .inventory-sheet{position:relative;flex:none;min-width:0;min-height:0;box-sizing:border-box;filter:none}
+.modal.hud-panel.dual-service .player-sheet{display:grid;grid-template-rows:30px minmax(0,1fr) 23px 52px;padding:7px 8px 6px;gap:4px}
+.modal.hud-panel.dual-service .player-sheet .hud-toolbar{position:absolute;right:9px;top:9px;height:25px;min-height:25px;padding:0}.modal.hud-panel.dual-service .player-sheet .hud-content{justify-content:center}
+.modal.hud-panel.dual-service .service-sheet{display:grid;grid-template-rows:34px 40px minmax(0,1fr) 30px 168px;gap:6px;padding:8px 9px;overflow:hidden}
+.modal.hud-panel.dual-service .service-sheet .hud-heading{height:34px;min-height:34px;padding:0 32px 4px 0}.modal.hud-panel.dual-service .service-sheet .hud-heading h2{font:small-caps 20px Georgia;letter-spacing:1px;color:#d5c29b}
+.modal.hud-panel.dual-service .service-sheet .hud-toolbar{position:static;height:40px;min-height:40px;padding:0;justify-content:center;gap:3px;flex-wrap:nowrap}
+#app .dual-service .hud-toolbar .small-button{font:10px Georgia;padding:4px 7px;min-height:30px;border-width:6px}
+.modal.hud-panel.dual-service .service-ledger{display:grid;grid-template-rows:32px minmax(0,1fr) 29px;gap:7px;min-height:0;overflow:hidden}
+.modal.hud-panel.dual-service .shop-tabs{display:flex;justify-content:center;margin:0;gap:7px}.dual-service .shop-tabs button{min-width:95px;font:11px Georgia;padding:3px 10px}
+.forge-inscription{font:9px Georgia;color:#b3a07c;text-align:center;letter-spacing:1px;align-self:center}
+.modal.hud-panel.dual-service .service-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:7px;padding:6px;border:2px ridge #82775c;background:#10100de0;box-shadow:inset 0 0 18px #000;overflow:hidden;min-height:0}
+.modal.hud-panel.dual-service .service-item{display:grid;grid-template-rows:minmax(0,1fr) 29px 15px;align-items:center;min-height:0;min-width:0;text-align:center;padding:4px;gap:3px;border:1px solid #514c3d;background:#1c1b16b3;box-shadow:inset 0 0 12px #0007;color:#c6b792}
+.modal.hud-panel.dual-service .service-item:hover,.modal.hud-panel.dual-service .service-item.selected{outline:1px solid #cfb37a;outline-offset:-1px;background:#3b3326b3}
+.service-socket{display:flex;align-items:center;justify-content:center;height:100%;min-height:0;background:#0c0e0c77;border:1px solid #74695166}
+.modal.hud-panel.dual-service .service-item .natural-item-art{height:100%;width:100%;max-height:110px;padding:3px;flex:auto}
+.service-item-name{font:10px/1.35 Georgia;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:inherit}.service-item.magic .service-item-name{color:#8a9bcb}.service-item.rare .service-item-name{color:#c4b276}.service-item.legendary .service-item-name{color:#bf8d5e}
+.modal.hud-panel.dual-service .service-item small{font:9px Georgia;color:#b3a17c;margin:0}
+.service-pagination{display:flex;align-items:center;justify-content:center;gap:14px;font:11px Georgia;color:#ceba8e}.service-pagination small{font:9px Georgia;color:#9b896b}.service-pagination button{width:37px;height:27px;padding:0;font:21px/18px Georgia;border-width:6px}.service-pagination button:disabled{pointer-events:none}
+.empty-ledger{grid-column:1/-1;align-self:center;text-align:center;font:italic 12px Georgia;color:#9f9071}
+.modal.hud-panel.dual-service .service-instruction{margin:0;font:10px/1.5 Georgia;color:#b6a88a;align-self:center;text-align:center}
+.modal.hud-panel.dual-service .service-sheet #hud-item-actions{min-height:168px;height:168px;max-height:168px;padding:7px 0 0;border-top:1px solid #87745188;overflow:hidden;display:block}
+.modal.hud-panel.dual-service .service-sheet .hud-selected-name{font:12px Georgia;margin:0 0 5px}.modal.hud-panel.dual-service .service-sheet .item-actions{flex-wrap:wrap;margin:0 0 3px;gap:3px}
+#app .dual-service .service-sheet .item-actions button,#app .dual-service #hud-item-actions>button{font:10px Georgia;padding:3px 7px;min-height:27px;border-width:6px}
+.modal.hud-panel.dual-service .service-sheet .forge-controls{display:flex;flex-wrap:wrap;padding:0;margin:4px 0;gap:5px}.modal.hud-panel.dual-service .forge-controls label{width:100%;display:flex;justify-content:space-between;font:10px Georgia;gap:5px}.modal.hud-panel.dual-service .forge-controls select{font:10px Georgia;max-width:79%;padding:4px;background:#15130e;color:#d2bf96;border-color:#73644b}
+#app .dual-service .forge-controls .primary-button{padding:3px 9px;font:10px Georgia;min-height:29px;border-width:6px}.modal.hud-panel.dual-service .smith-note{font:9px/1.4 Georgia!important;margin:3px 0!important}
+.modal.hud-panel.dual-service .service-sheet .hud-selection-hint{font:11px/1.8 Georgia;white-space:normal;padding:12px 6px;text-align:center}.modal.hud-panel.dual-service .service-sheet .hud-selection-hint span{display:block;font:9px/1.6 Georgia}.modal.hud-panel.dual-service .service-sheet .hud-selection-hint br{display:block}
+.inventory-trade-hint{font:11px/1.7 Georgia;color:#c2af87;text-align:center;align-self:center}.inventory-trade-hint span{font:9px Georgia;color:#99896a}
+@media(max-height:740px){.modal.hud-panel.dual-service .service-sheet{grid-template-rows:30px 34px minmax(0,1fr) 28px 168px;gap:4px;padding-top:6px}.modal.hud-panel.dual-service .service-sheet .hud-heading{height:30px;min-height:30px}.modal.hud-panel.dual-service .service-sheet .hud-heading h2{font-size:18px}.modal.hud-panel.dual-service .service-ledger{grid-template-rows:29px minmax(0,1fr) 27px;gap:4px}.modal.hud-panel.dual-service .service-gallery{gap:5px;padding:4px}.modal.hud-panel.dual-service .service-item{grid-template-rows:minmax(0,1fr) 27px 13px;gap:2px;padding:3px}.service-item-name{font-size:9px}.modal.hud-panel.dual-service .service-item small{font-size:8px}}
+.modal.hud-panel.dual-service .player-sheet .hud-bag-section{padding:0;display:flex;overflow:visible;height:calc(var(--gear-cell)*4px + 18px);align-items:start}
+.modal.hud-panel.dual-service .player-sheet .hud-doll-section{overflow:visible}

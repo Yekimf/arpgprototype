@@ -1,0 +1,22 @@
+/* Painted materials frame real text, preserving readable labels and keyboard access. */
+.visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important}
+.title-screen .title-art{inset:-1%;background:var(--title-landscape) center/cover;filter:none;animation:kingdom-breath 42s ease-in-out infinite alternate;will-change:transform}
+.title-screen .title-vignette{background:linear-gradient(90deg,#05060575,transparent 65%),linear-gradient(0deg,#030403b0,transparent 20%,transparent 90%,#03040355);pointer-events:none}
+.title-copy{translate:0 -50%;left:5%;width:min(44vw,610px);max-width:none;top:47%}
+.title-copy .painted-title{position:relative;width:100%;margin:16px 0 0;font-size:0;line-height:0;letter-spacing:0;filter:drop-shadow(0 6px 7px #000)}
+.painted-title img{display:block;width:100%;height:auto;object-fit:contain}
+.title-copy .title-kicker{font:10px Georgia;letter-spacing:3px;color:#b3a182;text-shadow:0 2px 3px #000}
+.title-copy .title-rule{margin:7px 0 12px;color:#a18c5b}.title-copy p{font:italic 14px/1.8 Georgia;color:#c1b397;text-shadow:0 2px 4px #000;margin:10px 0}
+.title-buttons{margin-top:22px;gap:9px}.title-buttons .carved-button{width:340px;max-width:94%;min-height:59px;padding:15px 35px;border:0;background:var(--menu-button) center/100% 100% no-repeat;box-shadow:none;color:#d3c19d;font:small-caps 17px Georgia;letter-spacing:1px;text-shadow:0 2px 2px #000,0 -1px #000;filter:drop-shadow(0 4px 4px #000)}
+.title-buttons .carved-button:before,.title-buttons .carved-button:after{content:none}.title-buttons .carved-button:hover,.title-buttons .carved-button:focus-visible{background-image:var(--menu-button-lit);color:#f0d9a9;filter:drop-shadow(0 4px 4px #000)}
+.title-buttons .carved-button:has(small){min-height:70px;padding:16px 35px}.title-buttons .carved-button small{font:10px Georgia;color:#b2a083;margin-top:3px}.title-buttons .title-story{font-size:14px}
+.title-footer{color:#a18e69;text-shadow:0 2px 3px #000;font-size:8px}
+.title-embers{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.title-firelight{position:absolute;left:60%;top:75%;width:12%;height:18%;pointer-events:none;background:radial-gradient(ellipse,#d0823327,transparent 65%);animation:hearth-flicker 4s ease-in-out infinite alternate;mix-blend-mode:screen}.title-fog{position:absolute;inset:45% -4% 8%;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,#7d929417,transparent 62%);animation:mist-pass 24s ease-in-out infinite alternate}
+/* Hand-painted frame used across the menu family, including pause and services. */
+#app :is(.primary-button,.small-button,.text-button,.carved-button),.front-end :is(.carved-button,.front-back),.npc-conversation nav button,.pause-menu button,.options-menu>button,.mastery-tabs button,.waypoint-list button,.service-pagination button{border:9px solid transparent;border-image:var(--menu-button) 48 115 fill / 9px 18px / 2px stretch;background:none;box-shadow:none;color:#d0bd97;text-shadow:0 1px 2px #000;padding:5px 12px}
+#app :is(.primary-button,.small-button,.text-button,.carved-button):hover,.front-end :is(.carved-button,.front-back):hover,.npc-conversation nav button:hover,.pause-menu button:hover,.service-pagination button:hover{border-image-source:var(--menu-button-lit);color:#efdab0}
+#app button:focus-visible,.service-pagination button:focus-visible{outline:1px solid #dfc28a;outline-offset:3px}
+@keyframes kingdom-breath{to{transform:scale(1.025) translateX(-.3%)}}@keyframes hearth-flicker{0%,100%{opacity:.4}30%{opacity:.9}70%{opacity:.6}}@keyframes mist-pass{to{transform:translateX(4%);opacity:.4}}
+@media(max-height:760px){.title-copy{top:47%;width:min(43vw,510px)}.title-copy .title-kicker{font-size:8px;letter-spacing:2px}.title-buttons{gap:5px;margin-top:13px}.title-buttons .carved-button{min-height:50px;width:310px;font-size:15px;padding:12px 30px}.title-buttons .carved-button:has(small){min-height:60px;padding:13px 30px}.title-copy p{font-size:12px}.title-rule{font-size:14px}.title-footer{bottom:16px}}
+.reduced-motion .title-screen *{animation:none!important}.reduced-motion .title-art{will-change:auto}
+@media(prefers-reduced-motion:reduce){.title-screen *{animation:none!important}.title-screen .title-art{will-change:auto}}

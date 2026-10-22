@@ -76,7 +76,7 @@ export class TownUI {
   }
   render(panel){
     if(HUD_PANELS.includes(panel))return this.hud.render(panel);
-    const shell=document.getElementById('modal');shell.classList.remove('hud-panel');for(const key of ['width','height','top','--panel-w','--panel-h'])shell.style.removeProperty(key);document.getElementById('modal-backdrop').classList.remove('hud-mode');this.game.hudWidth=0;this.hud.hideTooltip();
+    const shell=document.getElementById('modal');shell.classList.remove('hud-panel','dual-service');for(const key of ['width','height','top','--panel-w','--panel-h'])shell.style.removeProperty(key);document.getElementById('modal-backdrop').classList.remove('hud-mode');this.game.hudWidth=0;this.hud.hideTooltip();
     const supported=['inventory','stash','guide','merchant','smith','scholar','departure'];if(!supported.includes(panel))return false;
     if(this.lastPanel!==panel){this.selection=null;this.source='pack';this.affix='';this.lastPanel=panel;}
     const modal=document.getElementById('modal'),p=this.player;modal.classList.add('expanded-modal');

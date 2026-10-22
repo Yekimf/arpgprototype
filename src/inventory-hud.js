@@ -9,7 +9,7 @@ const icon=itemArt;
 
 export class InventoryHUD {
   constructor(owner){
-    this.owner=owner;this.game=owner.game;this.modal=document.getElementById('modal');this.tip=document.getElementById('item-tooltip');this.storageTab='stash';
+    this.owner=owner;this.game=owner.game;this.modal=document.getElementById('modal');this.tip=document.getElementById('item-tooltip');this.storageTab='stash';this.pages={};
     this.observer=new ResizeObserver(()=>this.fit());this.observer.observe(this.modal);
     window.addEventListener('resize',()=>{this.fit();this.hideTooltip();});
     this.modal.addEventListener('pointerover',e=>{if(e.pointerType==='touch')return;const item=e.target.closest('[data-pack-id],[data-equip-slot],[data-stock-id],[data-smith-equipped]');if(item&&!item.contains(e.relatedTarget))this.showTooltip(item);});
@@ -71,12 +71,14 @@ export class InventoryHUD {
     if(this.owner.suppressClick)return true;
     const item=event.target.closest('[data-pack-id],[data-equip-slot],[data-stock-id],[data-smith-equipped]');
     if(item){if((event.ctrlKey||event.shiftKey||event.altKey)&&this.owner.quickAction(item,event))return true;this.select(item);return true;}
+    const page=event.target.closest('[data-service-page]');if(page){this.pages[page.dataset.pageKey]=Number(page.dataset.servicePage);this.hideTooltip();this.render(this.game.panel);this.modal.querySelector(`[data-page-key="${page.dataset.pageKey}"]:not(:disabled)`)?.focus();return true;}
     const tab=event.target.closest('[data-storage-tab]');if(tab){this.storageTab=tab.dataset.storageTab;this.render('stash');return true;}
     return false;
   }
   fit(){
     if(!this.modal.classList.contains('hud-panel')||this.modal.offsetWidth===0)return;
     const sheet=this.modal.querySelector('.inventory-sheet');if(!sheet)return;
+    if(this.modal.classList.contains('dual-service'))return this.fitService();
     const service=this.game.panel!=='inventory',mobile=innerWidth<=700,wide=innerHeight<580&&innerWidth>700,availableWidth=innerWidth-16,availableHeight=innerHeight-(wide?100:118);
     let cell,width,height;const fixed=wide?120:166;if(!service){cell=Math.max(12,Math.min(42,Math.floor((availableWidth-(wide?50:26))/(wide?20:10)),Math.floor((availableHeight-fixed)/(wide?7.5:11.5))));width=cell*(wide?20:10)+(wide?50:26);height=Math.round(cell*(wide?7.5:11.5)+fixed);}else{width=Math.min(availableWidth,wide?820:840);height=Math.min(650,availableHeight);}
     sheet.classList.toggle('wide-inventory',wide);sheet.classList.toggle('narrow-service',service&&mobile);sheet.style.setProperty('--gear-cell',cell||32);
@@ -92,11 +94,37 @@ export class InventoryHUD {
     this.game.hudWidth=innerWidth-width>380&&innerWidth>700?width+16:0;
   }
 
+  fitService(){
+    // Both sheets share the exact same square equipment / backpack cell size.
+    const height=Math.min(700,innerHeight-118),cell=Math.max(16,Math.min(42,Math.floor((height-166)/11.5),Math.floor((innerWidth-64)/20))),sheetWidth=cell*10+26,width=sheetWidth*2+20;
+    Object.assign(this.modal.style,{width:width+'px',height:height+'px',top:'8px'});
+    this.modal.style.setProperty('--panel-w',width+'px');this.modal.style.setProperty('--panel-h',height+'px');this.modal.style.setProperty('--gear-cell',cell);
+    for(const sheet of this.modal.querySelectorAll('.inventory-sheet')){sheet.style.setProperty('--gear-cell',cell);sheet.style.width=sheetWidth+'px';sheet.style.height='100%';}
+    const grid=this.modal.querySelector('[data-bag-grid="pack"]');if(grid){grid.style.width=cell*10+'px';grid.style.height=cell*4+'px';}
+    this.game.hudWidth=innerWidth-width>380?width+16:0;
+  }
+  pagedGallery(items,key,renderItem){
+    const count=Math.max(1,Math.ceil(items.length/6)),page=Math.max(0,Math.min(count-1,this.pages[key]||0));this.pages[key]=page;
+    return `<div class="service-gallery" aria-label="${key==='forge'?'Equipped items':'Merchant items'}">${items.slice(page*6,page*6+6).map(renderItem).join('')||'<p class="empty-ledger">No items in this ledger.</p>'}</div><nav class="service-pagination" aria-label="Item pages"><button data-page-key="${key}" data-service-page="${page-1}" aria-label="Previous item page" ${page===0?'disabled':''}>‹</button><span aria-live="polite">Page ${page+1} / ${count} <small>· ${items.length} items</small></span><button data-page-key="${key}" data-service-page="${page+1}" aria-label="Next item page" ${page===count-1?'disabled':''}>›</button></nav>`;
+  }
+  renderService(panel){
+    const o=this.owner,p=o.player,merchant=panel==='merchant',title=merchant?'Orrin’s wares':'Garran’s forge';
+    const toolbar=merchant?`${button('buy-flask','Flask · 8 gold',p.gold<8||p.flask?.charges>=100)}${button('buy-scroll','Scroll · 12 gold',p.gold<12)}${button('restock',`Restock · ${restockCost(p)} gold`,p.gold<restockCost(p))}`:button('repair',`Repair all · ${repairCost(p)} gold`,!repairCost(p));
+    const tabs=merchant?`<div class="shop-tabs">${button('shop-stock','For sale',o.shopTab==='stock')}${button('shop-buyback','Buyback',o.shopTab==='buyback')}</div>`:'<div class="forge-inscription">EQUIPPED ARMS · THE REFORGING FIRE</div>';
+    const gallery=merchant?this.pagedGallery(o.shopTab==='stock'?p.shopStock:p.buyback,o.shopTab,i=>`<button data-stock-id="${esc(i.id)}" data-stock-source="${o.shopTab}" class="service-item shop-item ${i.rarity} ${o.selection===i.id?'selected':''}" aria-label="${esc(itemName(i))}"><span class="service-socket">${icon(i)}</span><span class="service-item-name">${esc(itemName(i))}</span><small>${o.shopTab==='stock'?buyPrice(i):i.price} gold</small></button>`):this.pagedGallery(Object.entries(p.equipment).filter(([,i])=>i),'forge',([slot,i])=>`<button data-smith-equipped="${slot}" class="service-item smith-item ${i.rarity} ${o.selection===i.id?'selected':''}" aria-label="${esc(itemName(i))}"><span class="service-socket">${icon(i)}</span><span class="service-item-name">${esc(itemName(i))}</span><small>${Math.ceil(i.durability??100)}% condition</small></button>`);
+    const rivets='<i class="corner-rivet tl"></i><i class="corner-rivet tr"></i><i class="corner-rivet bl"></i><i class="corner-rivet br"></i>';
+    this.modal.innerHTML=`<div class="inventory-sheet service-sheet">${rivets}${this.header(title,merchant?'TRADER OF EMBERFALL':'BLACKSMITH OF EMBERFALL')}<div class="hud-toolbar">${toolbar}</div><div class="service-ledger">${tabs}${gallery}</div><p class="service-instruction">${merchant?'Select a ware to buy. Select an item in your pack to sell.':'Select equipped or carried gear to temper, reforge or salvage.'}</p><footer id="hud-item-actions" class="hud-item-actions">${this.actionDock()}</footer></div><div class="inventory-sheet player-sheet">${rivets}<header class="hud-heading"><h2>Inventory</h2></header><div class="hud-toolbar">${button('sort','Arrange')}</div><div class="hud-content hud-inventory-content"><section class="hud-section hud-doll-section">${o.equipment()}</section><section class="hud-section hud-bag-section">${o.grid(p.inventory)}</section></div>${o.wallet()}<div class="inventory-trade-hint">${merchant?'Ctrl + click · Buy / sell':'Shift + click · Equip / unequip'}<br><span>Hover · Inspect & compare &nbsp; Esc · Close both</span></div></div>`;
+    for(const el of this.modal.querySelectorAll('[title]'))el.removeAttribute('title');
+    this.modal.scrollTop=0;this.fitService();requestAnimationFrame(()=>this.hideTooltip());return true;
+  }
+
   header(name,kicker){return `<header class="hud-heading"><div><span class="eyebrow">${kicker}</span><h2 id="modal-title">${name}</h2></div><button class="close" data-action="close" aria-label="Close panel">×</button></header>`;}
   render(panel){
     const o=this.owner,p=o.player,m=this.modal;
     if(o.lastPanel!==panel){o.selection=null;o.source='pack';o.affix='';o.lastPanel=panel;this.hideTooltip();}
+    m.classList.toggle('dual-service',['merchant','smith'].includes(panel));
     m.classList.add('expanded-modal','hud-panel');document.getElementById('modal-backdrop').classList.add('hud-mode');m.dataset.hudPanel=panel;
+    if(['merchant','smith'].includes(panel))return this.renderService(panel);
     const title={inventory:'Inventory',stash:'Personal stash',merchant:'Orrin’s wares',smith:'Garran’s forge',scholar:'Edrin’s study'}[panel];
     const heading=this.header(title,panel==='inventory'?'EQUIPMENT & BELONGINGS':panel==='stash'?'SAFE STORAGE IN EMBERFALL':'TOWN SERVICES');
     let toolbar='',contents='';
@@ -108,13 +136,6 @@ export class InventoryHUD {
     }else if(panel==='stash'){
       toolbar=`<div class="storage-tabs"><button data-storage-tab="stash" class="small-button ${this.storageTab==='stash'?'active':''}">Stash</button><button data-storage-tab="pack" class="small-button ${this.storageTab==='pack'?'active':''}">Pack</button></div>${button('sort','Arrange')}${button('inventory','Equipment')}<div class="bank-controls"><span>Stored: ${p.bankGold.toLocaleString()} gold</span><input id="bank-amount" type="number" min="1" value="${Math.min(100,p.gold)||1}" aria-label="Gold amount"><button data-town-action="deposit">Deposit</button><button data-town-action="withdraw-gold">Withdraw</button></div>`;
       contents=`<div class="hud-content hud-stash-content" data-storage-view="${this.storageTab}"><section class="hud-section hud-bag-section stash-section">${o.grid(p.stash,'stash')}</section><section class="hud-section hud-bag-section pack-section">${o.grid(p.inventory)}</section></div>`;
-    }else if(panel==='merchant'){
-      toolbar=`${button('buy-flask','20 charges · 8 gold',p.gold<8||p.flask?.charges>=100)}${button('buy-scroll','Scroll · 12 gold',p.gold<12)}${button('restock',`Restock · ${restockCost(p)} gold`,p.gold<restockCost(p))}`;
-      const stock=o.shopTab==='stock'?p.shopStock:p.buyback;
-      contents=`<div class="hud-content hud-service-content"><section class="hud-section"><div class="shop-tabs">${button('shop-stock','For sale',o.shopTab==='stock')}${button('shop-buyback','Buyback',o.shopTab==='buyback')}</div><div class="shop-stock">${stock.map(i=>`<button data-stock-id="${esc(i.id)}" data-stock-source="${o.shopTab}" class="shop-item ${i.rarity} ${o.selection===i.id?'selected':''}" aria-label="${esc(itemName(i))}">${icon(i)}<span>${esc(itemName(i))}<small>${o.shopTab==='stock'?buyPrice(i):i.price} gold</small></span></button>`).join('')||'<p>No items here yet.</p>'}</div></section>${pack}</div>`;
-    }else if(panel==='smith'){
-      toolbar=`${button('repair',`Repair gear · ${repairCost(p)} gold`,!repairCost(p))}<span>Gold + embers reforge one affix.</span>`;
-      contents=`<div class="hud-content hud-service-content"><section class="hud-section"><div class="hud-section-title">EQUIPPED · SELECT TO REFORGE</div><div class="smith-equipped">${Object.entries(p.equipment).filter(([,i])=>i).map(([s,i])=>`<button class="smith-item ${i.rarity}" data-smith-equipped="${s}" aria-label="${esc(itemName(i))}">${icon(i)}<span>${esc(itemName(i))}<small>${Math.ceil(i.durability??100)}% condition</small></span></button>`).join('')}</div><p class="hud-service-note">Salvage carried gear for embers. A reforge may improve or worsen a magical property.</p></section>${pack}</div>`;
     }else{
       toolbar=button('identify-all','Identify all · Free',!p.quests.scholarRescued||!p.inventory.some(i=>requiresIdentification(i)));
       contents=`<div class="hud-content hud-service-content"><section class="hud-section hud-scholar"><div class="service-portrait portrait-scholar"></div><h3>Every relic remembers.</h3><p>${p.quests.scholarRescued?'In gratitude for his rescue, Edrin reveals your relics freely.':'Defeat the Hollow Warden to rescue Edrin.'}</p></section>${pack}</div>`;

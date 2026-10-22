@@ -13,6 +13,8 @@ test('standalone title, creation, prologue, inventory, maps and combat work offl
   // The managed browser blocks file: URLs, so use an isolated document. This also
   // verifies the localStorage-denied fallback used by restricted downloaded files.
   await page.setContent(await readFile(new URL('../dist/ashen-reliquary.html',import.meta.url),'utf8'));await page.waitForFunction(()=>window.__reliquary?.snapshot().artLoaded);
+  await page.waitForFunction(()=>{const img=document.querySelector('.painted-title img');return img?.complete&&img.naturalWidth>0;});
+  assert.match(await page.locator('.title-art').evaluate(e=>getComputedStyle(e).backgroundImage),/blob:/);
   const snapshot=()=>page.evaluate(()=>window.__reliquary.snapshot());assert.equal((await snapshot()).frontScreen,true);
   await page.locator('[data-front="create"]').click();await page.locator('#character-name').fill('Offline Loyalist');await page.locator('#creation-form button[type="submit"]').click();assert.equal(await page.locator('.cinematic-subtitles h2').textContent(),'A kingdom worth defending');await page.locator('[data-front="skip"]').click();await page.waitForFunction(()=>!window.__reliquary.snapshot().loading);
   const before=await snapshot();assert.equal(before.zone,'town');assert.deepEqual(before.skills,{});assert.equal(before.points,0);
