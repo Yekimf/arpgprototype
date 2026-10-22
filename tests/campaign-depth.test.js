@@ -11,7 +11,7 @@ test('twenty chapters have reachable field tasks, strongholds and distinct act r
   for(const target of [wild.field,wild.portal,wild.waypoint])assert.ok(findPath(wild,wild.start,target).length,`${act}/${chapter} ${JSON.stringify(target)}`);
   assert.ok(findPath(keep,keep.start,keep.portal).length);assert.ok(keep.rooms.length>=15);assert.equal(keep.enemies.find(e=>e.type==='warden').bossId,captainId(act,chapter));
   assert.equal(ch.number,chapter+1);assert.ok(ch.account.length>140);assert.ok(ch.aftermath.length>100);
-  for(const enemy of [...wild.enemies,...keep.enemies].filter(e=>e.type!=='warden')){assert.equal(enemy.faction,act);assert.ok(ENEMY_ROSTERS[act-1].some(e=>e.name===enemy.name));assert.ok(Number.isFinite(enemy.hp));}
+  for(const enemy of [...wild.enemies,...keep.enemies].filter(e=>e.type!=='warden')){assert.equal(enemy.faction,act);assert.ok(enemy.herdId||ENEMY_ROSTERS[act-1].some(e=>e.name===enemy.name));assert.ok(Number.isFinite(enemy.hp));}
  }
 });
 test('chapter completion, field records and waypoint identities survive save migration',()=>{

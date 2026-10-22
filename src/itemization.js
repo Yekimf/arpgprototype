@@ -38,14 +38,22 @@ export const AFFIX_POOL=[
 ];
 const precision=stat=>['speed','lifeRegen'].includes(stat)?100:1;
 const scaled=(n,rng,power,step=1)=>Math.round((n[0]+rng()*(n[1]-n[0]))*power*step)/step;
+function weighted(rng,entries){let roll=rng()*entries.reduce((sum,e)=>sum+e[1],0);for(const [value,weight]of entries){roll-=weight;if(roll<0)return value;}return entries.at(-1)[0];}
+export function rollItemBase(rng,depth){
+ const slot=weighted(rng,depth<=2?[['weapon',24],['armor',32],['helm',11],['shield',10],['gloves',9],['boots',10],['belt',3],['ring',.4],['charm',.25]]:[['weapon',24],['armor',28],['helm',11],['shield',10],['gloves',9],['boots',10],['belt',5],['ring',1.8],['charm',1.2]]);
+ let choices=BASES.filter(b=>b.slot===slot);
+ if(slot==='armor'){const id=weighted(rng,depth<=2?[['leather',82],['vestment',16],['chain',2]]:depth<=4?[['leather',45],['chain',35],['plate',10],['vestment',10]]:[['leather',20],['chain',30],['plate',35],['vestment',15]]);return BASES.find(b=>b.id===id);}
+ if(depth<=2&&['helm','boots','gloves'].includes(slot)){const soft=slot==='helm'?'hood':slot==='boots'?'boots':'gloves';return rng()<.9?BASES.find(b=>b.id===soft):choices[Math.floor(rng()*choices.length)];}
+ return choices[Math.floor(rng()*choices.length)];
+}
 export function createRelic(rng,depth,guaranteedRare=false){
- const roll=rng(),rarity=guaranteedRare?(roll<.2?'legendary':'rare'):roll<.03?'legendary':roll<.22?'rare':roll<.65?'magic':'normal';
+ const roll=rng(),rarity=guaranteedRare?(roll<.2?'legendary':'rare'):depth<=2?(roll<.002?'legendary':roll<.05?'rare':roll<.35?'magic':'normal'):roll<.025?'legendary':roll<.18?'rare':roll<.6?'magic':'normal';
  // Select a slot before its base so accessories do not crowd out equipment drops.
- const slots=['weapon','armor','helm','shield','gloves','boots','belt','ring','charm'],slot=slots[Math.floor(rng()*slots.length)],choices=BASES.filter(b=>b.slot===slot),base=choices[Math.floor(rng()*choices.length)],power=1+Math.max(0,depth-1)*.27;
+ const base=rollItemBase(rng,depth),slot=base.slot,power=1+Math.max(0,depth-1)*.27;
  const item={id:`${Date.now()}-${Math.floor(rng()*1e8)}`,name:base.name,base:base.id,slot,look:base.look,art:base.art,rarity,level:depth,requiredLevel:Math.max(1,Math.floor(depth)),identified:rarity==='normal',durability:100,reforges:0,affixes:[]};
  for(const [key,value] of Object.entries(base))if(Array.isArray(value))item[key]=scaled(value,rng,power,precision(key));
  if(base.reach)item.reach=base.reach;if(base.attackSpeed)item.attackSpeed=base.attackSpeed;
- item.quality=(item.damage||item.armor)?Math.floor(rng()*6)*2:0;item.baseTier=depth>=5?'elite':depth>=3?'exceptional':'standard';item.baseName=base.name;item.name=(item.baseTier==='elite'?'Royal ':item.baseTier==='exceptional'?'Tempered ':'')+base.name;for(const stat of ['damage','armor'])if(item[stat])item[stat]=Math.round(item[stat]*(1+item.quality/100));
+ item.quality=(item.damage||item.armor)?Math.floor(rng()*(depth<=2?3:6))*2:0;item.baseTier=depth>=5?'elite':depth>=3?'exceptional':'standard';item.baseName=base.name;item.name=(item.baseTier==='elite'?'Royal ':item.baseTier==='exceptional'?'Tempered ':'')+base.name;for(const stat of ['damage','armor'])if(item[stat])item[stat]=Math.round(item[stat]*(1+item.quality/100));
  const pool=AFFIX_POOL.filter(a=>!a.slots||a.slots.includes(slot)),count=rarity==='normal'?0:rarity==='magic'?2:rarity==='rare'?4:5;
  for(let i=0;i<count;i++){const at=Math.floor(rng()*pool.length),affix=pool.splice(at,1)[0],tier=1+Math.floor(rng()*Math.min(5,1+Math.floor(depth/2))),factor=1+(tier-1)*.3,value=scaled(affix.range,rng,factor,precision(affix.stat));item[affix.stat]=(item[affix.stat]||0)+value;item.affixes.push({id:affix.id,stat:affix.stat,value,tier,min:Math.round(affix.range[0]*factor*precision(affix.stat))/precision(affix.stat),max:Math.round(affix.range[1]*factor*precision(affix.stat))/precision(affix.stat),kind:i%2?'suffix':'prefix'});}
  if(rarity==='rare'||rarity==='legendary')item.life=(item.life||0)+Math.round(10*power);

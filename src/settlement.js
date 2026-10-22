@@ -164,14 +164,14 @@ export function repairAll(player){
   player.gold-=cost;Object.values(player.equipment).filter(Boolean).forEach(i=>i.durability=100);return result(true,'All equipped items repaired.');
 }
 export function acceptGuideQuest(player){
-  if(player.quests.guideMet)return result(false,'Follow the north road to Marchgate. Aldren’s garrison holds Edrin there.');
+  if(player.quests.guideMet)return result(false,'Help Emberfall’s survivors, then follow the patrol orders through Marchgate to the prison convoy.');
   const gift={id:'maelin-talisman',name:'Hearthbound Talisman',slot:'charm',rarity:'magic',level:1,spirit:8,life:6,identified:false,durability:100,reforges:0,icon:'◈'};
   if(!addToContainer(player.inventory,gift))return result(false,'Make one cell of room for Maelin’s keepsake.');
   player.quests.guideMet=true;player.gold+=50;player.shards+=2;player.identifyScrolls+=2;
   return result(true,'A promise made · +50 gold, 2 shards, 2 scrolls, and a mysterious talisman.');
 }
 export function claimGuideReward(player){
-  if(!player.quests.wardenDefeated||player.quests.guideRewarded)return result(false,'Return after defeating Aldren at Marchgate.');
+  if(!player.quests.wardenDefeated||player.quests.guideRewarded)return result(false,'Return after defeating Aldren at his redoubt.');
   player.quests.guideRewarded=true;player.gold+=120;player.shards+=3;return result(true,'The debt is paid · +120 gold and 3 ember shards. Edrin awaits you in town.');
 }
 export function generateTown(player){

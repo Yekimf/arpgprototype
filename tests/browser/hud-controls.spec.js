@@ -10,7 +10,7 @@ async function load(page,zone='town'){
   await page.goto('/');await page.locator('[data-front="continue"]').click();await expect(page.locator('#area-loading')).toBeHidden();await expect.poll(()=>snapshot(page).then(s=>s.artLoaded)).toBe(true);
 }
 async function bounds(page){
-  return page.locator('#modal').evaluate(e=>{const r=e.getBoundingClientRect();return {fits:r.top>=0&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth,noScroll:e.scrollHeight<=e.clientHeight+1,sections:[...e.querySelectorAll('.hud-bag-section')].filter(s=>s.offsetHeight).every(s=>s.scrollHeight<=s.clientHeight+1),actions:e.querySelector('#hud-item-actions').getBoundingClientRect().bottom<=r.bottom};});
+  return page.locator('#modal').evaluate(e=>{const r=e.getBoundingClientRect();return {fits:r.top>=0&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth,noScroll:e.scrollHeight<=e.clientHeight+1,sections:[...e.querySelectorAll('.hud-bag-section')].filter(s=>s.offsetHeight).every(s=>s.scrollHeight<=s.clientHeight+1),actions:(e.querySelector('#hud-item-actions')||e.querySelector('.inventory-controls')).getBoundingClientRect().bottom<=r.bottom};});
 }
 test('inventory fits the viewport and shows hover comparisons without selection',async({page},info)=>{
   await load(page);
@@ -23,7 +23,7 @@ test('inventory fits the viewport and shows hover comparisons without selection'
     await expect(page.locator('#item-tooltip')).toBeVisible();await expect(page.locator('#item-detail')).toContainText('+24 Weapon damage');await expect(page.locator('#item-detail')).toContainText('CURRENTLY EQUIPPED');
     expect(await page.locator('#item-tooltip').evaluate(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight;})).toBe(true);
     if(info.project.name==='desktop')await expect(item).toHaveAttribute('class',beforeClass);
-    await item.click();await expect(page.locator('[data-town-action="equip"]')).toBeInViewport();expect(await bounds(page)).toEqual({fits:true,noScroll:true,sections:true,actions:true});
+    await item.click();await expect(page.locator('[data-town-action="equip"]')).toHaveCount(0);expect(await bounds(page)).toEqual({fits:true,noScroll:true,sections:true,actions:true});
     await page.locator('[data-action="close"]').click();await expect(page.locator('#modal-backdrop')).toBeHidden();await expect(page.locator('#item-tooltip')).toBeHidden();
   }
 });

@@ -24,7 +24,8 @@ export class TownUI {
     const modal=document.getElementById('modal');
     this.hud=new InventoryHUD(this);
     let held=null,ghost=null;
-    modal.addEventListener('pointerdown',e=>{const node=e.target.closest('[data-pack-id]');if(e.button!==0||!node||e.ctrlKey||e.shiftKey||e.altKey)return;held={id:node.dataset.packId,source:node.dataset.container,x:e.clientX,y:e.clientY,node,pointer:e.pointerId};});
+    modal.addEventListener('contextmenu',e=>{const node=e.target.closest('[data-pack-id],[data-equip-slot]');if(!node)return;e.preventDefault();const {item,source}=this.hud.resolve(node);if(!item)return;if(source==='pack')this.apply(equipItem(game.player,item.id));else if(source==='equipped')this.apply(unequipItem(game.player,node.dataset.equipSlot));});
+    modal.addEventListener('pointerdown',e=>{const node=e.target.closest('[data-pack-id],[data-equip-slot]');if(e.button!==0||!node||e.ctrlKey||e.shiftKey||e.altKey)return;const {item,source}=this.hud.resolve(node);if(!item)return;held={id:item.id,source,slot:node.dataset.equipSlot,x:e.clientX,y:e.clientY,node,pointer:e.pointerId};});
     window.addEventListener('pointermove',e=>{if(!held)return;if(!ghost&&Math.hypot(e.clientX-held.x,e.clientY-held.y)>6){ghost=held.node.cloneNode(true);ghost.removeAttribute('data-pack-id');ghost.className='drag-item';document.body.append(ghost);document.body.classList.add('dragging-item');this.hud.hideTooltip();}if(ghost){ghost.style.left=e.clientX+12+'px';ghost.style.top=e.clientY+12+'px';}});
     window.addEventListener('pointerup',e=>{if(!held)return;const data=held;held=null;if(ghost){const target=document.elementFromPoint(e.clientX,e.clientY);ghost.remove();ghost=null;document.body.classList.remove('dragging-item');this.suppressClick=true;this.drop({target,clientX:e.clientX,clientY:e.clientY,preventDefault(){},dataTransfer:{getData:()=>JSON.stringify(data)}});setTimeout(()=>this.suppressClick=false,0);}});
     const cancelDrag=()=>{held=null;ghost?.remove();ghost=null;document.body.classList.remove('dragging-item');};window.addEventListener('pointercancel',cancelDrag);window.addEventListener('blur',cancelDrag);window.addEventListener('keydown',e=>{if(e.key==='Escape'&&held){cancelDrag();e.preventDefault();e.stopImmediatePropagation();}});
@@ -130,18 +131,24 @@ export class TownUI {
     else if(action==='depart'){this.closePanel();this.enterDungeon();}
     return true;
   }
-  quickAction(element,event){const {item,source}=this.hud.resolve(element);if(!item)return false;this.selection=item.id;this.source=source;if(event.altKey&&source==='pack')this.apply(identifyItem(this.player,item.id));else if(event.shiftKey&&source==='pack')this.apply(equipItem(this.player,item.id));else if(event.shiftKey&&source==='equipped')this.apply(unequipItem(this.player,Object.keys(this.player.equipment).find(s=>this.player.equipment[s]?.id===item.id)));else if(event.ctrlKey&&source==='stock')this.apply(buyItem(this.player,this.player.shopStock.findIndex(i=>i.id===item.id)));else if(event.ctrlKey&&source==='buyback')this.apply(buyBack(this.player,this.player.buyback.findIndex(i=>i.id===item.id)));else if(event.ctrlKey&&source==='pack'&&this.game.panel==='merchant')this.apply(sellItem(this.player,item.id));else if(event.ctrlKey&&['pack','stash'].includes(source)&&this.isTown)this.apply(moveItem(this.player,item.id,source==='pack'));else return false;return true;}
+  quickAction(element,event){const {item,source}=this.hud.resolve(element);if(!item)return false;this.selection=item.id;this.source=source;if(event.altKey&&source==='pack')this.apply(identifyItem(this.player,item.id));else if(event.shiftKey&&source==='pack'&&this.game.panel==='merchant')this.apply(sellItem(this.player,item.id));else if(event.shiftKey&&source==='pack')this.apply(equipItem(this.player,item.id));else if(event.shiftKey&&source==='equipped')this.apply(unequipItem(this.player,Object.keys(this.player.equipment).find(s=>this.player.equipment[s]?.id===item.id)));else if(event.ctrlKey&&source==='stock')this.apply(buyItem(this.player,this.player.shopStock.findIndex(i=>i.id===item.id)));else if(event.ctrlKey&&source==='buyback')this.apply(buyBack(this.player,this.player.buyback.findIndex(i=>i.id===item.id)));else if(event.ctrlKey&&source==='pack'&&this.game.panel==='merchant')this.apply(sellItem(this.player,item.id));else if(event.ctrlKey&&['pack','stash'].includes(source)&&this.isTown)this.apply(moveItem(this.player,item.id,source==='pack'));else return false;return true;}
   handleChange(event){if(event.target.matches('[data-forge-affix]')){this.affix=event.target.value;return true;}return false;}
   drop(event){
-    const grid=event.target?.closest('[data-bag-grid]'),slot=event.target?.closest('[data-equip-slot]');if(!grid&&!slot)return;
-    event.preventDefault();let data;try{data=JSON.parse(event.dataTransfer.getData('text/plain'));}catch{return;}
-    if(data.source!=='pack'&&data.source!=='stash')return;
-    const source=data.source==='pack'?this.player.inventory:this.player.stash,item=source.find(i=>i.id===data.id);if(!item)return;
-    if(slot){if(data.source!=='pack'||slot.dataset.equipSlot!==item.slot&&!(item.slot==='ring'&&slot.dataset.equipSlot==='ring2')){this.toast('That relic belongs in a different equipment slot.');return;}this.apply(equipItem(this.player,item.id,slot.dataset.equipSlot));return;}
-    const destination=grid.dataset.bagGrid;if(destination==='stash'&&!this.isTown)return;
-    const dimensions=destination==='stash'?STASH:BAG,target=destination==='stash'?this.player.stash:this.player.inventory;
-    const rect=grid.getBoundingClientRect(),x=Math.floor((event.clientX-rect.left)/rect.width*dimensions.width),y=Math.floor((event.clientY-rect.top)/rect.height*dimensions.height);
-    if(!cellsFree(target,item,x,y,dimensions)){this.toast('That space is occupied, or the item will not fit.');return;}
-    if(source!==target){source.splice(source.indexOf(item),1);target.push(item);}item.bagX=x;item.bagY=y;this.refresh();
+    let data;try{data=JSON.parse(event.dataTransfer.getData('text/plain'));}catch{return;}
+    const source=data.source==='pack'?this.player.inventory:data.source==='stash'?this.player.stash:null,item=data.source==='equipped'?this.player.equipment[data.slot]:source?.find(i=>i.id===data.id);if(!item||item.id!==data.id)return;
+    event.preventDefault();const element=event.target,grid=element?.closest('[data-bag-grid]'),slot=element?.closest('[data-equip-slot]'),doll=element?.closest('.paperdoll');
+    if(this.game.panel==='merchant'&&element?.closest('.service-sheet')){if(data.source==='pack')this.apply(sellItem(this.player,item.id));return;}
+    if(slot||doll){if(data.source!=='pack')return;const socket=slot?.dataset.equipSlot,target=socket===item.slot||item.slot==='ring'&&socket==='ring2'?socket:undefined;this.apply(equipItem(this.player,item.id,target));return;}
+    if(grid){
+      const destination=grid.dataset.bagGrid;if(destination==='stash'&&!this.isTown)return;
+      if(data.source==='equipped'){if(destination==='pack')this.apply(unequipItem(this.player,data.slot));return;}
+      const dimensions=destination==='stash'?STASH:BAG,target=destination==='stash'?this.player.stash:this.player.inventory,rect=grid.getBoundingClientRect(),x=Math.floor((event.clientX-rect.left)/rect.width*dimensions.width),y=Math.floor((event.clientY-rect.top)/rect.height*dimensions.height);
+      if(!cellsFree(target,item,x,y,dimensions)){this.toast('That space is occupied, or the item will not fit.');return;}
+      if(source!==target){source.splice(source.indexOf(item),1);target.push(item);}item.bagX=x;item.bagY=y;this.refresh();return;
+    }
+    if(data.source!=='stash'&&(element?.id==='world'||element?.id==='modal-backdrop')){
+      if(data.source==='equipped')this.player.equipment[data.slot]=null;else source.splice(source.indexOf(item),1);
+      this.game.loot.push({x:this.player.x+.7,y:this.player.y+.4,item,manual:true});this.selection=null;this.toast('Dropped '+itemName(item)+' · F picks it up.');this.refresh();
+    }
   }
 }

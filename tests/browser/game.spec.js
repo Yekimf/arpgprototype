@@ -22,8 +22,8 @@ test('movement, abilities, cooldowns, and mastery assignment work',async({page},
   await page.locator('[data-slot="2"]').dispatchEvent('pointerdown');
   const cast=await state(page);expect(cast.mana).toBeLessThan(before.mana);expect(cast.cooldowns.nova).toBeGreaterThan(0);
   await page.locator('[data-panel="skills"]').click();await expect(page.locator('#modal-title')).toHaveText('Masteries');
-  await page.locator('[data-learn="vigor"]').click();await page.locator('[data-learn="vigor"]').click();
-  await expect(page.locator('[data-learn="quake"]')).toBeEnabled();await page.locator('[data-learn="quake"]').click();
+  await page.locator('[data-skill-detail="vigor"]').click();await page.locator('[data-learn="vigor"]').click();await page.locator('[data-skill-detail="vigor"]').click();await page.locator('[data-learn="vigor"]').click();
+  await page.locator('[data-skill-detail="quake"]').click();await expect(page.locator('[data-learn="quake"]')).toBeEnabled();await page.locator('[data-learn="quake"]').click();
   await page.locator('[data-bind="quake"]').selectOption('0');expect((await state(page)).slots[0]).toBe('quake');expect((await state(page)).points).toBe(1);
   await page.locator('[data-action="close"]').last().click();
   await page.locator('#pause').click();const paused=await state(page);await page.waitForTimeout(200);expect((await state(page)).hp).toBe(paused.hp);
@@ -36,8 +36,8 @@ test('spatial inventory comparison, equipment, stash, and local save persist',as
   const inventory=[{id:'test-weapon',name:'Runic Falchion',slot:'weapon',rarity:'rare',level:2,damage:24,life:20,icon:'⚔'},{id:'test-charm',name:'Ashen Moonstone',slot:'charm',rarity:'magic',level:2,spirit:18,icon:'◈'}];
   await seedGame(page,{inventory},'town');await page.goto('/');await page.locator('[data-front="continue"]').click();await expect(page.locator('#area-loading')).toBeHidden();await page.locator('[data-panel="inventory"]').click();
   await page.locator('[data-pack-id="test-weapon"]').click();await expect(page.locator('#item-detail')).toContainText('+24 Weapon damage');
-  await page.locator('[data-town-action="equip"]').click();await expect(page.locator('[data-equip-slot="weapon"]')).toHaveAttribute('aria-label',/Runic Falchion/);
-  await page.locator('[data-pack-id="test-charm"]').click();await page.locator('[data-town-action="store"]').click();
+  await page.locator('[data-pack-id="test-weapon"]').click({button:'right'});await expect(page.locator('[data-equip-slot="weapon"]')).toHaveAttribute('aria-label',/Runic Falchion/);
+  await page.locator('[data-pack-id="test-charm"]').click();await page.locator('[data-pack-id="test-charm"]').click({modifiers:['Control']});
   const persisted=await page.evaluate(()=>JSON.parse(localStorage.getItem('ashen-reliquary-save-v1')));
   expect(persisted.player.equipment.weapon.damage).toBe(24);expect(persisted.player.inventory).toHaveLength(1);expect(persisted.player.stash).toHaveLength(1);
   const restored=await page.context().newPage();await restored.goto('/');await restored.locator('[data-front="continue"]').click();await restored.locator('[data-panel="inventory"]').click();
@@ -55,9 +55,9 @@ test('all advanced abilities execute and death recovery preserves the character'
   for(let slot=0;slot<3;slot++)await page.locator(`[data-slot="${slot}"]`).dispatchEvent('pointerdown');
   await page.waitForTimeout(1100);
   let s=await state(page);for(const id of ['quake','meteor','chain'])expect(s.cooldowns[id]).toBeGreaterThan(0);
-  await page.locator('[data-panel="skills"]').click();await page.locator('[data-bind="whirl"]').selectOption('0');
-  await page.locator('[data-mastery="ember"]').click();await page.locator('[data-bind="inferno"]').selectOption('1');
-  await page.locator('[data-mastery="aether"]').click();await page.locator('[data-bind="vortex"]').selectOption('2');
+  await page.locator('[data-panel="skills"]').click();await page.locator('[data-skill-detail="whirl"]').click();await page.locator('[data-bind="whirl"]').selectOption('0');
+  await page.locator('[data-mastery="ember"]').click();await page.locator('[data-skill-detail="inferno"]').click();await page.locator('[data-bind="inferno"]').selectOption('1');
+  await page.locator('[data-mastery="aether"]').click();await page.locator('[data-skill-detail="vortex"]').click();await page.locator('[data-bind="vortex"]').selectOption('2');
   await page.locator('[data-action="close"]').last().click();
   for(let slot=0;slot<3;slot++)await page.locator(`[data-slot="${slot}"]`).dispatchEvent('pointerdown');
   await page.waitForTimeout(500);s=await state(page);for(const id of ['whirl','vortex'])expect(s.cooldowns[id]).toBeGreaterThan(0);expect(s.pyre).not.toBeNull();

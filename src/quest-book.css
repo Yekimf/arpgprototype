@@ -6,3 +6,5 @@
 .quest-selected-title{font:15px/1.3 Georgia;color:#d2ccb3;text-align:center;border:2px ridge #827f6c;background:#101314d9;padding:4px 7px;display:grid;align-content:center;letter-spacing:.4px}
 .quest-book .quest-parchment{margin:0;padding:9px 11px;border:2px solid #8f9180;background:#0d1113df;overflow:auto;scrollbar-width:thin;scrollbar-color:#77745e #101314}.quest-book .quest-parchment p{font:11px/1.65 Georgia;color:#b4ac91;margin:8px 0}.quest-book .quest-parchment .quest-objective{font:12px/1.6 Georgia;color:#d0cab0;margin-top:7px}.quest-status{text-align:center;font:9px Georgia;letter-spacing:1px;color:#b2a77f}.quest-status.complete{color:#a2ab91}.quest-status.locked{color:#77796c}.quest-book-footer{display:flex;justify-content:space-between;font:8px Georgia;color:#a29a7e;letter-spacing:.6px;align-items:center}
 .npc-quest-mark{font:bold 17px Georgia;color:#dfbb6e;display:inline-block;width:17px;text-shadow:0 1px #000}.npc-conversation nav [data-talk=journal]{color:#d1b782}
+
+.quest-seals.extended-quests{grid-template-columns:repeat(4,1fr);gap:8px}.extended-quests .quest-seal{min-width:0;width:100%;max-width:80px;aspect-ratio:1}

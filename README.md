@@ -10,6 +10,13 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.15.0
+
+- Marchgate now stands across a longer forest road in a 128×128 opening wilderness. Town exits lead directly into nearby encounters. Save Elin’s livestock from six risen soldiers, report to Maelin, retrieve the stolen winter provisions and return them before following the patrol orders to the gate. Quest progress and rewards persist.
+- Inventory inspection has no equip/keep action bar. Right-click to equip or unequip, drag onto the equipment figure to equip, drag onto the playfield to drop, or drag into the trader’s sheet to sell. Shift-click sells at the merchant; Alt-click identifies. Dropped equipment stays on the ground until picked up with F.
+- Early loot is mostly common gear; early body armour strongly favours leather and excludes plate. Rings and amulets are much rarer than chest armour. Later drops introduce heavier armour and stronger tiers.
+- Masteries use an engraved tiered folio with selectable skill details and bindings. The character folio shares the inventory’s stone-and-iron frame, with an equipped portrait, attributes and grouped combat statistics.
+
 ## Version 0.14.0
 
 - Removed the female character option and its art from the game for now. Existing female saves use the male model while retaining their progress and equipment.

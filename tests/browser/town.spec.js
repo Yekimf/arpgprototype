@@ -21,8 +21,8 @@ test('town guide, identification scroll, merchant, buyback, repairs, and reforgi
   expect((await snapshot(page)).gold).toBe(250);await close(page);
   await page.locator('[data-panel="inventory"]').click();await page.locator('[data-pack-id="maelin-talisman"]').click();
   await expect(page.locator('#item-detail')).toContainText('Its true nature is concealed');
-  await page.locator('[data-town-action="identify"]').click();await expect(page.locator('#item-detail')).toContainText('Hearthbound Talisman');
-  await page.locator('[data-town-action="equip"]').click();await expect(page.locator('[data-equip-slot="charm"]')).toHaveAttribute('aria-label',/Hearthbound/);await close(page);
+  await page.locator('[data-pack-id="maelin-talisman"]').click({modifiers:['Alt']});await expect(page.locator('#item-detail')).toContainText('Hearthbound Talisman');
+  await page.locator('[data-pack-id="maelin-talisman"]').click({button:'right'});await expect(page.locator('[data-equip-slot="charm"]')).toHaveAttribute('aria-label',/Hearthbound/);await close(page);
   await talk(page,'merchant','Orrin’s wares');
   const visible=await page.locator('[data-stock-id]').evaluateAll(nodes=>nodes.map(n=>n.dataset.stockId));
   const stock=(await save(page)).shopStock.filter(i=>visible.includes(i.id)).sort((a,b)=>a.price-b.price)[0];
@@ -46,7 +46,7 @@ test('town guide, identification scroll, merchant, buyback, repairs, and reforgi
     await page.locator(`[data-pack-id="${stock.id}"]`).dragTo(page.locator('[data-bag-grid="pack"]'),{targetPosition:{x:bag.width*.75,y:bag.height*.08}});
     expect((await save(page)).inventory.find(i=>i.id===stock.id).bagX).toBe(7);
   }
-  await page.locator(`[data-pack-id="${stock.id}"]`).click();await page.locator('[data-town-action="store"]').click();
+  await page.locator(`[data-pack-id="${stock.id}"]`).click({modifiers:['Control']});
   expect((await save(page)).stash).toHaveLength(1);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(errors).toEqual([]);
 });

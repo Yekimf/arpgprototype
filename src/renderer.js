@@ -1,3 +1,4 @@
+import {openingStage} from './opening-quests.js';
 import {WORLD_FOOT_OFFSETS} from './world-bounds.js';
 import {GuardSprites} from './guard-sprites.js';
 import {pyreStats} from './devotion.js';
@@ -130,6 +131,7 @@ export class Renderer {
     if(d.returnGate)objects.push({...d.returnGate,type:d.fortress?'kingdom-gate-inside':'entrance',width:1120,height:747});
     if(d.waypoint)objects.push({...d.waypoint,type:'waypoint'});if(d.townWaypoint)objects.push({...d.townWaypoint,type:'waypoint'});
 
+    if(d.provisions&&!game.player.quests.provisionsRecovered)objects.push({...d.provisions,type:'field'});
     if(d.field)objects.push({...d.field,type:'field'});
     if(d.supplies)objects.push({...d.supplies,type:'supplies'});
     if(d.bossDead)objects.push({...d.portal,type:'portal'});
@@ -142,6 +144,7 @@ export class Renderer {
       if(o.type==='hero')this.hero(game);
       else if(o.type==='enemy')this.enemy(o.enemy,game);
       else if(o.type==='waypoint')this.waypoint(o,game);
+      else if(o.type==='livestock'){this.line([[-9,2],[-9,13]],'#28251d',3);this.line([[8,2],[8,13]],'#28251d',3);this.ellipse(0,-2,16,10,'#8f8872');for(let i=0;i<6;i++)this.ellipse(-10+i*4,-5+(i%2)*3,5,5,i%2?'#a49b81':'#b0a58a');this.ellipse(17,-2,6,6,'#39372d');this.ellipse(19,-3,1,1,'#c7ba99');}
       else if(o.type==='field'){this.sprite(13,65,64,9);this.worldLabel(o.label,'F · EXAMINE',-65);}
       else if(o.type==='supplies')this.supplies(o,game);
       else if(o.type==='wall')this.wall(o);
@@ -366,7 +369,7 @@ export class Renderer {
     this.ellipse(0,2,17,7,'#08050388');this.sprite(n.sprite,n.id==='smith'?65:64,n.id==='smith'?88:91);
     const nearby=distance(n,game.player)<3;if(nearby){this.ctx.strokeStyle='#c7ac6a55';this.ctx.lineWidth=1;this.ctx.beginPath();this.ctx.ellipse(0,0,20,9,0,0,Math.PI*2);this.ctx.stroke();}
     this.worldLabel(n.name,n.role,-103);
-    if(n.id==='guide'&&(!game.player.quests.guideMet||game.player.quests.wardenDefeated&&!game.player.quests.guideRewarded)){this.ctx.font='bold 20px Georgia';this.ctx.fillStyle='#e3c476';this.ctx.textAlign='center';this.ctx.fillText('!',0,-123+Math.sin(this.time*2)*3);}
+    if(n.id==='guide'&&(['meet','report-herd','report-provisions'].includes(openingStage(game.player))||game.player.quests.wardenDefeated&&!game.player.quests.guideRewarded)){this.ctx.font='bold 20px Georgia';this.ctx.fillStyle='#e3c476';this.ctx.textAlign='center';this.ctx.fillText('!',0,-123+Math.sin(this.time*2)*3);}
   }
   portal(game){
     const c=this.ctx,t=this.time;this.light(0,-25,100,'#a1d3bb22');
@@ -436,7 +439,7 @@ export class Renderer {
       }c.stroke();
       if(d.roads){c.fillStyle=overlay?'#b19e7055':'#b19e7033';for(const key of d.roads)if(d.seen.has(key)){const at=project(key%d.size,Math.floor(key/d.size));c.fillRect(at.x-.6,at.y-.4,1.2,.8);}}
       const marker=(o,color,r=3)=>{if(!o||!d.seen.has(Math.floor(o.y)*d.size+Math.floor(o.x)))return;const at=project(o.x,o.y);c.strokeStyle=color;c.lineWidth=1.4;c.beginPath();c.moveTo(at.x,at.y-r);c.lineTo(at.x+r,at.y);c.lineTo(at.x,at.y+r);c.lineTo(at.x-r,at.y);c.closePath();c.stroke();};
-      marker(d.field,'#c2a66b',overlay?6:3);marker(d.townWaypoint,'#99dce2',overlay?7:4);marker(d.returnGate,'#d1b271',overlay?6:3);marker(d.waypoint,'#99dce2',overlay?7:4);marker(d.portal,'#d1b271',overlay?8:4);marker(d.supplies,'#b9ab83',overlay?5:2);
+      marker(d.field,'#c2a66b',overlay?6:3);if(d.herd&&!game.player.quests.herdRewarded)marker(d.herd,'#c2a66b',overlay?7:4);if(d.provisions&&!game.player.quests.provisionsRecovered)marker(d.provisions,'#c2a66b',overlay?6:3);marker(d.townWaypoint,'#99dce2',overlay?7:4);marker(d.returnGate,'#d1b271',overlay?6:3);marker(d.waypoint,'#99dce2',overlay?7:4);marker(d.portal,'#d1b271',overlay?8:4);marker(d.supplies,'#b9ab83',overlay?5:2);
       for(const n of d.npcs||[])marker(n,'#cbb47e',2);for(const e of d.enemies)if(!e.dead&&distance(e,p)<8)marker(e,e.type==='warden'?'#d6a55f':'#b76c52',e.type==='warden'?4:1.5);
       const v=project(p.x,p.y);c.fillStyle='#f1dfb0';c.beginPath();c.moveTo(v.x,v.y-5);c.lineTo(v.x+3,v.y+3);c.lineTo(v.x,v.y+1);c.lineTo(v.x-3,v.y+3);c.closePath();c.fill();
       if(overlay){c.textAlign='center';c.font='12px Georgia';c.fillStyle='#cbb98caa';c.fillText(document.getElementById('location').textContent,w/2,25);c.font='9px Georgia';c.fillStyle='#b8a68099';c.fillText('TAB · CLOSE     ◈ WAYPOINT     ◆ ROAD / GATE     G · WORLD MAP',w/2,h-20);}

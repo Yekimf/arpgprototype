@@ -1,3 +1,4 @@
+import {openingObjective,openingComplete} from './opening-quests.js';
 import {generateMarchgate} from './marchgate.js';
 import {frontierEdges} from './wilderness-boundary.js';
 import {chapterFor,dressEnemy} from './campaign-content.js';
@@ -26,24 +27,24 @@ export function canTravel(p,id){const c=ensureCampaign(p);return !!c&&c.waypoint
 export function defeatCampaignBoss(p,bossId){const c=ensureCampaign(p);if(!c||c.defeated.includes(bossId))return false;if(/^captain-[1-5]-[0-2]$/.test(bossId)){if(Number(bossId.split('-')[1])>c.act)return false;}else if(/^knight-[1-5]$/.test(bossId)){if(Number(bossId.split('-')[1])>c.act)return false;}else if(bossId==='king'){if(c.act!==5||!c.defeated.includes('knight-5'))return false;}else if(bossId==='wanderer'){if(c.act!==5||!c.defeated.includes('king'))return false;}else return false;c.defeated.push(bossId);if(bossId==='wanderer')c.completed=true;return true;}
 export function canAdvance(p,act=p.campaign?.act){return !!p.campaign?.defeated.includes(`knight-${act}`);}
 export function advanceCampaign(p){const c=ensureCampaign(p);if(!c||c.act>=5||!canAdvance(p))return false;c.act++;return true;}
-export function campaignObjective(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const a=actFor(act),ch=chapterFor(act,chapter);if(p.campaign?.completed)return 'The bargain is broken. The kingdom sees dawn.';if(kind==='town')return p.quests.guideMet?'Prepare for the next road · J opens your journal':'Speak to Sister Maelin, then follow the Kingsroad';if(kind==='wilderness')return p.campaign?.records?.includes(fieldKey(act,chapter))?`Enter ${ch.stronghold}`:ch.task;if(act===5&&p.campaign?.defeated.includes('king'))return 'End the Veiled Wanderer’s bargain';if(act===5&&canAdvance(p,5))return 'Confront King Vaelor, the Usurper';return p.campaign?.defeated.includes(captainId(act,chapter))?'The road is open. Read the recovered account':`Defeat ${ch.captain||a.knight}`;}
+export function campaignObjective(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const a=actFor(act),ch=chapterFor(act,chapter);if(p.campaign?.completed)return 'The bargain is broken. The kingdom sees dawn.';if(act===1&&chapter===0&&!openingComplete(p))return openingObjective(p);if(kind==='town')return p.quests.guideMet?'Prepare for the next road · J opens your journal':'Speak to Sister Maelin, then follow the Kingsroad';if(kind==='wilderness')return p.campaign?.records?.includes(fieldKey(act,chapter))?`Enter ${ch.stronghold}`:ch.task;if(act===5&&p.campaign?.defeated.includes('king'))return 'End the Veiled Wanderer’s bargain';if(act===5&&canAdvance(p,5))return 'Confront King Vaelor, the Usurper';return p.campaign?.defeated.includes(captainId(act,chapter))?'The road is open. Read the recovered account':`Defeat ${ch.captain||a.knight}`;}
 
 
 // The camp and its surrounding fields are one continuous, seeded area.
 export const inSanctuary=(d,p)=>!!d.townBounds&&p.x>d.townBounds.x1&&p.x<d.townBounds.x2&&p.y>d.townBounds.y1&&p.y<d.townBounds.y2;
 export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
- const camp=act===1&&chapter===0,ch=chapterFor(act,chapter),rng=random(seed),size=96,tiles=Array.from({length:size},()=>Array(size).fill(0)),start=camp?{x:48,y:50.5}:{x:17.5,y:77.5},portal={x:76.5,y:18.5},props=[],enemies=[],roads=new Set(),water=new Set();
+ const camp=act===1&&chapter===0,ch=chapterFor(act,chapter),rng=random(seed),size=camp?128:96,tiles=Array.from({length:size},()=>Array(size).fill(0)),start=camp?{x:48,y:50.5}:{x:17.5,y:77.5},portal=camp?{x:112.5,y:18.5}:{x:76.5,y:18.5},props=[],enemies=[],roads=new Set(),water=new Set();
  const townBounds=camp?{x1:TOWN_BOUNDS.x1+16,y1:TOWN_BOUNDS.y1+18,x2:TOWN_BOUNDS.x2+16,y2:TOWN_BOUNDS.y2+18}:null;
  // A broad, irregular landmass. Ponds, groves and ruins interrupt the field rather
  // than reducing it to a single corridor; roads are always guaranteed walkable.
  for(let y=3;y<size-3;y++)for(let x=3;x<size-3;x++){
-   const edge=Math.hypot((x-48)/47,(y-48)/46),ripples=Math.sin(x*.22)*.028+Math.cos(y*.29)*.026;
+   const edge=camp?Math.hypot((x-64)/62,(y-60)/58):Math.hypot((x-48)/47,(y-48)/46),ripples=Math.sin(x*.22)*.028+Math.cos(y*.29)*.026;
    if(edge<.99+ripples)tiles[y][x]=1;
  }
  const carve=(x,y,r,road=false)=>{for(let yy=Math.max(2,Math.floor(y-r));yy<Math.min(size-2,y+r);yy++)for(let xx=Math.max(2,Math.floor(x-r));xx<Math.min(size-2,x+r);xx++)if(Math.hypot(xx+.5-x,yy+.5-y)<r){tiles[yy][xx]=1;if(road&&Math.hypot(xx+.5-x,yy+.5-y)<1.4)roads.add(yy*size+xx);}};
  const lakes=[{x:23,y:24,rx:7,ry:4},{x:73,y:64,rx:5,ry:8},{x:28,y:64,rx:4,ry:5}];
  for(const lake of lakes)for(let y=3;y<size-3;y++)for(let x=3;x<size-3;x++)if(((x-lake.x)/lake.rx)**2+((y-lake.y)/lake.ry)**2<1+Math.sin(x*2+y)*.12){tiles[y][x]=0;water.add(y*size+x);}
- const route=[start,{x:48.5,y:30.5},{x:56.5,y:30.5},{x:67.5,y:27.5},portal];
+ const route=camp?[start,{x:64.5,y:51.5},{x:74.5,y:48.5},{x:85.5,y:40.5},{x:97.5,y:31.5},{x:112.5,y:28.5},portal]:[start,{x:48.5,y:30.5},{x:56.5,y:30.5},{x:67.5,y:27.5},portal];
  const paths=[route,[start,{x:35.5,y:51.5},{x:18.5,y:45.5}],[start,{x:48.5,y:68.5},{x:57.5,y:80.5}],[start,{x:64.5,y:51.5},{x:80.5,y:42.5}]];
  for(const path of paths)for(let i=1;i<path.length;i++){const a=path[i-1],b=path[i],steps=Math.ceil(distance(a,b)*2);for(let j=0;j<=steps;j++){const t=j/steps;carve(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,2.8,true);}}
  const rooms=route.map(p=>({x:p.x-3,y:p.y-3,w:6,h:6}));
@@ -57,7 +58,7 @@ export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
  }
  const sealNorth=()=>{for(let y=0;y<18;y++)for(let x=0;x<size;x++){tiles[y][x]=0;roads.delete(y*size+x);}};sealNorth();
  let id=1;
- for(let y=8;y<89;y+=5)for(let x=8;x<89;x+=5){const at={x:x+rng()*3,y:y+rng()*3};if(!isWalkable({tiles},at.x,at.y)||townBounds&&at.x>townBounds.x1-6&&at.x<townBounds.x2+6&&at.y>townBounds.y1-6&&at.y<townBounds.y2+6||distance(at,start)<9||distance(at,portal)<4)continue;if(rng()<.5)enemies.push(dressEnemy(makeEnemy(id++,at.x,at.y,'skeleton',actFor(act).level+chapter*2,rng()<.075),act,rng));}
+ for(let y=8;y<size-7;y+=5)for(let x=8;x<size-7;x+=5){const at={x:x+rng()*3,y:y+rng()*3};if(!isWalkable({tiles},at.x,at.y)||townBounds&&at.x>townBounds.x1-1.2&&at.x<townBounds.x2+1.2&&at.y>townBounds.y1-1.2&&at.y<townBounds.y2+1.2||distance(at,start)<9||distance(at,portal)<4)continue;if(rng()<.5)enemies.push(dressEnemy(makeEnemy(id++,at.x,at.y,'skeleton',actFor(act).level+chapter*2,rng()<.075),act,rng));}
  // Preserve several routes through each grove. Decorative trees never block a road.
  for(let y=4;y<size-4;y++)for(let x=4;x<size-4;x++)if(tiles[y][x]&&!roads.has(y*size+x)&&!(townBounds&&x>townBounds.x1-3&&x<townBounds.x2+3&&y>townBounds.y1-3&&y<townBounds.y2+3)){
    const n=rng();if(n<.018)props.push({x:x+.5,y:y+.5,type:'building',sprite:7,width:110+rng()*55,height:135+rng()*45});else if(n<.027)props.push({x:x+.5,y:y+.5,type:'bones',variant:1});
@@ -65,21 +66,29 @@ export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
  props.push(camp?{type:'kingdom-gate',x:portal.x,y:portal.y-1,width:1120,height:747,exit:true}:{type:'building',sprite:15,x:portal.x,y:portal.y-1,width:225,height:230,exit:true});
  if(camp){
   // A walled forecourt funnels the last stretch into a long gate approach.
-  for(let y=18;y<=25;y++)for(let x=61;x<=90;x++)if(x<73||x>80){tiles[y][x]=0;roads.delete(y*size+x);}
+  for(let y=18;y<=25;y++)for(let x=97;x<=126;x++)if(x<109||x>116){tiles[y][x]=0;roads.delete(y*size+x);}
  }
- const waypoint={x:56.5,y:30.5},supplies=camp?{x:60.5,y:31.5}:{x:67.5,y:27.5};carve(waypoint.x,waypoint.y,2);carve(supplies.x,supplies.y,2);carve(portal.x,portal.y,3);
+ const waypoint=camp?{x:91.5,y:36.5}:{x:56.5,y:30.5},supplies=camp?{x:96.5,y:40.5}:{x:67.5,y:27.5};carve(waypoint.x,waypoint.y,2);carve(supplies.x,supplies.y,2);carve(portal.x,portal.y,3);
  carve(37.5,29.5,2);
  // The keep's gate is a solid barrier. Approach its south side and interact;
  // the arch is not a walk-through opening onto the back of the map.
  sealNorth();
- for(let x=1;x<size-1;x++)if(tiles[18][x]&&(x<74||x>79))props.push({type:'frontier',axis:'x',x,y:18});
- props.push({type:'road-gate',x:74,y:18,span:6,stone:camp});
+ for(let x=1;x<size-1;x++)if(tiles[18][x]&&(x<portal.x-2.5||x>portal.x+2.5))props.push({type:'frontier',axis:'x',x,y:18});
+ props.push({type:'road-gate',x:portal.x-2.5,y:18,span:6,stone:camp});
  for(let i=enemies.length-1;i>=0;i--)if(!isWalkable({tiles},enemies[i].x,enemies[i].y,.23))enemies.splice(i,1);
  props.push(...frontierEdges(tiles,water));
  // The monumental gate owns this apron. No decorative trees, fence segments
  // or debris may be painted across the portcullis or its approach.
- if(camp)for(let i=props.length-1;i>=0;i--){const p=props[i];if(p.type!=='kingdom-gate'&&p.x>=60&&p.x<=94&&p.y>=17&&p.y<=38)props.splice(i,1);}
- const d={seed,size,tiles,rooms,start,portal,enemies,props,roads,water,depth:act,seen:new Set(),bossDead:false,outdoor:true,act,kind:'wilderness',chapter,field:{x:37.5,y:29.5,label:ch.task},waypoint,supplies,exitReady:true,townBounds,npcs:[]};
+ if(camp)for(let i=props.length-1;i>=0;i--){const p=props[i];if(p.type!=='kingdom-gate'&&p.x>=96&&p.x<=128&&p.y>=17&&p.y<=38)props.splice(i,1);}
+ const d={seed,size,tiles,rooms,start,portal,enemies,props,roads,water,depth:act,seen:new Set(),bossDead:false,outdoor:true,act,kind:'wilderness',chapter,field:camp?{x:85.5,y:40.5,label:ch.task}:{x:37.5,y:29.5,label:ch.task},waypoint,supplies,exitReady:true,townBounds,npcs:[]};
+ if(camp){
+  d.provisions={x:77.5,y:49.5,label:'Stolen winter provisions'};carve(d.provisions.x,d.provisions.y,3,true);carve(d.field.x,d.field.y,3,true);
+  const herd=d.herd={x:70.5,y:51.5};carve(herd.x,herd.y,5,true);
+  for(let i=props.length-1;i>=0;i--)if(props[i].type==='building'&&[herd,d.provisions,d.field].some(at=>distance(at,props[i])<4))props.splice(i,1);
+  for(let i=0;i<4;i++)props.push({type:'livestock',x:68.5+i%2*1.5,y:50.5+Math.floor(i/2)*1.7});
+  props.push({type:'brazier',x:67.5,y:53.5,variant:1});
+  for(let i=0;i<6;i++){const herdId='herd-'+i;if(player.quests.herdKills?.includes(herdId))continue;const e=makeEnemy(id++,69.5+i%3*1.8,47.5+Math.floor(i/3)*7,'skeleton',1);Object.assign(e,{herdId,faction:1,tint:'#96947b',name:i%2?'Zombified Levy':'Bonebound Soldier',hp:26,maxHp:26,damage:5,speed:1.1});enemies.push(e);}
+ }
  if(camp){d.npcs=generateTown(player).npcs.map(n=>({...n,x:n.x+16,y:n.y+18}));d.townWaypoint={x:49,y:52};for(let y=townBounds.y1-2;y<=townBounds.y2+2;y++)for(let x=townBounds.x1-2;x<=townBounds.x2+2;x++)d.seen.add(y*size+x);}
  return d;
 }
