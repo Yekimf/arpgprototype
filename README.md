@@ -10,6 +10,11 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.17.0
+
+- The prologue now uses a wide 2.35:1 image frame with clean black letterboxing and small white subtitles beneath the artwork. Existing sepia illustrations are reframed for this composition.
+- Scenes and sentence captions advance automatically, with simple image fades. Removed visible headings, buttons, progress bars and scene dots. **Escape** skips the prologue into town, or returns a story replay to the title menu.
+
 ## Version 0.16.0
 
 - Enemies pursue and strike more reliably, ranged enemies lead moving targets, and bosses use faster patterns and a more aggressive second phase. Reduced automatic player damage and boss health to keep encounters active instead of relying on large health pools. Armour still helps, with less overwhelming damage reduction.

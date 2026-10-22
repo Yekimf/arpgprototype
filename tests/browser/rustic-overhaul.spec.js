@@ -2,18 +2,25 @@ import {test,expect} from '@playwright/test';
 import {createPlayer} from '../../src/game.js';
 import {createCampaign} from '../../src/campaign.js';
 const state=page=>page.evaluate(()=>window.__reliquary.snapshot());
-test('parchment illustrations fade in, pause cleanly, and keep captions out of a narrative panel',async({page})=>{
- await page.goto('/');await page.locator('[data-front="story"]').click();const drawing=page.locator('.sketch-page');await expect.poll(()=>drawing.getAttribute('data-reveal').then(Number)).toBeGreaterThan(2);
- await page.locator('[data-front="hold"]').click();const held=await drawing.getAttribute('data-reveal');await page.waitForTimeout(250);expect(await drawing.getAttribute('data-reveal')).toBe(held);
- const style=await page.locator('.cinematic-subtitles').evaluate(e=>({background:getComputedStyle(e).backgroundColor,border:getComputedStyle(e).borderTopWidth}));expect(style).toEqual({background:'rgba(0, 0, 0, 0)',border:'0px'});
- await page.locator('[data-front="captions"]').click();await expect(page.locator('.cinematic-subtitles')).toBeHidden();await page.locator('[data-front="hold"]').click();await expect.poll(()=>drawing.getAttribute('data-reveal').then(Number)).toBeGreaterThan(Number(held));
+test('cinematics use black letterboxing, plain subtitles and automatic scene changes',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.clock.install();await page.goto('/');await page.locator('[data-front="story"]').click();
  for(let scene=0;scene<6;scene++){
-  const canvas=page.locator('.sketch-page');await expect(canvas).toHaveAttribute('data-scene',String(scene));await expect.poll(()=>canvas.getAttribute('data-reveal').then(Number)).toBeGreaterThan(90);
-  expect(await canvas.evaluate(c=>{const r=c.getBoundingClientRect(),s=getComputedStyle(c),p=c.getContext('2d').getImageData(Math.floor(c.width*.5),Math.floor(c.height*.1),1,1).data;return r.left===0&&r.top===0&&r.width>=innerWidth&&r.height>=innerHeight&&s.objectFit==='cover'&&p[0]>p[1]&&p[1]>p[2];})).toBe(true);
-  if(scene===0||scene===5)await page.screenshot({path:`test-results/parchment-scene-${scene}.png`});
-  if(scene<5)await page.locator('[data-front="next"]').click();
+  const canvas=page.locator('.sketch-page');await expect(canvas).toHaveAttribute('data-scene',String(scene));await expect(canvas).toHaveAttribute('data-ready','true');await page.clock.runFor(1100);await expect(canvas).toHaveAttribute('data-reveal','100');
+  await expect(page.locator('#front-end button,.cinematic-top,.cinematic-controls,.cinematic-progress,.scene-dots,.cinematic-subtitles h2')).toHaveCount(0);
+  for(const [width,height]of scene===0?[[1200,720],[1920,1080],[1024,768],[1366,600]]:[[1440,1000]]){
+   await page.setViewportSize({width,height});const dims=await page.locator('.cinematic-frame').evaluate(frame=>{const r=frame.getBoundingClientRect(),root=frame.parentElement,caption=frame.querySelector('.cinematic-subtitles').getBoundingClientRect();return{black:getComputedStyle(root).backgroundColor,ratio:r.width/r.height,top:r.top,bottom:r.bottom,captionTop:caption.top,captionBottom:caption.bottom,cursor:getComputedStyle(root).cursor};});
+   expect(dims.black).toBe('rgb(0, 0, 0)');expect(dims.ratio).toBeCloseTo(2.35,2);expect(dims.top).toBeGreaterThan(20);expect(dims.bottom).toBeLessThan(height);expect(dims.captionTop).toBeGreaterThan(dims.bottom);expect(dims.captionBottom).toBeLessThan(height);expect(dims.cursor).toBe('none');
+   if(scene===0)await page.screenshot({path:`test-results/cinema-${width}-${height}.png`});
+  }
+  if(scene===0){await page.keyboard.press('Space');await page.keyboard.press('ArrowRight');await page.mouse.click(700,400);await expect(canvas).toHaveAttribute('data-scene','0');}
+  if(scene===5)await page.screenshot({path:'test-results/cinema-final.png'});
+  const duration=await page.locator('#front-end').evaluate(e=>parseFloat(e.style.getPropertyValue('--scene-duration')));await page.clock.fastForward(duration+30);
  }
-await page.locator('[data-front="skip"]').click();await expect(page.locator('.title-copy')).toBeVisible();
+ await expect(page.locator('.title-copy')).toBeVisible();expect(errors).toEqual([]);
+});
+test('Escape skips a replay to the menu and skips a new-character prologue into town',async({page})=>{
+ await page.goto('/');await page.locator('[data-front="story"]').click();await page.keyboard.press('Escape');await expect(page.locator('.title-copy')).toBeVisible();
+ await page.locator('[data-front="create"]').click();await page.locator('#creation-form button').click();await expect(page.locator('.cinematic-screen')).toBeVisible();await page.keyboard.press('Escape');await expect(page.locator('#front-end')).toBeHidden();await expect(page.locator('#area-loading')).toBeHidden();expect((await state(page)).zone).toBe('town');expect((await state(page)).panel).toBeNull();
 });
 test('eight-frame walking preserves its heading at rest and common gear needs no identification',async({page})=>{
  const p=createPlayer();p.campaign=createCampaign();p.inventory=[{id:'plain',name:'Plain Falchion',slot:'weapon',rarity:'normal',damage:12,identified:false}];

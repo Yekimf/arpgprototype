@@ -1,11 +1,8 @@
-/* Full-screen chronicle pages; keep the original ink and paper colours intact. */
-.front-end.cinematic-screen{background:#bd925e}
-.cinematic-screen[data-scene] .sketch-page{object-fit:cover!important;object-position:50% 48%!important;filter:none;animation:none!important}
-.cinematic-screen .cinematic-top{color:#382619;text-shadow:0 1px 1px #edd3a2;font-size:10px}
-.cinematic-screen .cinematic-top button,.cinematic-screen .cinematic-controls button{color:#352115;background:#d8b581df;border:1px solid #73502e88;box-shadow:inset 0 0 9px #79542c22;text-shadow:0 1px #ebcf99;font:12px Georgia}
-.cinematic-screen .cinematic-subtitles{width:min(850px,88%);bottom:78px}
-.cinematic-screen .cinematic-subtitles p{color:#24170f;text-shadow:0 1px 2px #f2d6a4,0 0 7px #e8c28c,0 0 14px #e8c28c;font:16px/1.7 Georgia}
-.cinematic-screen .cinematic-progress{background:#62402177}.cinematic-screen .scene-dots i{border-color:#65452d}.cinematic-screen .scene-dots i.active{background:#65452d}
-/* The chronicle uses the same sculpted ironwork as the illustrated main menu. */
-.front-end.cinematic-screen .cinematic-top button,.front-end.cinematic-screen .cinematic-controls button{border:9px solid transparent;border-image:var(--menu-button) 48 115 fill / 9px 18px / 2px stretch;background:none;box-shadow:none;padding:7px 15px;color:#e0cba5;font:small-caps 12px Georgia;text-shadow:0 1px 2px #000;min-height:36px}
-.front-end.cinematic-screen .cinematic-top button:hover,.front-end.cinematic-screen .cinematic-controls button:hover{border-image-source:var(--menu-button-lit);color:#fff0c7}
+/* A parchment cinema frame, surrounded by clean black letterboxing. */
+#app #front-end.cinematic-screen{background:#000;cursor:none!important;overflow:hidden;outline:none}
+#app #front-end.cinematic-screen *{cursor:none!important}
+.front-end.cinematic-screen::before,.front-end.cinematic-screen::after{display:none!important}
+.cinematic-frame{position:absolute;left:50%;top:47.2%;width:min(100vw,183.3dvh);aspect-ratio:2.35;transform:translate(-50%,-50%);background:#000;border:0;box-shadow:none}
+.front-end.cinematic-screen .cinematic-frame .sketch-page{position:absolute!important;inset:0!important;left:0!important;top:0!important;translate:none!important;transform:none!important;width:100%!important;height:100%!important;object-fit:contain!important;object-position:center!important;mask-image:none!important;filter:none!important;animation:none!important;box-shadow:none!important}
+.front-end.cinematic-screen .cinematic-subtitles{position:absolute;top:calc(100% + clamp(18px,4.8dvh,52px));bottom:auto;left:50%;translate:-50% 0;width:min(840px,86vw);margin:0;padding:0;background:none;border:0;box-shadow:none;animation:none;text-align:center;pointer-events:none}
+.front-end.cinematic-screen .cinematic-subtitles p{margin:0;color:#ede9e0;font:italic clamp(13px,1.18vw,18px)/1.45 Georgia,'Times New Roman',serif;letter-spacing:0;text-shadow:none}
