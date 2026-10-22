@@ -40,8 +40,11 @@ export class GuardSprites{
    const swing=attack&&arm===0?(-.7+progress*1.3)*(back?-1:1):0;
    let posedHand=hand;
    c.save();
-   if(jab){const goal={x:hand.x+jab.x,y:hand.y+jab.y},pose=joint(shoulder,goal,Math.hypot(elbow.x-shoulder.x,elbow.y-shoulder.y),Math.hypot(hand.x-elbow.x,hand.y-elbow.y),arm===0?(back?-1:1):(back?1:-1));posedHand=pose.end;const index=arm===1&&look.shield==='none'?2+offset:body+offset;this.bone(c,index,face.arms[arm],shoulder,elbow,shoulder,pose.knee);this.bone(c,index,face.forearms[arm],elbow,hand,pose.knee,pose.end);c.translate(posedHand.x-hand.x,posedHand.y-hand.y);}
-   else{c.translate(shoulder.x,shoulder.y);c.rotate(swing);c.translate(-shoulder.x,-shoulder.y);const index=arm===1&&look.shield==='none'?2+offset:body+offset;this.clipTile(c,index,face.arms[arm]);this.clipTile(c,index,face.forearms[arm]);}
+   // The shield painting hides its arm. Reuse the exposed weapon-side arm
+   // for the offhand, reflected and fitted to the shoulder/elbow/wrist chain.
+   const sourceShoulder=point(face.arm),sourceElbow=point(face.elbow),sourceHand=point(face.hand),width=arm===1?-1:1;
+   if(jab){const goal={x:hand.x+jab.x,y:hand.y+jab.y},pose=joint(shoulder,goal,Math.hypot(elbow.x-shoulder.x,elbow.y-shoulder.y),Math.hypot(hand.x-elbow.x,hand.y-elbow.y),arm===0?(back?-1:1):(back?1:-1));posedHand=pose.end;this.bone(c,body+offset,face.arms[0],sourceShoulder,sourceElbow,shoulder,pose.knee,width);this.bone(c,body+offset,face.forearms[0],sourceElbow,sourceHand,pose.knee,pose.end,width);c.translate(posedHand.x-hand.x,posedHand.y-hand.y);}
+   else{c.translate(shoulder.x,shoulder.y);c.rotate(swing);c.translate(-shoulder.x,-shoulder.y);if(arm===1){this.bone(c,body+offset,face.arms[0],sourceShoulder,sourceElbow,shoulder,elbow,-1);this.bone(c,body+offset,face.forearms[0],sourceElbow,sourceHand,elbow,hand,-1);}else{this.clipTile(c,body+offset,face.arms[0]);this.clipTile(c,body+offset,face.forearms[0]);}}
    this.hand(c,look.gloves,back,arm,face,punch&&(arm===0||look.shield==='none'));
    if(arm===0&&look.weapon!=='none')this.weapon(c,look.weapon,back,face.hand);
    // Equipment follows its hand. The offhand glove is correctly behind a shield.
@@ -54,8 +57,8 @@ export class GuardSprites{
  }
  bone(c,index,mask,fromA,fromB,toA,toB,width=1){const source=Math.atan2(fromB.y-fromA.y,fromB.x-fromA.x),target=Math.atan2(toB.y-toA.y,toB.x-toA.x),length=Math.hypot(toB.x-toA.x,toB.y-toA.y)/Math.hypot(fromB.x-fromA.x,fromB.y-fromA.y);c.save();c.translate(toA.x,toA.y);c.rotate(target);c.scale(length,width);c.rotate(-source);c.translate(-fromA.x,-fromA.y);this.clipTile(c,index,mask);c.restore();}
  hand(c,gloves,back,arm,face,closed=false){
-  const h=arm===0?face.hand:face.offHand,x=h[0],y=h[1],source=gloves==='none'?(back?arm===0?[.84,.56]:[.25,.55]:arm===0?[.28,.56]:[.835,.56]):back?arm===0?[.80,.54]:[.29,.54]:arm===0?[.323,.51]:[.80,.55],sx=source[0],sy=source[1],mask=[[sx-.035,sy-.045],[sx+.03,sy-.04],[sx+.033,sy+.035],[sx+.015,sy+.055],[sx-.03,sy+.042]];
-  c.save();c.translate((x-sx)*S,(y-sy)*S);this.clipTile(c,(gloves==='steel'?0:gloves==='leather'?4:2)+(back?1:0),mask);c.restore();
+  const h=arm===0?face.hand:face.offHand,x=h[0],y=h[1],source=gloves==='none'?(back?[.84,.56]:[.28,.56]):back?[.80,.54]:[.323,.51],sx=source[0],sy=source[1],mask=[[sx-.035,sy-.045],[sx+.03,sy-.04],[sx+.033,sy+.035],[sx+.015,sy+.055],[sx-.03,sy+.042]];
+  c.save();c.translate(x*S,y*S);if(arm===1)c.scale(-1,1);c.translate(-sx*S,-sy*S);this.clipTile(c,(gloves==='steel'?0:gloves==='leather'?4:2)+(back?1:0),mask);c.restore();
   if(closed){c.save();c.translate(x*S,y*S);this.fist(c,gloves);c.restore();}
   if(gloves!=='none'){const px=x*S,py=y*S;c.save();c.strokeStyle=gloves==='steel'?'#b4ac9688':'#8b684888';c.lineWidth=1.3;c.beginPath();c.moveTo(px-9,py-10);c.lineTo(px+8,py-8);if(gloves==='steel')for(let i=0;i<3;i++){c.moveTo(px-5+i*4,py);c.lineTo(px-6+i*4,py+6);}c.stroke();c.restore();}
  }
