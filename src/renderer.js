@@ -1,19 +1,20 @@
+import {passivePosition} from './farmland.js';
 import {openingStage} from './opening-quests.js';
 import {WORLD_FOOT_OFFSETS} from './world-bounds.js';
 import {GuardSprites} from './guard-sprites.js';
 import {pyreStats} from './devotion.js';
 import {clamp, distance} from './game.js';
-import {WORLD_ART,ITEM_ART,CAMPAIGN_ART,MARCHGATE_ART,MARCHGATE_INNER_ART} from './assets.js';
+import {WORLD_ART,ITEM_ART,CAMPAIGN_ART,MARCHGATE_ART,MARCHGATE_INNER_ART,FARM_ART} from './assets.js';
 import {itemName} from './settlement.js';
 
 export class Renderer {
   constructor(canvas, minimap) {
     this.canvas=canvas; this.ctx=canvas.getContext('2d'); this.map=minimap; this.mc=minimap.getContext('2d');
     this.w=0;this.h=0;this.camera={x:0,y:0};this.time=0;this.zoom=1;
-    this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;
+    this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;this.farmArt=new Image();this.farmArt.src=FARM_ART;
     this.innerGateArt=new Image();this.innerGateArt.src=MARCHGATE_INNER_ART;this.gateArt=new Image();this.gateArt.src=MARCHGATE_ART;this.campaignArt=new Image();this.campaignArt.src=CAMPAIGN_ART;this.heroFrame={row:0,column:0,action:'idle'};
     this.artKeys=new WeakMap();this.artSerial=0;this.guard=new GuardSprites();this.groundCache=new Map();this.glowCache=new Map();this.wallCache=new Map();this.spriteCache=new Map();this.palisadeCache=new Map();this.tileCache=new Map();this.artLoaded=false;
-    for(const art of [this.worldArt,this.itemArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.art,this.guard.items,this.guard.original])art.addEventListener('load',()=>{this.artLoaded=[this.worldArt,this.itemArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.art,this.guard.items,this.guard.original].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
+    for(const art of [this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.art,this.guard.items,this.guard.original])art.addEventListener('load',()=>{this.artLoaded=[this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.art,this.guard.items,this.guard.original].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
     this.resize();window.addEventListener('resize',()=>this.resize());
   }
   configure(settings){this.settings=settings;this.canvas.style.filter=settings.brightness===100?'none':`brightness(${settings.brightness/100})`;this.resize();}
@@ -32,13 +33,13 @@ export class Renderer {
   }
   sprite(index,w,h,offsetY=0,tint=null){return this.cachedSprite(this.worldArt,index,w,h,offsetY,tint);}
   campaignSprite(index,w,h){return this.cachedSprite(this.campaignArt,index,w,h);}
-  terrain(index,variant=0,tone=1){
-    const key=`${index}-${variant}-${tone}`;if(this.tileCache.has(key))return this.tileCache.get(key);
+  terrain(index,variant=0,tone=1,farm=false){
+    const key=`${farm?'farm':'stone'}-${index}-${variant}-${tone}`;if(this.tileCache.has(key))return this.tileCache.get(key);
     if(!this.itemArt.complete||!this.itemArt.naturalWidth)return null;
-    const canvas=document.createElement('canvas');canvas.width=136;canvas.height=68;const c=canvas.getContext('2d'),s=this.itemArt.naturalWidth/4;
+    const art=farm?this.farmArt:this.itemArt,canvas=document.createElement('canvas');canvas.width=136;canvas.height=68;const c=canvas.getContext('2d'),s=art.naturalWidth/4;
     c.translate(68,0);c.transform(1,.5,-1,.5,0,0);
-    const crop=s*.62,ox=variant%2*(s-crop),oy=Math.floor(variant/2)*(s-crop);
-    c.drawImage(this.itemArt,index*s+ox,oy,crop,crop,0,0,68,68);
+    const crop=s*.62,margin=farm?s*.06:0,ox=margin+variant%2*(s-crop-margin*2),oy=margin+Math.floor(variant/2)*(s-crop-margin*2);
+    c.drawImage(art,index*s+ox,oy,crop,crop,0,0,68,68);
     c.globalCompositeOperation='source-atop';c.fillStyle=index===0?'#291a1422':index===2?'#10101622':'#22170d16';c.fillRect(0,0,68,68);
     if(tone>1){c.fillStyle=({2:'#23474c55',3:'#572b1e66',4:'#becedb38',5:'#382c4255'})[tone]||'transparent';c.fillRect(0,0,68,68);}
     this.tileCache.set(key,canvas);return canvas;
@@ -54,8 +55,8 @@ export class Renderer {
     const key=`${cx},${cy}`;let cached=this.groundCache.get(key);
     const x0=cx*8,y0=cy*8,base=this.iso(x0,y0),ox=306;
     if(!cached){
-      const canvas=document.createElement('canvas');canvas.width=612;canvas.height=352;
-      const c=canvas.getContext('2d'),old=this.ctx;if(d.outdoor){canvas.width=306;canvas.height=176;c.scale(.5,.5);}this.ctx=c;c.translate(ox,0);
+      const canvas=document.createElement('canvas');canvas.width=306;canvas.height=176;
+      const c=canvas.getContext('2d'),old=this.ctx;c.scale(.5,.5);this.ctx=c;c.translate(ox,0);
       for(let y=y0;y<Math.min(y0+8,d.size);y++)for(let x=x0;x<Math.min(x0+8,d.size);x++){
         const camp=d.townBounds&&x>=d.townBounds.x1&&x<=d.townBounds.x2&&y>=d.townBounds.y1&&y<=d.townBounds.y2;if(!d.tiles[y][x]&&!camp&&!d.water?.has(y*d.size+x)&&!d.outdoor&&!(d.town&&Math.hypot(x-32.5,y-32.5)<22))continue;
         const point=this.iso(x,y),v={x:point.x-base.x,y:point.y-base.y};
@@ -63,37 +64,38 @@ export class Renderer {
       const color=n<15?'#293d30':n<45?'#344238':n<70?'#3a483d':'#414c40';
       const outside=d.outdoor&&!d.tiles[y][x];
       const road=d.roads?.has(y*d.size+x)||d.town&&(Math.abs(x-32.5)<1.7||Math.abs(y-32.5)<1.7);
-      const tile=this.terrain(d.town||d.outdoor?(road?1:0):d.courts?.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)?1:2,n%4,d.act||1);
-      if(tile){c.drawImage(tile,v.x-34,v.y,68,34);this.line([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17],[v.x,v.y]],'#0b07053a',.5);}
+      const farmIndex=d.barnFloors?.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)?3:road?2:d.cropPlots?.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)?0:1;
+      const tile=this.terrain(d.farm?farmIndex:d.town||d.outdoor?(road?1:0):d.courts?.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)?1:2,n%4,d.act||1,!!d.farm);
+      if(tile){c.drawImage(tile,v.x-34,v.y,68,34);if(!d.farm)this.line([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17],[v.x,v.y]],'#0b07053a',.5);}
       else this.poly([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17]],color,'#121f18',1.5);
       if(outside)this.poly([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17]],'#17180f99');
-      this.line([[v.x,v.y+2],[v.x+31,v.y+17]],'#66705a44');
+      if(!d.farm){this.line([[v.x,v.y+2],[v.x+31,v.y+17]],'#66705a44');
       if(!d.town&&n%4===0)this.line([[v.x-24,v.y+16],[v.x-5,v.y+23],[v.x+1,v.y+20],[v.x+10,v.y+23]],'#14131166');
       if(n%7===0){this.ellipse(v.x+6,v.y+16,15,6,'#33483266');this.ellipse(v.x+12,v.y+18,7,3,'#60764435');}
       if(n%19===0){this.poly([[v.x-6,v.y+8],[v.x+6,v.y+13],[v.x+2,v.y+17],[v.x-9,v.y+12]],'#69736144');}
       if(n%13===0)this.line([[v.x+8,v.y+9],[v.x+3,v.y+13],[v.x+11,v.y+18],[v.x+7,v.y+22]],'#16271c');
+      }
       // Exposed edges reveal the depth of the ancient foundations.
       if(!d.town&&!d.outdoor&&!d.tiles[y+1]?.[x]){this.poly([[v.x-34,v.y+17],[v.x,v.y+34],[v.x,v.y+62],[v.x-34,v.y+45]],'#211e19','#100d0b');this.line([[v.x-33,v.y+31],[v.x-1,v.y+47]],'#393329');}
       if(!d.town&&!d.outdoor&&!d.tiles[y]?.[x+1]){this.poly([[v.x+34,v.y+17],[v.x,v.y+34],[v.x,v.y+62],[v.x+34,v.y+45]],'#2b261f','#100d0b');this.line([[v.x+33,v.y+31],[v.x+1,v.y+47]],'#42392c');}
 
       }
-      this.ctx=old;const fog=d.outdoor?null:document.createElement('canvas');if(fog){fog.width=612;fog.height=352;}
-      cached={canvas,fog,x:base.x-ox,y:base.y,count:-1};this.groundCache.set(key,cached);
+      this.ctx=old;
+      cached={canvas,x:base.x-ox,y:base.y};this.groundCache.set(key,cached);
       if(this.groundCache.size>(this.chunkBudget||48))this.groundCache.delete(this.groundCache.keys().next().value);
     }
-    let count=0;for(let y=y0;y<Math.min(y0+8,d.size);y++)for(let x=x0;x<Math.min(x0+8,d.size);x++)if(d.seen.has(y*d.size+x))count++;
-    if(cached.fog&&count!==cached.count){const c=cached.fog.getContext('2d');c.clearRect(0,0,612,352);c.fillStyle='#000d';
-      for(let y=y0;y<Math.min(y0+8,d.size);y++)for(let x=x0;x<Math.min(x0+8,d.size);x++)if(!d.seen.has(y*d.size+x)&&(d.tiles[y][x]||d.water?.has(y*d.size+x))){const point=this.iso(x,y),px=point.x-base.x+ox,py=point.y-base.y;c.beginPath();c.moveTo(px,py);c.lineTo(px+34,py+17);c.lineTo(px,py+34);c.lineTo(px-34,py+17);c.closePath();c.fill();}cached.count=count;}
     return cached;
   }
   async prepareDungeon(d,progress){
     const token={};this.prepareToken=token;
-    await Promise.all([this.worldArt,this.itemArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.art,this.guard.items,this.guard.original].map(art=>art.decode()));
+    await Promise.all([this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.art,this.guard.items,this.guard.original].map(art=>art.decode()));
     if(this.prepareToken!==token)return;
-    // Build all outdoor terrain in half-resolution chunks (~30 MiB for 96²).
+    // Prepare every terrain chunk, indoors and outdoors, at half resolution.
     // A new region is never revealed or generated by player movement.
     this.cachedDungeon=null;this.drawGround(d,0,0);
-    if(d.outdoor){const count=Math.ceil(d.size/8);this.chunkBudget=count*count;for(let cy=0;cy<count;cy++){if(this.prepareToken!==token)return;for(let cx=0;cx<count;cx++)this.groundChunk(d,cx,cy);progress((cy+1)/count);await new Promise(requestAnimationFrame);}}
+    if(!d.outdoor&&!d.town&&!d.critters)d.critters=d.rooms.slice(1,5).map((r,i)=>({x:r.x+1.5,y:r.y+1.5,species:'rat',phase:i*1.7}));
+    {const count=Math.ceil(d.size/8);this.chunkBudget=count*count;for(let cy=0;cy<count;cy++){if(this.prepareToken!==token)return;for(let cx=0;cx<count;cx++)this.groundChunk(d,cx,cy);progress((cy+1)/count);await new Promise(requestAnimationFrame);}}
+    if(d.farm){const previous=this.ctx;this.ctx=document.createElement('canvas').getContext('2d');try{for(const p of d.props)if(p.type==='farm-prop')this.cachedSprite(this.farmArt,p.farmSprite,p.width,p.height);this.cachedSprite(this.farmArt,6,250,190);}finally{this.ctx=previous;}}
     this.artLoaded=true;this.preparedDungeon=d;this.groundView=null;progress(1);
   }
   drawGround(d,viewW,viewH){
@@ -101,13 +103,13 @@ export class Renderer {
       if(!d.town&&!d.outdoor)for(let y=1;y<d.size-1;y++)for(let x=1;x<d.size-1;x++)if(!d.tiles[y][x]&&(d.tiles[y+1]?.[x]||d.tiles[y]?.[x+1]))this.staticObjects.push({x:x+.5,y:y+.5,type:'wall',variant:(x*7+y*11)%5});
     }
     const width=Math.ceil(viewW*2+192),height=Math.ceil(viewH*2+192),oldView=this.groundView;
-    const refresh=!oldView||oldView.d!==d||oldView.canvas.width!==width||oldView.canvas.height!==height||Math.abs(this.camera.x-oldView.cx)>80||Math.abs(this.camera.y-oldView.cy)>80||!d.outdoor&&d.seen.size!==oldView.seen&&this.time-oldView.time>.2;
+    const refresh=!oldView||oldView.d!==d||oldView.canvas.width!==width||oldView.canvas.height!==height||Math.abs(this.camera.x-oldView.cx)>80||Math.abs(this.camera.y-oldView.cy)>80;
     if(refresh){
       const canvas=oldView?.canvas||document.createElement('canvas');canvas.width=width;canvas.height=height;
       const x=Math.floor(this.camera.x-width/2),y=Math.floor(this.camera.y-height/2),ctx=canvas.getContext('2d'),old=this.ctx;ctx.translate(-x,-y);this.ctx=ctx;
       if(d.outdoor)this.forestFloor(ctx,d,x,y,width,height);
-      this.chunkBudget=d.outdoor?Math.ceil(d.size/8)**2:Math.max(48,Math.ceil(4*(viewW+396)*(viewH+246)/73984)+12);
-      for(let cy=0;cy<Math.ceil(d.size/8);cy++)for(let cx=0;cx<Math.ceil(d.size/8);cx++){const center=this.iso(cx*8+4,cy*8+4);if(Math.abs(center.x-this.camera.x)>viewW+396||Math.abs(center.y-this.camera.y)>viewH+246)continue;const cached=this.groundChunk(d,cx,cy);ctx.drawImage(cached.canvas,cached.x,cached.y,612,352);if(cached.fog)ctx.drawImage(cached.fog,cached.x,cached.y);}
+      this.chunkBudget=Math.ceil(d.size/8)**2;
+      for(let cy=0;cy<Math.ceil(d.size/8);cy++)for(let cx=0;cx<Math.ceil(d.size/8);cx++){const center=this.iso(cx*8+4,cy*8+4);if(Math.abs(center.x-this.camera.x)>viewW+396||Math.abs(center.y-this.camera.y)>viewH+246)continue;const cached=this.groundChunk(d,cx,cy);ctx.drawImage(cached.canvas,cached.x,cached.y,612,352);}
       this.ctx=old;this.groundView={canvas,x,y,cx:this.camera.x,cy:this.camera.y,seen:d.seen.size,time:this.time,d};
     }
     const view=this.groundView;this.ctx.drawImage(view.canvas,view.x,view.y);
@@ -126,16 +128,17 @@ export class Renderer {
     c.globalAlpha=1;
     // Back walls, crenellated masonry, and scattered objects share painter ordering.
     const visible=o=>{const v=this.iso(o.x,o.y);if(o.type.startsWith('kingdom-gate'))return Math.abs(v.x-this.camera.x)<viewW+o.width/2&&v.y-this.camera.y<viewH+o.height&&v.y-this.camera.y>-viewH;return Math.abs(v.x-this.camera.x)<viewW&&Math.abs(v.y-this.camera.y)<viewH;};
-    const objects=this.staticObjects.filter(o=>visible(o)&&(d.outdoor||d.seen.has(Math.floor(o.y)*d.size+Math.floor(o.x))));
+    const objects=this.staticObjects.filter(o=>visible(o));
+    for(const animal of d.critters||[])objects.push({...animal,...passivePosition(animal,d,this.time),type:'critter'});
     for(const loot of game.loot)objects.push({...loot,type:'loot',loot});
-    if(d.returnGate)objects.push({...d.returnGate,type:d.fortress?'kingdom-gate-inside':'entrance',width:1120,height:747});
+    if(d.returnGate)objects.push({...d.returnGate,type:d.farm?'farm-entrance':d.fortress?'kingdom-gate-inside':'entrance',width:d.farm?250:1120,height:d.farm?190:747});
     if(d.waypoint)objects.push({...d.waypoint,type:'waypoint'});if(d.townWaypoint)objects.push({...d.townWaypoint,type:'waypoint'});
 
     if(d.provisions&&!game.player.quests.provisionsRecovered)objects.push({...d.provisions,type:'field'});
     if(d.field)objects.push({...d.field,type:'field'});
     if(d.supplies)objects.push({...d.supplies,type:'supplies'});
     if(d.bossDead)objects.push({...d.portal,type:'portal'});
-    for(const enemy of d.enemies)if(!enemy.dead&&d.seen.has(Math.floor(enemy.y)*d.size+Math.floor(enemy.x)))objects.push({...enemy,type:'enemy',enemy});
+    for(const enemy of d.enemies)if(!enemy.dead&&(d.outdoor||distance(enemy,p)<8.5)&&d.seen.has(Math.floor(enemy.y)*d.size+Math.floor(enemy.x)))objects.push({...enemy,type:'enemy',enemy});
     objects.push({...p,type:'hero'});
     objects.sort((a,b)=>(a.x+a.y)-(b.x+b.y));
     for(const o of objects){const v=this.iso(o.x,o.y);if(!o.type.startsWith('kingdom-gate')&&(Math.abs(v.x-this.camera.x)>viewW||Math.abs(v.y-this.camera.y)>viewH))continue;
@@ -145,6 +148,9 @@ export class Renderer {
       else if(o.type==='enemy')this.enemy(o.enemy,game);
       else if(o.type==='waypoint')this.waypoint(o,game);
       else if(o.type==='livestock'){this.line([[-9,2],[-9,13]],'#28251d',3);this.line([[8,2],[8,13]],'#28251d',3);this.ellipse(0,-2,16,10,'#8f8872');for(let i=0;i<6;i++)this.ellipse(-10+i*4,-5+(i%2)*3,5,5,i%2?'#a49b81':'#b0a58a');this.ellipse(17,-2,6,6,'#39372d');this.ellipse(19,-3,1,1,'#c7ba99');}
+      else if(o.type==='farm-prop'){this.cachedSprite(this.farmArt,o.farmSprite,o.width,o.height);}
+      else if(o.type==='farm-entrance'){this.cachedSprite(this.farmArt,6,o.width||230,o.height||175);this.worldLabel(d.kind==='wilderness'?'THE TITHE GRAIN FIELDS':'WIDOW’S FIELDS',d.kind==='wilderness'?'F · ENTER THE FARM':'F · RETURN TO THE FIELDS',-(o.height||175)-8);}
+      else if(o.type==='critter'){this.critter(o);}
       else if(o.type==='field'){this.sprite(13,65,64,9);this.worldLabel(o.label,'F · EXAMINE',-65);}
       else if(o.type==='supplies')this.supplies(o,game);
       else if(o.type==='wall')this.wall(o);
@@ -177,10 +183,20 @@ export class Renderer {
     c.restore();
     // Cold, low ground fog and drifting ash.
     for(let i=0;i<26;i++){const x=((i*193.13+Math.sin(this.time*.13+i)*60)%this.w+this.w)%this.w,y=((i*137.77-this.time*(3+i%3))%this.h+this.h)%this.h;this.ellipse(x,y,i%4===0?1.4:.7,i%4===0?1.4:.7,i%4===0?'#b2bf8b4a':'#8aa89325');}
-    const hero=this.screen(p.x,p.y);this.light(hero.x,hero.y-10,170*this.zoom,d.town?'#e4a66312':'#cab98b0c');
+    const hero=this.screen(p.x,p.y);this.drawDarkness(game,hero);this.light(hero.x,hero.y-10,170*this.zoom,d.town?'#e4a66312':'#cab98b0c');
     if(game.hurtFlash>0){c.fillStyle=`rgba(130,22,15,${game.hurtFlash*.18})`;c.fillRect(0,0,this.w,this.h);}
     if(p.hp/game.stats.maxHp<.28){const g=c.createRadialGradient(this.w/2,this.h/2,this.h*.3,this.w/2,this.h/2,this.w*.65);g.addColorStop(0,'transparent');g.addColorStop(1,'#741b2355');c.fillStyle=g;c.fillRect(0,0,this.w,this.h);}
     this.drawMap(game);
+  }
+  drawDarkness(game,hero){
+    const d=game.dungeon;if(d.town||game.zone==='town')return;const c=this.ctx,indoor=!d.outdoor,radius=(indoor?270:460)*this.zoom;
+    c.save();c.translate(hero.x,hero.y-25*this.zoom);c.scale(1,.67);const shade=c.createRadialGradient(0,0,radius*.15,0,0,radius);shade.addColorStop(0,indoor?'rgba(0,0,0,.04)':'rgba(8,7,4,0)');shade.addColorStop(.5,indoor?'rgba(0,0,0,.28)':'rgba(8,7,4,.04)');shade.addColorStop(.82,indoor?'rgba(0,0,0,.83)':'rgba(8,7,4,.12)');shade.addColorStop(1,indoor?'rgba(0,0,0,.985)':'rgba(8,7,4,.22)');c.fillStyle=shade;c.fillRect(-this.w*2,-this.h*3,this.w*4,this.h*6);c.restore();
+  }
+  critter(o){
+    const c=this.ctx,step=Math.sin(this.time*6+o.phase);this.ellipse(0,2,7,3,'#07070466');
+    if(o.species==='crow'){this.ellipse(0,-2,5,3,'#25241f');this.ellipse(4,-4,2,2,'#353329');this.line([[-2,-3],[-7,-6-step*2]],'#272720',2);this.line([[1,-2],[-4,-4+step]],'#171915',2);this.line([[6,-4],[8,-3]],'#928062',1);}
+    else if(o.species==='hen'){this.ellipse(0,-3,6,5,'#80735a');this.ellipse(5,-7,3,3,'#9f8e69');this.line([[-2,0],[-2+step,5]],'#57432b',1);this.line([[3,0],[3-step,5]],'#57432b',1);this.line([[7,-7],[10,-6]],'#ae9061',1);}
+    else{this.ellipse(0,-1,5,3,'#584d3a');this.ellipse(5,-1,2,2,'#706047');this.line([[-4,0],[-10,2],[-13,1]],'#6e5c44',1);}
   }
   roadGate(o){
     if(o.stone)return;const c=this.ctx;for(let i=0;i<o.span;i++){c.save();c.translate(i*34,i*17);this.frontier({axis:'x'});this.line([[8,-33],[8,0]],'#7c7560',2);this.line([[23,-26],[23,9]],'#746c57',2);c.restore();}

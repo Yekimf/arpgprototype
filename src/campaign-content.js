@@ -40,4 +40,4 @@ export const ENEMY_ROSTERS=[
  [{name:'Rimebound Penitent',type:'skeleton',role:'guard',tint:'#909a9c'},{name:'Grave Stalker',type:'crawler',role:'lunge',tint:'#7e8a93'},{name:'Hollow Cantor',type:'wraith',role:'hexer',tint:'#a6a5b5'}],
  [{name:'Blackglass Praetorian',type:'skeleton',role:'guard',tint:'#8f7967'},{name:'Crown’s Bloodhound',type:'crawler',role:'venom',tint:'#85564c'},{name:'Royal Executioner',type:'wraith',role:'archer',tint:'#aa8b6d'}],
 ];
-export function dressEnemy(enemy,act,rng=Math.random){const roster=ENEMY_ROSTERS[act-1],profile=roster[Math.floor(rng()*roster.length)];Object.assign(enemy,profile);enemy.faction=act;enemy.speed=profile.role==='brute'?1:profile.role==='lunge'?2.45:profile.role==='archer'?1.4:1.55;enemy.damage*=profile.role==='brute'?1.35:1;return enemy;}
+export function dressEnemy(enemy,act,rng=Math.random){const roster=ENEMY_ROSTERS[act-1],profile=roster[Math.floor(rng()*roster.length)];Object.assign(enemy,profile);enemy.faction=act;enemy.speed=profile.role==='brute'?1.55:profile.role==='lunge'?2.65:profile.role==='archer'?1.8:2.05;enemy.damage*=profile.role==='brute'?1.35:1;return enemy;}

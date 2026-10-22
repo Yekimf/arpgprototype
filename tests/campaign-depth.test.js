@@ -9,7 +9,7 @@ test('twenty chapters have reachable field tasks, strongholds and distinct act r
  for(let act=1;act<=5;act++)for(let chapter=0;chapter<4;chapter++)for(const seed of [17,809]){
   const wild=generateWilderness(seed,act,undefined,chapter),keep=generateStronghold(seed,act,chapter),ch=chapterFor(act,chapter);
   for(const target of [wild.field,wild.portal,wild.waypoint])assert.ok(findPath(wild,wild.start,target).length,`${act}/${chapter} ${JSON.stringify(target)}`);
-  assert.ok(findPath(keep,keep.start,keep.portal).length);assert.ok(keep.rooms.length>=15);assert.equal(keep.enemies.find(e=>e.type==='warden').bossId,captainId(act,chapter));
+  assert.ok(findPath(keep,keep.start,keep.portal).length);assert.ok(keep.outdoor?keep.cropPlots.length>=6:keep.rooms.length>=15);assert.equal(keep.enemies.find(e=>e.type==='warden').bossId,captainId(act,chapter));
   assert.equal(ch.number,chapter+1);assert.ok(ch.account.length>140);assert.ok(ch.aftermath.length>100);
   for(const enemy of [...wild.enemies,...keep.enemies].filter(e=>e.type!=='warden')){assert.equal(enemy.faction,act);assert.ok(enemy.herdId||ENEMY_ROSTERS[act-1].some(e=>e.name===enemy.name));assert.ok(Number.isFinite(enemy.hp));}
  }

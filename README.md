@@ -10,6 +10,14 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.16.0
+
+- Enemies pursue and strike more reliably, ranged enemies lead moving targets, and bosses use faster patterns and a more aggressive second phase. Reduced automatic player damage and boss health to keep encounters active instead of relying on large health pools. Armour still helps, with less overwhelming damage reduction.
+- Each level grants **one mastery point and five attribute points**. Previously earned and invested points remain intact.
+- All terrain is prepared behind the loading screen, including indoor dungeons. A limited light radius makes dungeon surroundings dark; the automap still reveals through exploration.
+- Widow’s Fields has new farm ground, wheat, orchard trees, hay, wagons and scarecrows. The Tithe Granary is a procedural open farm compound with a timber entrance, barns and grain stores, with its own harvest-themed boss attacks. Crows, hens and dungeon rats add quiet movement.
+- Continuing from the menu always places the loyalist in Emberfall. Press **T** in town to open the departure menu and return to the expedition.
+
 ## Version 0.15.0
 
 - Marchgate now stands across a longer forest road in a 128×128 opening wilderness. Town exits lead directly into nearby encounters. Save Elin’s livestock from six risen soldiers, report to Maelin, retrieve the stolen winter provisions and return them before following the patrol orders to the gate. Quest progress and rewards persist.

@@ -14,6 +14,17 @@ export async function followPath(page,dungeon,target=dungeon.portal){
  return page.evaluate(async path=>{
   const press=(key,down)=>document.body.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',{key,bubbles:true}));let active=[];
   const set=next=>{for(const k of active)if(!next.includes(k))press(k,false);for(const k of next)if(!active.includes(k))press(k,true);active=next;};
-  let i=0,last=0;const began=performance.now();while(i<path.length&&performance.now()-began<45000){await new Promise(requestAnimationFrame);const s=window.__reliquary.snapshot(),t=path[i],dx=t.x-s.position.x,dy=t.y-s.position.y;if(Math.hypot(dx,dy)<.19){i++;continue;}if(s.paused){set([]);break;}if(Math.abs(dx)>Math.abs(dy))set(dx>0?['ArrowDown','ArrowRight']:['ArrowUp','ArrowLeft']);else set(dy>0?['ArrowDown','ArrowLeft']:['ArrowUp','ArrowRight']);if(performance.now()-last>900){press('e',true);press('e',false);last=performance.now();}}set([]);return{i,length:path.length};
+  let i=0,last=0;const began=performance.now();while(i<path.length&&performance.now()-began<45000){await new Promise(requestAnimationFrame);const s=window.__reliquary.snapshot(),t=path[i],dx=t.x-s.position.x,dy=t.y-s.position.y;if(Math.hypot(dx,dy)<.28){i++;continue;}if(s.paused){set([]);break;}if(Math.abs(dx)>Math.abs(dy))set(dx>0?['ArrowDown','ArrowRight']:['ArrowUp','ArrowLeft']);else set(dy>0?['ArrowDown','ArrowLeft']:['ArrowUp','ArrowRight']);if(performance.now()-last>900){press('e',true);press('e',false);last=performance.now();}}set([]);return{i,length:path.length};
  },path);
+}
+
+// Combat fixtures leave town through the same departure UI used by players.
+export async function continueFixture(page){
+ await page.locator('[data-front="continue"]').click();
+ await expect(page.locator('#area-loading')).toBeHidden();
+ if(page.fixtureZone&&page.fixtureZone!=='town'){
+  await page.keyboard.press('t');
+  await page.locator('[data-town-action="depart"]').click();
+  await expect(page.locator('#area-loading')).toBeHidden();
+ }
 }

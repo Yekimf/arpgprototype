@@ -1,3 +1,4 @@
+import {dressFarmland,generateGranary} from './farmland.js';
 import {openingObjective,openingComplete} from './opening-quests.js';
 import {generateMarchgate} from './marchgate.js';
 import {frontierEdges} from './wilderness-boundary.js';
@@ -90,13 +91,14 @@ export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
   for(let i=0;i<6;i++){const herdId='herd-'+i;if(player.quests.herdKills?.includes(herdId))continue;const e=makeEnemy(id++,69.5+i%3*1.8,47.5+Math.floor(i/3)*7,'skeleton',1);Object.assign(e,{herdId,faction:1,tint:'#96947b',name:i%2?'Zombified Levy':'Bonebound Soldier',hp:26,maxHp:26,damage:5,speed:1.1});enemies.push(e);}
  }
  if(camp){d.npcs=generateTown(player).npcs.map(n=>({...n,x:n.x+16,y:n.y+18}));d.townWaypoint={x:49,y:52};for(let y=townBounds.y1-2;y<=townBounds.y2+2;y++)for(let x=townBounds.x1-2;x<=townBounds.x2+2;x++)d.seen.add(y*size+x);}
+ if(act===1&&chapter===1)dressFarmland(d);
  return d;
 }
 export function generateStronghold(seed,act=1,chapter=0){
- const level=actFor(act).level+chapter*2,ch=chapterFor(act,chapter),d=act===1&&chapter===0?generateMarchgate(seed,level):generateDungeon(seed,level,{roomCount:22,size:80}),boss=d.enemies.find(e=>e.type==='warden'),rng=random(seed+41);
+ const level=actFor(act).level+chapter*2,ch=chapterFor(act,chapter),d=act===1&&chapter===1?generateGranary(seed,level):act===1&&chapter===0?generateMarchgate(seed,level):generateDungeon(seed,level,{roomCount:22,size:80}),boss=d.enemies.find(e=>e.type==='warden'),rng=random(seed+41);
  for(const enemy of d.enemies)if(enemy!==boss)dressEnemy(enemy,act,rng);
  d.act=act;d.chapter=chapter;d.kind='stronghold';d.returnGate=d.entryGate||{x:d.start.x,y:d.start.y-1};d.waypoint={x:d.start.x+2,y:d.start.y+1};
- Object.assign(boss,{name:ch.captain||actFor(act).knight,bossId:captainId(act,chapter),phaseType:['thorns','flood','fire','frost','oath'][act-1],tint:actFor(act).color,chapter});
+ Object.assign(boss,{name:ch.captain||actFor(act).knight,bossId:captainId(act,chapter),phaseType:act===1&&chapter===1?'harvest':['thorns','flood','fire','frost','oath'][act-1],tint:actFor(act).color,chapter});
  d.supplies={x:d.start.x-2,y:d.start.y+2};return d;
 }
 

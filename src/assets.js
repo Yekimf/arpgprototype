@@ -52,3 +52,6 @@ export const QUEST_ART=localAsset(questSeals);
 
 import marchgateInner from './art/runtime/marchgate-inner.webp?inline';
 export const MARCHGATE_INNER_ART=localAsset(marchgateInner);
+
+import farm from './art/runtime/farm-atlas.webp?inline';
+export const FARM_ART=localAsset(farm);

@@ -5,8 +5,8 @@ import {ACTS,createCampaign,generateWilderness,generateStronghold,attuneWaypoint
 
 test('new loyalists start with only a basic attack, and leveling grants spendable progression',()=>{
  const p=createPlayer({name:'Galen',origin:'templar'});assert.deepEqual(p.skills,{});assert.deepEqual(p.slots,[null,null,null,null]);assert.equal(p.mouseSkill,'basic');assert.equal(p.points,0);assert.equal(p.attributePoints,0);assert.equal(canLearn(p,'bolt'),false);
- const needed=xpNeeded(1);assert.equal(grantExperience(p,needed-1),0);assert.equal(p.level,1);assert.equal(grantExperience(p,1),1);assert.equal(p.level,2);assert.equal(p.points,2);assert.equal(p.attributePoints,5);
- assert.ok(learnSkill(p,'bolt'));assert.equal(p.slots[0],'bolt');assert.equal(p.mouseSkill,'bolt');assert.equal(p.points,1);
+ const needed=xpNeeded(1);assert.equal(grantExperience(p,needed-1),0);assert.equal(p.level,1);assert.equal(grantExperience(p,1),1);assert.equal(p.level,2);assert.equal(p.points,1);assert.equal(p.attributePoints,5);
+ assert.ok(learnSkill(p,'bolt'));assert.equal(p.slots[0],'bolt');assert.equal(p.mouseSkill,'bolt');assert.equal(p.points,0);
  const before=playerStats(p);assert.ok(spendAttribute(p,'vitality'));assert.equal(playerStats(p).maxHp,before.maxHp+6);assert.equal(p.attributePoints,4);assert.equal(spendAttribute(p,'gold'),false);
  const old=p.xp;assert.equal(grantExperience(p,-100),0);assert.equal(p.xp,old);
 });

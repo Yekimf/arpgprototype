@@ -1,6 +1,6 @@
 {
   "name": "ashen-reliquary",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "test": "node --test tests/*.test.js",
     "test:e2e": "playwright test",
     "test:standalone": "npm run build && node --test tests/standalone.test.mjs",
-    "art:pack": "node scripts/pack-art.mjs && node scripts/pack-guard.mjs && node scripts/pack-lines.mjs && node scripts/pack-world-bounds.mjs && node scripts/pack-armor.mjs && node scripts/pack-menu.mjs && node scripts/pack-quests.mjs",
+    "art:pack": "node scripts/pack-art.mjs && node scripts/pack-farm.mjs && node scripts/pack-guard.mjs && node scripts/pack-lines.mjs && node scripts/pack-world-bounds.mjs && node scripts/pack-armor.mjs && node scripts/pack-menu.mjs && node scripts/pack-quests.mjs",
     "profile": "node scripts/profile-browser.mjs",
     "art:guard": "node scripts/pack-guard.mjs"
   },
