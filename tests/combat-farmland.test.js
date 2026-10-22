@@ -10,7 +10,7 @@ test('early enemies take several sword hits and threaten an unequipped loyalist'
  assert.ok(enemy.hp/s.damage>=3&&enemy.hp/s.damage<=5);
  assert.ok(mitigateDamage(enemy.damage,s)>=s.maxHp*.08);
  assert.ok(mitigateDamage(boss.damage*1.6,s)>=s.maxHp*.25);
- assert.ok(boss.hp/s.damage<35,'boss pressure comes from attacks rather than a huge health pool');
+ assert.ok(boss.hp/s.damage>=40&&boss.hp/s.damage<=48);assert.ok(boss.speed>=2.4);assert.ok(BOSS_MELEE.recovery<1.3);
  assert.ok(MELEE.hitReach>MELEE.reach);assert.ok(BOSS_MELEE.windup>MELEE.windup);
  assert.ok(bossCadence({...boss,hp:boss.hp*.4})<bossCadence(boss));
  const aim=hostileAim({x:0,y:0},{x:5,y:0},{x:0,y:3});assert.ok(aim.dy>0);assert.ok(Math.abs(Math.hypot(aim.dx,aim.dy)-1)<.00001);

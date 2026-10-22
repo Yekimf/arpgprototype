@@ -1,3 +1,4 @@
+import {makeInsightScroll,migrateScrolls,isInsightScroll} from './scrolls.js';
 import {appraisal,transferGold} from './economy.js';
 import {ensureFlask,refillFlask} from './flasks.js';
 import {generateItem, random, requiresIdentification} from './game.js';
@@ -55,7 +56,7 @@ export function migratePlayer(player){
   if(legacy&&player.slots.includes('lance'))player.skills.lance??=1;
   player.mouseSkill??=legacy?'bolt':'basic';
   player.attributes??={might:0,vitality:0,will:0,dexterity:0};player.attributePoints??=Math.max(0,(player.level-1)*5);player.name??='The Loyalist';
-  player.bankGold=Math.max(0,Math.floor(player.bankGold||0));player.goldEarned??=0;player.stash??=[];player.shards??=0;player.identifyScrolls??=0;player.buyback??=[];
+  player.bankGold=Math.max(0,Math.floor(player.bankGold||0));player.goldEarned??=0;player.stash??=[];player.shards??=0;migrateScrolls(player);player.buyback??=[];
   player.quests={guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false,...player.quests};
   for(const slot of Object.keys(EQUIPMENT))player.equipment[slot]??=null;
   for(const item of [...player.inventory,...player.stash,...Object.values(player.equipment).filter(Boolean)]){
@@ -68,6 +69,7 @@ function result(ok,message,extra={}){return {ok,message,...extra};}
 export function equipItem(player,id,targetSlot=null){
   const index=player.inventory.findIndex(i=>i.id===id),item=player.inventory[index];
   if(!item)return result(false,'Choose an item first.');
+  if(!Object.hasOwn(EQUIPMENT,item.slot))return result(false,item.slot==='scroll'?'Right click a scroll, then choose an unidentified item.':'This quest item cannot be equipped.');
   if(requiresIdentification(item))return result(false,'Identify this relic before equipping it.');
   if(item.requiredLevel>player.level)return result(false,`Requires level ${item.requiredLevel}.`);
   const slot=targetSlot||((item.slot==='ring'&&player.equipment.ring&&!player.equipment.ring2)?'ring2':item.slot);
@@ -90,11 +92,13 @@ export function moveItem(player,id,toStash){
   if(!addToContainer(target,item,toStash?STASH:BAG))return result(false,toStash?'Your stash is full.':'Your pack is full.');
   source.splice(index,1);return result(true,toStash?'Item stored safely.':'Item returned to your pack.');
 }
-export function identifyItem(player,id,scholar=false){
+export function identifyItem(player,id,scholar=false,scrollId=null){
+  migrateScrolls(player);arrange(player.inventory);
   const item=player.inventory.find(i=>i.id===id);if(!item||!requiresIdentification(item))return result(false,'Choose an unidentified item.');
   if(scholar&&!player.quests.scholarRescued)return result(false,'Edrin is still trapped beneath the monastery.');
-  if(!scholar&&!player.identifyScrolls)return result(false,'You need a scroll of insight. Orrin sells them.');
-  if(!scholar)player.identifyScrolls--;item.identified=true;return result(true,`${item.name} revealed.`);
+  const scroll=player.inventory.find(i=>isInsightScroll(i)&&(!scrollId||i.id===scrollId));
+  if(!scholar&&!scroll)return result(false,'You need a scroll of insight in your pack. Orrin sells them.');
+  if(!scholar)player.inventory.splice(player.inventory.indexOf(scroll),1);item.identified=true;return result(true,`${item.name} revealed.`);
 }
 export function identifyAll(player){
   if(!player.quests.scholarRescued)return result(false,'Rescue the archivist to unlock identification.');
@@ -116,7 +120,7 @@ export function buyItem(player,index){
   player.gold-=price;player.shopStock.splice(index,1);delete item.price;return result(true,`${item.name} purchased.`);
 }
 export function sellItem(player,id){
-  const index=player.inventory.findIndex(i=>i.id===id),item=player.inventory[index];if(!item)return result(false,'Choose an item from your pack.');
+  const index=player.inventory.findIndex(i=>i.id===id),item=player.inventory[index];if(!item)return result(false,'Choose an item from your pack.');if(item.quest)return result(false,'Quest items cannot be sold or salvaged.');
   if(item.favorite)return result(false,'Unmark this keepsake before selling it.');
   const price=itemValue(item);player.gold+=price;player.inventory.splice(index,1);player.buyback.unshift({...item,price});player.buyback=player.buyback.slice(0,8);
   return result(true,`Sold for ${price} gold.`);
@@ -130,11 +134,12 @@ export function buyBack(player,index){
 export function buySupply(player,type){
   const cost=type==='flask'?8:12;if(player.gold<cost)return result(false,`You need ${cost} gold.`);
   if(type==='flask'&&ensureFlask(player).charges>=100)return result(false,'Your flask is already full.');
-  player.gold-=cost;if(type==='flask')refillFlask(player,20);else player.identifyScrolls++;
+  if(type!=='flask'&&!addToContainer(player.inventory,makeInsightScroll()))return result(false,'Make one cell of room in your pack.');
+  player.gold-=cost;if(type==='flask')refillFlask(player,20);
   return result(true,type==='flask'?'20 flask charges restored.':'Scroll of insight purchased.');
 }
 export function salvageItem(player,id){
-  const index=player.inventory.findIndex(i=>i.id===id),item=player.inventory[index];if(!item)return result(false,'Choose an item from your pack.');
+  const index=player.inventory.findIndex(i=>i.id===id),item=player.inventory[index];if(!item)return result(false,'Choose an item from your pack.');if(item.quest)return result(false,'Quest items cannot be sold or salvaged.');if(item.consumable)return result(false,'Scrolls cannot be salvaged.');
   if(item.favorite)return result(false,'Unmark this keepsake before salvaging it.');
   const shards={normal:1,magic:1,rare:2,legendary:4}[item.rarity]||1;
   player.shards+=shards;player.inventory.splice(index,1);return result(true,`Salvaged into ${shards} ember shard${shards===1?'':'s'}.`);
@@ -166,8 +171,9 @@ export function repairAll(player){
 export function acceptGuideQuest(player){
   if(player.quests.guideMet)return result(false,'Help Emberfall’s survivors, then follow the patrol orders through Marchgate to the prison convoy.');
   const gift={id:'maelin-talisman',name:'Hearthbound Talisman',slot:'charm',rarity:'magic',level:1,spirit:8,life:6,identified:false,durability:100,reforges:0,icon:'◈'};
-  if(!addToContainer(player.inventory,gift))return result(false,'Make one cell of room for Maelin’s keepsake.');
-  player.quests.guideMet=true;player.gold+=50;player.shards+=2;player.identifyScrolls+=2;
+  const trial=[...player.inventory],gifts=[gift,makeInsightScroll(),makeInsightScroll()];
+  for(const item of gifts)if(!addToContainer(trial,item))return result(false,'Make three cells of room for the talisman and two scrolls.');
+  player.inventory.push(...gifts);player.quests.guideMet=true;player.gold+=50;player.shards+=2;
   return result(true,'A promise made · +50 gold, 2 shards, 2 scrolls, and a mysterious talisman.');
 }
 export function claimGuideReward(player){

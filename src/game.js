@@ -53,8 +53,8 @@ export function generateDungeon(seed, depth = 1, options = {}) {
 }
 
 export function makeEnemy(id,x,y,type,depth,elite=false) {
-  const hp=({skeleton:46,crawler:34,wraith:36,warden:360}[type])*(1+(depth-1)*.25)*(elite&&type!=='warden'?2:1);
-  return {id,x,y,type,elite,hp,maxHp:hp,speed:({skeleton:1.95,crawler:2.5,wraith:1.75,warden:1.7}[type]),damage:({skeleton:16,crawler:12,wraith:17,warden:29}[type])*(1+(depth-1)*.22),cooldown:1,hit:0,slow:0,burn:0,aggro:false,phase:Math.random()*6,dead:false,windup:0};
+  const hp=({skeleton:46,crawler:34,wraith:36,warden:560}[type])*(1+(depth-1)*.25)*(elite&&type!=='warden'?2:1);
+  return {id,x,y,type,elite,hp,maxHp:hp,speed:({skeleton:1.95,crawler:2.5,wraith:1.75,warden:2.45}[type]),damage:({skeleton:16,crawler:12,wraith:17,warden:29}[type])*(1+(depth-1)*.22),cooldown:1,hit:0,slow:0,burn:0,aggro:false,phase:Math.random()*6,dead:false,windup:0};
 }
 
 export function isWalkable(dungeon,x,y,radius=.21) {
@@ -140,7 +140,7 @@ export const xpNeeded=level=>Math.round(55+level*30+Math.pow(level,1.7)*10);
 export const ORIGINS={vanguard:{name:'Royal Vanguard',description:'You held the king’s shield wall. Strength and endurance are your inheritance.',attributes:{might:2,vitality:2,will:0,dexterity:0}},templar:{name:'Royal Chirurgeon',description:'You served the field hospitals. Steady hands and knowledge of herbs kept the wounded alive.',attributes:{might:0,vitality:1,will:3,dexterity:0}},outrider:{name:'King’s Outrider',description:'You carried the king’s word beyond the walls. Your blade is swift and certain.',attributes:{might:1,vitality:0,will:0,dexterity:3}}};
 export function createPlayer(options={}) {
   const origin=ORIGINS[options.origin]?options.origin:'vanguard',sex='male';
-  return {sex,name:String(options.name||'The Loyalist').trim().slice(0,24),origin,appearance:options.appearance==='iron'?'iron':'crimson',progressionVersion:2,attributes:{...ORIGINS[origin].attributes},attributePoints:0,x:0,y:0,level:1,xp:0,gold:0,points:0,skills:{},slots:[null,null,null,null],mouseSkill:'basic',equipment:{weapon:{name:'King’s Service Sword',slot:'weapon',rarity:'normal',damage:5,level:1,icon:'⚔',id:'starter-sword'},armor:null,charm:null,boots:null,helm:null,gloves:null,belt:null,ring:null,ring2:null,shield:{id:'starter-buckler',name:'Scarred Buckler',slot:'shield',rarity:'normal',level:1,armor:1,block:4,look:'round'}},inventory:[],stash:[],shards:0,identifyScrolls:0,buyback:[],shopStock:null,quests:{guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false},hp:120,mana:80,potions:3,kills:0,deaths:0};
+  return {sex,name:String(options.name||'The Loyalist').trim().slice(0,24),origin,appearance:options.appearance==='iron'?'iron':'crimson',progressionVersion:2,attributes:{...ORIGINS[origin].attributes},attributePoints:0,x:0,y:0,level:1,xp:0,gold:0,points:0,skills:{},slots:[null,null,null,null],mouseSkill:'basic',equipment:{weapon:{name:'King’s Service Sword',slot:'weapon',rarity:'normal',damage:5,level:1,icon:'⚔',id:'starter-sword'},armor:null,charm:null,boots:null,helm:null,gloves:null,belt:null,ring:null,ring2:null,shield:{id:'starter-buckler',name:'Scarred Buckler',slot:'shield',rarity:'normal',level:1,armor:1,block:4,look:'round'}},inventory:[],stash:[],shards:0,scrollInventoryVersion:1,buyback:[],shopStock:null,quests:{guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false},hp:120,mana:80,potions:3,kills:0,deaths:0};
 }
 export function grantExperience(player,amount){
   if(!Number.isFinite(amount)||amount<=0)return 0;player.xp+=amount;let levels=0;

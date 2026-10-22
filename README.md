@@ -1,4 +1,4 @@
-# Ashen Reliquary — The Broken Oath
+# The Forgotten Kingdom — The Broken Oath
 
 An original, single-player isometric ARPG for **desktop mouse and keyboard**. A soldier returns from visiting family to find King Alaric murdered, his son on the throne, and the royal garrisons corrupted by a stranger’s bargain. The survivors of Emberfall point the way toward Crownfall. There is no ghost of the king or divine guidance.
 
@@ -6,9 +6,20 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 1. Sign into GitHub with access to this repository.
 2. [Download the game ZIP](https://github.com/Yekimf/arpgprototype/archive/refs/heads/main.zip) and extract it.
-3. Open **`ashen-reliquary.html`** in a current desktop browser.
+3. Open **`forgotten-kingdom.html`** in a current desktop browser. To continue an existing offline character, keep using **`ashen-reliquary.html`** at its previous location; it is an identical updated copy.
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
+
+## Version 0.18.0
+
+- Renamed the game **The Forgotten Kingdom**. The new title reads: “The king is dead. The oath remains.” The painted title landscape and story replay remain available.
+- The opening Kingsroad is now a 224×224 forest. Emberfall has one east exit. Roads lead to Elin’s fenced livestock pasture, the stolen levy wagon, a watch camp, the forest waypoint and a much more distant Marchgate. Signposts and lit lanterns mark the routes.
+- Identification scrolls are individual one-cell pack items. Right-click a scroll and click an unidentified item, or drag it onto the item. Escape cancels targeting. Purchases require pack space; old saved scroll counters migrate into physical items without losing scrolls.
+- Recovered quest objects now have distinct names, shapes and inventory items: patrol orders, ledgers, charts, keys, seals and other chapter-specific objects. Winter provisions take a two-by-two space and leave the pack when returned to Maelin. Chapter tokens are archived after their boss falls.
+- Bosses have more health and move and attack faster. Dungeons have a larger player light radius and visible ambient detail beyond it instead of pitch darkness.
+- NPC conversations use consistently spaced text, aligned quest marks and plain rectangular buttons.
+- Offline rendering caches lighting, fence segments and nearby scenery. The larger forest’s prepared terrain uses about 40 MiB. Balanced quality adapts world resolution when frames are slow; the interface stays sharp. Simulation advances in small steps to keep movement, attacks and recovery at their intended speed.
+- The portable file is now **forgotten-kingdom.html**. The old **ashen-reliquary.html** filename remains an identical compatibility copy, and existing saves and settings are retained.
 
 ## Version 0.17.0
 
@@ -175,17 +186,19 @@ npm run test:e2e
 npm run test:standalone
 ```
 
-Vite listens on all interfaces. `npm run build` creates the normal static build and **`dist/ashen-reliquary.html`**, the portable build. The root HTML is the verified release copy. Opening `dist/index.html` alone is not the standalone distribution. The offline test uses an isolated, network-disabled document with storage denied because managed Chromium blocks direct `file:` navigation.
+Vite listens on all interfaces. `npm run build` creates the normal static build and **`dist/forgotten-kingdom.html`**, the portable build, plus the identical legacy filename **`dist/ashen-reliquary.html`**. The root HTML is the verified release copy. Opening `dist/index.html` alone is not the standalone distribution. The offline test uses an isolated, network-disabled document with storage denied because managed Chromium blocks direct `file:` navigation.
 
 Unit checks cover procedural connectivity, progression, equipment transactions, charge recovery, aura damage, resistance, quality, keepsakes, appraisals, bank transfers, settings and the revised story. Unit route checks cover every chapter approach and stronghold. Desktop browser checks exercise creation, all six scenes, a complete field-task/commander/aftermath chapter, reload into the next chapter, the five act-ending knight encounters and final bosses, combat, equipment visuals, inventory bounds, services, shortcuts, dragging, map tracking, actual options changes and persistence. `CHROMIUM_PATH` selects another Chromium binary.
 
 Runtime assets are committed; ordinary builds do not generate artwork. `npm run art:pack` rebuilds compressed scenery, equipment layers, parchment prologue scenes, sprite foot offsets and menu illustrations. The game uses cached painted sprites, not a runtime 3D engine. `npm run profile` samples town and stronghold rendering at 1440×900 with Chromium CPU throttled 4×; run it separately from other browser work. UI resolution stays native while Options controls world resolution. Sprite caches use compact image identities instead of embedding entire data URLs in cache keys.
 
-The portable v0.10 HTML is about **7.2 MiB**, including all new menu art. The previous v0.9 production-build sample at 1440×900 with 4× CPU throttling measured:
+The v0.18 portable HTML is about **11.2 MiB**. `npm run profile:offline` builds and samples the embedded HTML without network access. A controlled 1440×900 Chromium run with 4× CPU throttling measured:
 
-| Area | Median frame | 95th percentile | Sampled JavaScript heap |
-| --- | --- | --- | --- |
-| Emberfall | 54.3 ms | 70.6 ms | 19.4 MiB |
-| Marchgate | 60.2 ms | 77.5 ms | 17.6 MiB |
+| Area | Median frame | 95th percentile | Sampled JavaScript heap | Prepared terrain pixels |
+| --- | --- | --- | --- | --- |
+| Expanded Emberfall forest | 51.8 ms | 75.4 ms | 29.5 MiB | 40.3 MiB |
+| Marchgate | 53.7 ms | 85.7 ms | 28.4 MiB | 66.6 MiB |
 
-Outdoor terrain uses 144 prebuilt half-resolution chunks, approximately 30 MiB of pixel storage in addition to JavaScript heap. These constrained samples represent about 18 / 16 FPS under throttling; render quality and the frame ceiling remain adjustable in Options. They do not establish sustained performance on a particular desktop.
+Marchgate sampled about 17.5 FPS, up from 12.9 FPS in the v0.17 baseline on the same constrained setup. The much larger forest sampled about 18.4 FPS; the previous smaller town region sampled 20.4 FPS. These measurements include adaptive Balanced resolution, which reached 960×600 while keeping the interface native. They are constrained test-machine samples, not a sustained desktop performance guarantee.
+
+The entire opening region uses 784 prebuilt quarter-resolution chunks; Marchgate uses 324 half-resolution chunks. Neither terrain cache grows as the player walks. Automap discovery still follows exploration. Render quality and the frame ceiling remain adjustable in Options.

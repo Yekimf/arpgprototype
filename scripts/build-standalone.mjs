@@ -23,7 +23,10 @@ for(const match of [...html.matchAll(/<link\b[^>]*\brel="stylesheet"[^>]*>/g)]){
 }
 const favicon=await readFile(path.join(root,'public/favicon.svg'));
 html=html.replace(/href="\.?\/?favicon\.svg"/,`href="data:image/svg+xml;base64,${favicon.toString('base64')}"`);
-html=html.replace('href="./" aria-label="Ashen Reliquary home"','href="#" aria-label="Ashen Reliquary home"');
+html=html.replace('href="./" aria-label="The Forgotten Kingdom home"','href="#" aria-label="The Forgotten Kingdom home"');
+html=html.replace(/^[ \t]+$/gm,'');
 html=html.replace('</body>',()=>`<script type="module">${javascript.replace(/<\/script/gi,'<\\/script')}</script></body>`);
 await writeFile(path.join(dist,'ashen-reliquary.html'),html);
 console.log(`Standalone game: dist/ashen-reliquary.html (${Math.ceil(Buffer.byteLength(html)/1024)} KB, no external assets)`);
+
+await writeFile(path.join(dist,'forgotten-kingdom.html'),html);

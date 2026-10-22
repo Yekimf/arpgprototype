@@ -1,3 +1,4 @@
+import {insightCount,makeInsightScroll} from '../src/scrolls.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPlayer,playerStats,isWalkable,findPath,random} from '../src/game.js';
@@ -33,9 +34,9 @@ test('failed equipment swaps, stash transfers, and purchases are atomic',()=>{
 test('identification gates equipment, consumes one scroll, and scholar service unlocks with rescue',()=>{
   const p=character(),item=ring('mystery',{identified:false});addToContainer(p.inventory,item);
   assert.equal(equipItem(p,item.id).ok,false);assert.equal(identifyItem(p,item.id).ok,false);assert.equal(identifyAll(p).ok,false);
-  p.identifyScrolls=1;assert.ok(identifyItem(p,item.id).ok);assert.equal(p.identifyScrolls,0);
+  p.identifyScrolls=1;assert.ok(identifyItem(p,item.id).ok);assert.equal(insightCount(p),0);
   assert.ok(equipItem(p,item.id).ok);assert.ok(p.equipment.ring);assert.ok(unequipItem(p,'ring').ok);
-  item.identified=false;p.quests.scholarRescued=true;assert.ok(identifyAll(p).ok);assert.equal(item.identified,true);assert.equal(p.identifyScrolls,0);
+  item.identified=false;p.quests.scholarRescued=true;assert.ok(identifyAll(p).ok);assert.equal(item.identified,true);assert.equal(insightCount(p),0);
 });
 test('merchant trades, buyback, supplies, and salvage have consistent costs and rewards',()=>{
   const p=character();p.gold=500;p.shopStock=generateStock(1,71);
@@ -43,9 +44,9 @@ test('merchant trades, buyback, supplies, and salvage have consistent costs and 
   assert.ok(buyItem(p,0).ok);assert.equal(p.gold,500-price);assert.ok(p.inventory.some(i=>i.id===id));
   const afterPurchase=p.gold;assert.ok(sellItem(p,id).ok);assert.equal(p.inventory.length,0);assert.equal(p.buyback.length,1);
   assert.ok(buyBack(p,0).ok);assert.equal(p.gold,afterPurchase);assert.equal(p.buyback.length,0);
-  assert.ok(buySupply(p,'scroll').ok);assert.equal(p.identifyScrolls,1);assert.equal(p.gold,afterPurchase-12);
+  assert.ok(buySupply(p,'scroll').ok);assert.equal(insightCount(p),1);assert.equal(p.gold,afterPurchase-12);
   p.potions=5;p.flask.charges=100;const old=p.gold;assert.equal(buySupply(p,'flask').ok,false);assert.equal(p.gold,old);
-  assert.ok(salvageItem(p,id).ok);assert.ok(p.shards>0);assert.equal(p.inventory.length,0);
+  assert.ok(salvageItem(p,id).ok);assert.ok(p.shards>0);assert.equal(p.inventory.length,1);
 });
 test('reforging rerolls one property and preserves identity, base power, and all other properties',()=>{
   const p=character();p.gold=1000;p.shards=20;
@@ -69,7 +70,7 @@ test('reforging cannot change a ring or amulet primary stat',()=>{
   const before=JSON.stringify(p);assert.equal(reforgeItem(p,'primary-ring','crit').ok,false);assert.equal(reforgeItem(p,'primary-charm','spirit').ok,false);assert.equal(JSON.stringify(p),before);
 });
 test('guide supplies and rescued-scholar rewards cannot be claimed twice',()=>{
-  const p=character();assert.ok(acceptGuideQuest(p).ok);assert.equal(p.gold,50);assert.equal(p.identifyScrolls,2);assert.equal(p.inventory[0].identified,false);
+  const p=character();assert.ok(acceptGuideQuest(p).ok);assert.equal(p.gold,50);assert.equal(insightCount(p),2);assert.equal(p.inventory[0].identified,false);
   const gold=p.gold;assert.equal(acceptGuideQuest(p).ok,false);assert.equal(p.gold,gold);
   assert.equal(claimGuideReward(p).ok,false);p.quests.wardenDefeated=true;p.quests.scholarRescued=true;
   assert.ok(claimGuideReward(p).ok);assert.equal(p.gold,170);assert.equal(p.shards,5);assert.equal(claimGuideReward(p).ok,false);assert.equal(p.gold,170);
@@ -86,7 +87,7 @@ test('town has no enemies and every service, stash, and gate can be approached o
 
 test('common gear equips immediately, including old saves carrying a false identification flag',()=>{
  const p=character(),common={id:'common-sword',name:'Plain Falchion',slot:'weapon',rarity:'normal',damage:17,identified:false};
- assert.ok(addToContainer(p.inventory,common));const scrolls=p.identifyScrolls;assert.equal(identifyItem(p,common.id).ok,false);assert.equal(equipItem(p,common.id).ok,true);assert.equal(p.identifyScrolls,scrolls);assert.equal(p.equipment.weapon.damage,17);
+ assert.ok(addToContainer(p.inventory,common));const scrolls=insightCount(p);assert.equal(identifyItem(p,common.id).ok,false);assert.equal(equipItem(p,common.id).ok,true);assert.equal(insightCount(p),scrolls);assert.equal(p.equipment.weapon.damage,17);
  const magic={...ring('still-hidden'),identified:false};assert.ok(addToContainer(p.inventory,magic));assert.equal(equipItem(p,magic.id).ok,false);
  p.stash=[{...common,id:'old-common'}];migratePlayer(p);assert.equal(p.stash[0].identified,true);assert.equal(p.equipment.weapon.identified,true);
 });

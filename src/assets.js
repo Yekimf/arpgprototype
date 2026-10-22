@@ -37,11 +37,9 @@ import armorIcons from './art/runtime/armor-icons.webp?inline';
 export const ARMOR_ART=localAsset(armorIcons);
 
 import titleLandscape from './art/runtime/title-landscape.webp?inline';
-import titleLogo from './art/runtime/title-logo.webp?inline';
 import menuButton from './art/runtime/menu-button.webp?inline';
 import menuButtonLit from './art/runtime/menu-button-lit.webp?inline';
 export const TITLE_LANDSCAPE=localAsset(titleLandscape);
-export const TITLE_LOGO=localAsset(titleLogo);
 export const MENU_BUTTON=localAsset(menuButton);
 export const MENU_BUTTON_LIT=localAsset(menuButtonLit);
 

@@ -1,3 +1,4 @@
+import {isInsightScroll,insightCount} from './scrolls.js';
 import {ensureFlask,refillFlask} from './flasks.js';
 import {BASES} from './itemization.js';
 import {itemArt} from './item-art.js';
@@ -24,14 +25,17 @@ export class TownUI {
     const modal=document.getElementById('modal');
     this.hud=new InventoryHUD(this);
     let held=null,ghost=null;
-    modal.addEventListener('contextmenu',e=>{const node=e.target.closest('[data-pack-id],[data-equip-slot]');if(!node)return;e.preventDefault();const {item,source}=this.hud.resolve(node);if(!item)return;if(source==='pack')this.apply(equipItem(game.player,item.id));else if(source==='equipped')this.apply(unequipItem(game.player,node.dataset.equipSlot));});
+    modal.addEventListener('contextmenu',e=>{const node=e.target.closest('[data-pack-id],[data-equip-slot]');if(!node)return;e.preventDefault();const {item,source}=this.hud.resolve(node);if(!item)return;if(source==='pack'){if(isInsightScroll(item))this.beginIdentify(item);else if(this.identifying)this.identifyTarget(item.id);else this.apply(equipItem(game.player,item.id));}else if(source==='equipped')this.apply(unequipItem(game.player,node.dataset.equipSlot));});
     modal.addEventListener('pointerdown',e=>{const node=e.target.closest('[data-pack-id],[data-equip-slot]');if(e.button!==0||!node||e.ctrlKey||e.shiftKey||e.altKey)return;const {item,source}=this.hud.resolve(node);if(!item)return;held={id:item.id,source,slot:node.dataset.equipSlot,x:e.clientX,y:e.clientY,node,pointer:e.pointerId};});
     window.addEventListener('pointermove',e=>{if(!held)return;if(!ghost&&Math.hypot(e.clientX-held.x,e.clientY-held.y)>6){ghost=held.node.cloneNode(true);ghost.removeAttribute('data-pack-id');ghost.className='drag-item';document.body.append(ghost);document.body.classList.add('dragging-item');this.hud.hideTooltip();}if(ghost){ghost.style.left=e.clientX+12+'px';ghost.style.top=e.clientY+12+'px';}});
     window.addEventListener('pointerup',e=>{if(!held)return;const data=held;held=null;if(ghost){const target=document.elementFromPoint(e.clientX,e.clientY);ghost.remove();ghost=null;document.body.classList.remove('dragging-item');this.suppressClick=true;this.drop({target,clientX:e.clientX,clientY:e.clientY,preventDefault(){},dataTransfer:{getData:()=>JSON.stringify(data)}});setTimeout(()=>this.suppressClick=false,0);}});
-    const cancelDrag=()=>{held=null;ghost?.remove();ghost=null;document.body.classList.remove('dragging-item');};window.addEventListener('pointercancel',cancelDrag);window.addEventListener('blur',cancelDrag);window.addEventListener('keydown',e=>{if(e.key==='Escape'&&held){cancelDrag();e.preventDefault();e.stopImmediatePropagation();}});
+    const cancelDrag=()=>{held=null;ghost?.remove();ghost=null;document.body.classList.remove('dragging-item');};window.addEventListener('pointercancel',cancelDrag);window.addEventListener('blur',cancelDrag);window.addEventListener('keydown',e=>{if(e.key==='Escape'&&this.identifying){this.cancelIdentify();e.preventDefault();e.stopImmediatePropagation();return;}if(e.key==='Escape'&&held){cancelDrag();e.preventDefault();e.stopImmediatePropagation();}});
     modal.addEventListener('dragstart',e=>{e.preventDefault();});
-    modal.addEventListener('dblclick',e=>{const item=e.target.closest('[data-pack-id]');if(!item||item.dataset.container!=='pack')return;this.apply(equipItem(game.player,item.dataset.packId));});
+    modal.addEventListener('dblclick',e=>{const item=e.target.closest('[data-pack-id]');if(!item||item.dataset.container!=='pack')return;const resolved=this.hud.resolve(item);if(isInsightScroll(resolved.item)){this.beginIdentify(resolved.item);return;}if(this.identifying){this.identifyTarget(resolved.item.id);return;}this.apply(equipItem(game.player,item.dataset.packId));});
   }
+  beginIdentify(item){if(this.identifying===item.id){this.cancelIdentify();return;}this.identifying=item.id;document.body.classList.add('identifying-item');this.hud.hideTooltip();const hint=document.querySelector('.inventory-controls');if(hint){this.identifyHint=hint.innerHTML;hint.textContent='Choose an unidentified item · Escape cancels';}this.toast('Choose an unidentified item · Escape cancels.');}
+  cancelIdentify(){this.identifying=null;document.body.classList.remove('identifying-item');const hint=document.querySelector('.inventory-controls');if(hint&&this.identifyHint)hint.innerHTML=this.identifyHint;this.identifyHint=null;}
+  identifyTarget(id){const result=identifyItem(this.player,id,false,this.identifying);if(result.ok)this.cancelIdentify();return this.apply(result);}
   get player(){return this.game.player;}
   get isTown(){return this.game.zone==='town';}
   get selected(){
@@ -40,7 +44,7 @@ export class TownUI {
     if(this.source==='equipped')return Object.values(p.equipment).find(i=>i?.id===this.selection);
     return (this.source==='stash'?p.stash:p.inventory).find(i=>i.id===this.selection);
   }
-  wallet(){const p=this.player;return `<div class="wallet"><span>◈ <b>${p.gold.toLocaleString()}</b> gold</span><span>✦ <b>${p.shards}</b> embers</span><span>▤ <b>${p.identifyScrolls}</b> scrolls</span></div>`;}
+  wallet(){const p=this.player;return `<div class="wallet"><span>◈ <b>${p.gold.toLocaleString()}</b> gold</span><span>✦ <b>${p.shards}</b> embers</span><span>▤ <b>${insightCount(p)}</b> scrolls</span></div>`;}
   grid(items,container='pack'){
     const dimensions=container==='stash'?STASH:BAG;
     const used=items.filter(i=>i.bagX>=0).reduce((s,i)=>{const size=itemSize(i);return s+size.w*size.h;},0);
@@ -53,10 +57,11 @@ export class TownUI {
   }).join('')}</div>`;}
   detail(){
     const item=this.selected;if(!item)return `<div class="empty-detail"><span>✧</span><p>Select a relic to inspect its properties.</p><small>Drag items to rearrange. Double-click to equip.<br>Shift-click to equip; Ctrl-click to trade or transfer.</small></div>`;
+    if(item.slot==='scroll'||item.quest)return `<div class="relic-heading normal">${icon(item)}<div><span class="eyebrow">${item.quest?'QUEST ITEM':'CONSUMABLE · ONE SPACE'}</span><h3>${escape(item.name)}</h3></div></div><p class="consumable-description">${escape(item.description||'A recovered quest item.')}</p>`;
     const p=this.player,unknown=requiresIdentification(item),equipped=p.equipment[item.slot],pack=this.source==='pack',panel=this.game.panel;
     const name=escape(itemName(item)),base=BASES.find(b=>b.id===item.base)?.name;
     let actions='';
-    if(unknown&&pack)actions+=btn('identify',`Identify · 1 scroll`,!p.identifyScrolls);
+    if(unknown&&pack)actions+=btn('identify',`Identify · 1 scroll`,!insightCount(p));
     if(!unknown&&pack)actions+=btn('equip','Equip item');if(['pack','equipped'].includes(this.source))actions+=btn('favorite',item.favorite?'Unmark keepsake':'Keep item');
     if(this.source==='equipped')actions+=btn('unequip','Unequip');
     if(this.isTown&&pack)actions+=btn('store','Store in stash');
@@ -136,7 +141,8 @@ export class TownUI {
   drop(event){
     let data;try{data=JSON.parse(event.dataTransfer.getData('text/plain'));}catch{return;}
     const source=data.source==='pack'?this.player.inventory:data.source==='stash'?this.player.stash:null,item=data.source==='equipped'?this.player.equipment[data.slot]:source?.find(i=>i.id===data.id);if(!item||item.id!==data.id)return;
-    event.preventDefault();const element=event.target,grid=element?.closest('[data-bag-grid]'),slot=element?.closest('[data-equip-slot]'),doll=element?.closest('.paperdoll');
+    event.preventDefault();const element=event.target,targetItem=element?.closest('[data-pack-id]'),grid=element?.closest('[data-bag-grid]'),slot=element?.closest('[data-equip-slot]'),doll=element?.closest('.paperdoll');
+    if(isInsightScroll(item)&&data.source==='pack'&&targetItem?.dataset.container==='pack'&&targetItem.dataset.packId!==item.id){const result=identifyItem(this.player,targetItem.dataset.packId,false,item.id);this.cancelIdentify();this.apply(result);return;}
     if(this.game.panel==='merchant'&&element?.closest('.service-sheet')){if(data.source==='pack')this.apply(sellItem(this.player,item.id));return;}
     if(slot||doll){if(data.source!=='pack')return;const socket=slot?.dataset.equipSlot,target=socket===item.slot||item.slot==='ring'&&socket==='ring2'?socket:undefined;this.apply(equipItem(this.player,item.id,target));return;}
     if(grid){

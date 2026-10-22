@@ -71,7 +71,7 @@ export class InventoryHUD {
     if(!HUD_PANELS.includes(this.game.panel))return false;
     if(this.owner.suppressClick)return true;
     const item=event.target.closest('[data-pack-id],[data-equip-slot],[data-stock-id],[data-smith-equipped]');
-    if(item){if((event.ctrlKey||event.shiftKey||event.altKey)&&this.owner.quickAction(item,event))return true;this.select(item);return true;}
+    if(item){if(this.owner.identifying){const resolved=this.resolve(item);if(resolved.source==='pack')this.owner.identifyTarget(resolved.item?.id);return true;}if((event.ctrlKey||event.shiftKey||event.altKey)&&this.owner.quickAction(item,event))return true;this.select(item);return true;}
     const page=event.target.closest('[data-service-page]');if(page){this.pages[page.dataset.pageKey]=Number(page.dataset.servicePage);this.hideTooltip();this.render(this.game.panel);this.modal.querySelector(`[data-page-key="${page.dataset.pageKey}"]:not(:disabled)`)?.focus();return true;}
     const tab=event.target.closest('[data-storage-tab]');if(tab){this.storageTab=tab.dataset.storageTab;this.render('stash');return true;}
     return false;

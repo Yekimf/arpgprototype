@@ -32,12 +32,12 @@ test('waypoints stay locked until attuned and campaign acts require their knight
  const restored=JSON.parse(JSON.stringify(p));assert.ok(canTravel(restored,'act-1-wilderness'));assert.equal(restored.campaign.completed,true);
 });
 
-test('Emberfall sits inside a broad connected wilderness with four physical exits and a safe camp',()=>{
+test('Emberfall sits inside a broad connected wilderness with one east exit and a safe camp',()=>{
  for(let seed=1;seed<=12;seed++){
   const p=createPlayer(),d=generateWilderness(seed,1,p),b=d.townBounds;
-  assert.equal(d.size,128);assert.ok(d.tiles.flat().filter(Boolean).length>5000);
-  for(const target of [{x:48.5,y:b.y1-2.5},{x:48.5,y:b.y2+2.5},{x:b.x1-2.5,y:51.5},{x:b.x2+2.5,y:51.5},d.portal,d.townWaypoint,...d.npcs])assert.ok(findPath(d,d.start,target).length,`seed ${seed}, route ${JSON.stringify(target)}`);
-  assert.ok(d.enemies.length>35);for(const e of d.enemies)assert.equal(e.x>b.x1&&e.x<b.x2&&e.y>b.y1&&e.y<b.y2,false);
+  assert.equal(d.size,224);assert.ok(d.tiles.flat().filter(Boolean).length>25000);
+  for(const target of [d.townExit,d.herd,d.provisions,d.field,d.supplies,d.portal,d.townWaypoint,...d.npcs])assert.ok(findPath(d,d.start,target).length,`seed ${seed}, route ${JSON.stringify(target)}`);
+  for(let x=b.x1;x<=b.x2;x++){assert.equal(d.tiles[b.y1][x],0);assert.equal(d.tiles[b.y2][x],0);}for(let y=b.y1;y<=b.y2;y++)assert.equal(d.tiles[y][b.x1],0);const openings=Array.from({length:b.y2-b.y1+1},(_,i)=>i+b.y1).filter(y=>d.tiles[y][b.x2]);assert.ok(openings.length>=3&&openings.length<=5);assert.ok(openings.every(y=>Math.abs(y-51.5)<3));assert.ok(d.enemies.length>150);for(const e of d.enemies)assert.equal(e.x>b.x1&&e.x<b.x2&&e.y>b.y1&&e.y<b.y2,false);
   assert.ok(d.water.size>100);assert.ok(d.roads.size>100);assert.ok(d.props.some(p=>p.type==='palisade'));
  }
 });

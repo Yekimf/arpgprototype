@@ -24,7 +24,7 @@ export async function continueFixture(page){
  await expect(page.locator('#area-loading')).toBeHidden();
  if(page.fixtureZone&&page.fixtureZone!=='town'){
   await page.keyboard.press('t');
-  await page.locator('[data-town-action="depart"]').click();
+  const departure=page.locator('[data-town-action="depart"]');if(await page.evaluate(()=>Boolean(document.pointerLockElement))){const r=await departure.boundingBox();await page.evaluate(({x,y})=>{const p=window.__reliquary.snapshot().cursor;document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,movementX:x-p.x,movementY:y-p.y,pointerType:'mouse'}));},{x:r.x+r.width/2,y:r.y+r.height/2});await page.mouse.down();await page.mouse.up();}else await departure.click();
   await expect(page.locator('#area-loading')).toBeHidden();
  }
 }

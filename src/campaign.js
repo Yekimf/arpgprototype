@@ -1,3 +1,5 @@
+import {questRelic} from './quest-objects.js';
+import {generateOpeningForest} from './opening-forest.js';
 import {dressFarmland,generateGranary} from './farmland.js';
 import {openingObjective,openingComplete} from './opening-quests.js';
 import {generateMarchgate} from './marchgate.js';
@@ -34,6 +36,7 @@ export function campaignObjective(p,kind,act=p.campaign?.act||1,chapter=chapterO
 // The camp and its surrounding fields are one continuous, seeded area.
 export const inSanctuary=(d,p)=>!!d.townBounds&&p.x>d.townBounds.x1&&p.x<d.townBounds.x2&&p.y>d.townBounds.y1&&p.y<d.townBounds.y2;
 export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
+ if(act===1&&chapter===0)return generateOpeningForest(seed,player,chapterFor(act,chapter).task);
  const camp=act===1&&chapter===0,ch=chapterFor(act,chapter),rng=random(seed),size=camp?128:96,tiles=Array.from({length:size},()=>Array(size).fill(0)),start=camp?{x:48,y:50.5}:{x:17.5,y:77.5},portal=camp?{x:112.5,y:18.5}:{x:76.5,y:18.5},props=[],enemies=[],roads=new Set(),water=new Set();
  const townBounds=camp?{x1:TOWN_BOUNDS.x1+16,y1:TOWN_BOUNDS.y1+18,x2:TOWN_BOUNDS.x2+16,y2:TOWN_BOUNDS.y2+18}:null;
  // A broad, irregular landmass. Ponds, groves and ruins interrupt the field rather
@@ -91,6 +94,7 @@ export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
   for(let i=0;i<6;i++){const herdId='herd-'+i;if(player.quests.herdKills?.includes(herdId))continue;const e=makeEnemy(id++,69.5+i%3*1.8,47.5+Math.floor(i/3)*7,'skeleton',1);Object.assign(e,{herdId,faction:1,tint:'#96947b',name:i%2?'Zombified Levy':'Bonebound Soldier',hp:26,maxHp:26,damage:5,speed:1.1});enemies.push(e);}
  }
  if(camp){d.npcs=generateTown(player).npcs.map(n=>({...n,x:n.x+16,y:n.y+18}));d.townWaypoint={x:49,y:52};for(let y=townBounds.y1-2;y<=townBounds.y2+2;y++)for(let x=townBounds.x1-2;x<=townBounds.x2+2;x++)d.seen.add(y*size+x);}
+ d.field.kind=questRelic(act,chapter).kind;
  if(act===1&&chapter===1)dressFarmland(d);
  return d;
 }
