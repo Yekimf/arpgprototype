@@ -49,3 +49,6 @@ import marchgate from './art/runtime/marchgate.webp?inline';
 import questSeals from './art/runtime/quest-seals.webp?inline';
 export const MARCHGATE_ART=localAsset(marchgate);
 export const QUEST_ART=localAsset(questSeals);
+
+import marchgateInner from './art/runtime/marchgate-inner.webp?inline';
+export const MARCHGATE_INNER_ART=localAsset(marchgateInner);

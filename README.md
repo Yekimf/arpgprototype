@@ -10,6 +10,12 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.11.1
+
+- Cleared scenery, timber fences and debris from the entire Marchgate gate apron; moved the supplies away from the approach.
+- The interior now shows a full-size inner gatehouse behind the arrival point. Arrival follows the same northward direction as the exterior approach, with the return passage at the far end of the gate tunnel.
+- Quest symbols use rough, chipped slate and muted bone-white markings. The quest window shares the inventory’s stone and iron styling and opens as a compact popup over live gameplay with J or its close button.
+
 ## Version 0.11
 
 - Cursor capture uses Pointer Lock and a clamped, skinned virtual cursor for both mouse buttons, world aiming, item inspection and inventory actions. Ctrl+Esc releases it; the capture button near the minimap restores capture. Browsers reserve Escape as an additional release. Capture on entry can be disabled in Options, and unsupported browsers retain normal mouse controls. Text fields and native selects release capture for editing.
