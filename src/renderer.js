@@ -358,8 +358,8 @@ export class Renderer {
     const c=this.ctx,color=loot.item?{normal:'#b3c3a0',magic:'#81b5d3',rare:'#d6bb68',legendary:'#ea9a56'}[loot.item.rarity]:'#c3ac68';
     this.ellipse(0,2,8,4,'#020a0877');this.light(0,-9,25,color+'19');
     if(loot.item){this.line([[0,0],[0,-33]],color+'44',2);this.poly([[-4,-3],[0,-9],[5,-5],[1,1]],color);}
-    else {this.ellipse(-2,-2,3,1.6,'#bda45f');this.ellipse(3,0,3,1.6,'#d5ba6d');}
-    if(distance(loot,game.player)<2.5||game.showLoot){c.font='9px Inter, sans-serif';c.textAlign='center';const name=loot.item?itemName(loot.item):`${loot.gold} gold`,width=c.measureText(name).width;c.fillStyle='#07120ee8';c.fillRect(-width/2-6,-48,width+12,16);c.strokeStyle=color+'66';c.strokeRect(-width/2-6,-48,width+12,16);c.fillStyle=color;c.fillText(name,0,-37);}
+    else {const count=Math.min(9,3+Math.floor(loot.gold/12));for(let i=0;i<count;i++){const x=((i*7)%17)-8,y=((i*5)%9)-4;this.ellipse(x,y+1,3.7,2,'#564025');this.ellipse(x,y,3.3,1.7,i%2?'#cfb573':'#a58c4d');this.line([[x-1.5,y-.5],[x+1,y-.5]],'#e0c58b',.6);}}
+    if(distance(loot,game.player)<(loot.item?2.5:10)||game.showLoot){c.font='10px Georgia';c.textAlign='center';const name=loot.item?itemName(loot.item):`${loot.gold} gold`,width=c.measureText(name).width;c.fillStyle='#07120ee8';c.fillRect(-width/2-6,-48,width+12,16);c.strokeStyle=color+'66';c.strokeRect(-width/2-6,-48,width+12,16);c.fillStyle=color;c.fillText(name,0,-37);}
   }
   worldLabel(name,role,y){const c=this.ctx;c.textAlign='center';c.shadowColor='#000';c.shadowBlur=5;c.font='10px Georgia';c.fillStyle='#d5c295';c.fillText(name,0,y);if(role){c.font='6px Inter,sans-serif';c.fillStyle='#a18d6b';c.fillText(role,0,y+12);}c.shadowBlur=0;}
   npc(n,game){

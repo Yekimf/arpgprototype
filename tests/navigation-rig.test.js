@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {findPath,clearPath,isWalkable,moveEntity} from '../src/game.js';
 import {planWalk} from '../src/navigation.js';
-import {gait,joint,punchPose} from '../src/animation-rig.js';
+import {joint,punchPose} from '../src/animation-rig.js';
 import {generateWilderness} from '../src/campaign.js';
 test('click routes clear corners for a body with width and retain exact destinations',()=>{
  const d={tiles:Array.from({length:16},(_,y)=>Array.from({length:16},(_,x)=>x>0&&y>0&&x<15&&y<15?1:0))};for(let y=1;y<13;y++)d.tiles[y][7]=0;
@@ -15,8 +15,7 @@ test('wall-edge clicks choose reachable ground instead of silently dropping the 
  const d={tiles:[[0,0,0,0,0],[0,1,0,1,0],[0,1,0,1,0],[0,1,0,1,0],[0,0,0,0,0]]},p={x:1.5,y:2.5};
  const plan=planWalk(d,p,{x:2.8,y:2.5},findPath);assert.ok(plan);assert.equal(plan.target.x,1.5);assert.equal(plan.exact,false);assert.equal(planWalk(d,p,{x:100,y:100},findPath),null);
 });
-test('walking alternates a grounded foot and a lifted recovery, and joints preserve limb lengths',()=>{
- let span=0;for(let i=0;i<32;i++){const phase=i/32*Math.PI*2,a=gait(phase,0),b=gait(phase,1);assert.equal(a.stance,!b.stance);if(a.stance)assert.equal(a.lift,0);if(b.stance)assert.equal(b.lift,0);span=Math.max(span,Math.abs(a.x-b.x));}assert.ok(span>80);
+test('joint lengths and punch extension remain stable',()=>{
  const root={x:0,y:0},pose=joint(root,{x:40,y:30},30,35);assert.ok(Math.abs(Math.hypot(pose.knee.x,pose.knee.y)-30)<.001);assert.ok(Math.abs(Math.hypot(pose.end.x-pose.knee.x,pose.end.y-pose.knee.y)-35)<.001);assert.equal(punchPose(0).extension,0);assert.equal(punchPose(1).extension,0);assert.ok(punchPose(.5).extension>.99);
 });
 test('wilderness frontiers have visible barriers and the keep gate blocks passage behind its approach',()=>{

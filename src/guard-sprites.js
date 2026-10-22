@@ -1,6 +1,7 @@
 import {GUARD_ART,ITEM_ART,ORIGINAL_ART} from './assets.js';
 import {appearanceOf} from './itemization.js';
-import {gait,joint,point,punchPose} from './animation-rig.js';
+import {facingPose,walkingLeg,WALK_FRAMES} from './locomotion.js';
+import {joint,point,punchPose} from './animation-rig.js';
 const FACE={
  front:{head:[.46,0,.25,.235],hand:[.30,.535],offHand:[.80,.55],shield:[.805,.50],arm:[.38,.28],offArm:[.70,.28],elbow:[.32,.405],offElbow:[.77,.41],body:[[.39,.22],[.66,.22],[.75,.34],[.69,.54],[.72,.67],[.63,.72],[.53,.65],[.36,.72],[.32,.62],[.36,.45]],arms:[[[.36,.24],[.46,.28],[.42,.41],[.30,.44],[.27,.39],[.30,.30]],[[.66,.24],[.75,.26],[.82,.40],[.73,.45],[.68,.38]]],forearms:[[[.30,.38],[.42,.40],[.37,.50],[.34,.56],[.27,.57],[.26,.50]],[[.73,.38],[.82,.38],[.87,.54],[.83,.59],[.76,.56],[.72,.48]]],legs:[{hip:[.52,.60],knee:[.535,.79],ankle:[.52,.945],thigh:[[.43,.59],[.61,.60],[.63,.81],[.44,.83]],shin:[[.44,.77],[.63,.77],[.64,.94],[.43,.96]],foot:[[.43,.92],[.64,.92],[.64,.97],[.52,.999],[.42,.97]]},{hip:[.67,.60],knee:[.70,.76],ankle:[.73,.91],thigh:[[.60,.59],[.75,.59],[.79,.79],[.62,.80]],shin:[[.62,.75],[.79,.75],[.81,.91],[.64,.93]],foot:[[.64,.89],[.81,.88],[.82,.93],[.74,.97],[.64,.94]]}]},
  back:{head:[.45,0,.25,.23],hand:[.80,.54],offHand:[.29,.54],shield:[.33,.47],arm:[.70,.28],offArm:[.37,.28],elbow:[.76,.40],offElbow:[.30,.40],body:[[.38,.22],[.66,.21],[.72,.31],[.72,.51],[.79,.72],[.65,.78],[.50,.73],[.34,.67],[.35,.46]],arms:[[[.68,.25],[.76,.28],[.82,.40],[.72,.44],[.66,.34]],[[.37,.25],[.30,.28],[.23,.40],[.32,.44],[.40,.34]]],forearms:[[[.72,.38],[.82,.38],[.86,.52],[.85,.57],[.77,.58],[.72,.47]],[[.23,.38],[.33,.38],[.35,.49],[.32,.57],[.25,.57],[.22,.48]]],legs:[{hip:[.52,.68],knee:[.52,.83],ankle:[.51,.96],thigh:[[.40,.67],[.60,.68],[.62,.86],[.42,.86]],shin:[[.42,.81],[.62,.81],[.62,.96],[.42,.98]],foot:[[.42,.93],[.62,.93],[.63,.98],[.51,.999],[.41,.98]]},{hip:[.68,.67],knee:[.71,.82],ankle:[.74,.95],thigh:[[.61,.66],[.77,.66],[.81,.85],[.60,.86]],shin:[[.61,.80],[.81,.80],[.83,.95],[.64,.98]],foot:[[.64,.93],[.82,.92],[.84,.97],[.75,.999],[.63,.97]]}]}
@@ -12,21 +13,26 @@ export class GuardSprites{
  get ready(){return [this.art,this.items,this.original].every(a=>a.complete&&a.naturalWidth>0);}
  tile(c,index){const s=this.art.naturalWidth/4;c.drawImage(this.art,index%4*s,Math.floor(index/4)*s,s,s,0,0,S,S);}
  clipTile(c,index,points,exclude=null){c.save();poly(c,points);c.clip();if(exclude){c.beginPath();c.rect(0,0,S,S);c.ellipse(exclude[0]*S,exclude[1]*S,50,72,0,0,Math.PI*2);c.clip('evenodd');}this.tile(c,index);c.restore();}
- frame(p,back,column,heading={x:.9,y:back?-.4:.4}){const look=appearanceOf(p),key=JSON.stringify(look)+'/'+back+'/'+column+'/'+Math.round(heading.x*10)+'/'+Math.round(heading.y*10);if(this.cache.has(key))return this.cache.get(key);if(!this.ready)return null;
+ frame(p,back,column,heading={x:.9,y:back?-.4:.4},direction=null){const look=appearanceOf(p),key=JSON.stringify(look)+'/'+back+'/'+column+'/'+Math.round(heading.x*10)+'/'+Math.round(heading.y*10)+'/'+(direction?.index??'legacy');if(this.cache.has(key))return this.cache.get(key);if(!this.ready)return null;
   const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;const c=canvas.getContext('2d');c.scale(W/S,128/S);c.translate(0,10);
-  const face=back?FACE.back:FACE.front,offset=back?1:0,body=({none:2,original:0,leather:4,chain:6,plate:8,robe:10})[look.armor]??0,walking=column>0&&column<9,attack=column>=9,phase=walking?(column-1)/8*2*Math.PI:0,progress=attack?(column-9)/(look.weapon==='none'?5:3):0;
-  // Separate thighs, shins and feet bend at joints. The stance foot remains
-  // level while the returning foot lifts; the torso never shears with the legs.
-  const legPoses=[];for(let leg=1;leg>=0;leg--){const part=face.legs[leg],hip=point(part.hip),knee=point(part.knee),ankle=point(part.ankle),step=walking?gait(phase,leg,heading):{x:0,y:0,lift:0},goal={x:ankle.x+step.x,y:ankle.y+step.y},pose=walking?joint(hip,goal,Math.hypot(knee.x-hip.x,knee.y-hip.y),Math.hypot(ankle.x-knee.x,ankle.y-knee.y),-1):{knee,end:ankle},index=look.boots==='steel'?offset:look.boots==='leather'?4+offset:2+offset;
-   legPoses.push({part,hip,knee,ankle,pose,index});}
-  legPoses.sort((a,b)=>a.pose.end.y-b.pose.end.y);for(const {part,hip,knee,ankle,pose,index}of legPoses){this.bone(c,index,part.thigh,hip,knee,hip,pose.knee);this.bone(c,index,part.shin,knee,ankle,pose.knee,pose.end);c.save();c.translate(pose.end.x-ankle.x,pose.end.y-ankle.y);this.clipTile(c,index,part.foot);c.restore();}
-  if(walking)c.translate(0,Math.cos(phase*2)*-2);
+  const face=back?FACE.back:FACE.front,offset=back?1:0,body=({none:2,original:0,leather:4,chain:6,plate:8,robe:10})[look.armor]??0,walking=column>0&&column<=WALK_FRAMES,attack=column>WALK_FRAMES,phase=walking?(column-1)/WALK_FRAMES*2*Math.PI:0,progress=attack?(column-WALK_FRAMES-1)/(look.weapon==='none'?5:3):0;
+  // Grounded heels and narrow parallel tracks replace wide puppet swings.
+  // Front/back art is preserved, with perspective fitted per facing sector.
+  const forward=direction?.forward||heading,poses=[];
+  for(let leg=1;leg>=0;leg--){const part=face.legs[leg],sourceHip=point(part.hip),sourceKnee=point(part.knee),sourceAnkle=point(part.ankle),step=walking?walkingLeg(phase,leg,face,forward):null,hip=step?.hip||sourceHip,goal=step?.heel||sourceAnkle;
+   const bend=forward.x>=0?-1:1,pose=walking?joint(hip,goal,Math.hypot(sourceKnee.x-sourceHip.x,sourceKnee.y-sourceHip.y),Math.hypot(sourceAnkle.x-sourceKnee.x,sourceAnkle.y-sourceKnee.y),bend):{knee:sourceKnee,end:sourceAnkle},index=look.boots==='steel'?offset:look.boots==='leather'?4+offset:2+offset;
+   if(walking){const projected=hip.x+(pose.end.x-hip.x)*.53;pose.knee.x=projected+(pose.knee.x-projected)*Math.abs(forward.x);}
+   poses.push({part,sourceHip,sourceKnee,sourceAnkle,hip,pose,index});}
+  poses.sort((a,b)=>a.pose.end.y-b.pose.end.y);
+  for(const {part,sourceHip,sourceKnee,sourceAnkle,hip,pose,index}of poses){this.bone(c,index,part.thigh,sourceHip,sourceKnee,hip,pose.knee,walking?.72:1);this.bone(c,index,part.shin,sourceKnee,sourceAnkle,pose.knee,pose.end,walking?.72:1);c.save();c.translate(pose.end.x,pose.end.y);if(walking)c.scale(.68,1);c.translate(-sourceAnkle.x,-sourceAnkle.y);this.clipTile(c,index,part.foot);c.restore();}
+  const torsoX=(face.legs[0].hip[0]+face.legs[1].hip[0])*160;
+  c.save();if(direction){c.translate(torsoX,0);c.transform(direction.profile,0,direction.turn,1,0,0);c.translate(-torsoX,0);}if(walking)c.translate(0,7-Math.cos(phase*2)*1.3);
   // The unarmoured underlayer is visible when equipment is removed.
   this.clipTile(c,2+offset,face.body);this.clipTile(c,body+offset,face.body,face.shield);
   if(look.armor==='plate'){c.save();c.globalCompositeOperation='source-atop';c.fillStyle='#abb7bd13';poly(c,face.body);c.fill();c.restore();}
   // A planted attack uses the old hand-painted combat sheet for the original outfit.
   const nativeAttack=attack&&look.armor==='original'&&look.helm==='sallet'&&look.weapon==='sword'&&look.shield==='round'&&look.boots==='steel'&&look.gloves==='steel';
-  if(nativeAttack){c.clearRect(-10,-10,340,350);const s=this.original.naturalWidth/4;c.drawImage(this.original,(column-9)*s,(back?3:1)*s,s,s,0,0,S,S);this.accessories(c,look,back);this.cache.set(key,canvas);return canvas;}
+  if(nativeAttack){c.clearRect(-10,-10,340,350);const s=this.original.naturalWidth/4;c.drawImage(this.original,(column-WALK_FRAMES-1)*s,(back?3:1)*s,s,s,0,0,S,S);this.accessories(c,look,back);c.restore();this.cache.set(key,canvas);return canvas;}
   for(let arm=1;arm>=0;arm--){
    const shoulder=point(arm===0?face.arm:face.offArm),elbow=point(arm===0?face.elbow:face.offElbow),hand=point(arm===0?face.hand:face.offHand),punch=attack&&look.weapon==='none',jab=punch?arm===0?punchPose(progress,back?-1:1):look.shield==='none'?{x:back?30:-30,y:-28}:{x:0,y:0}:null;
    const swing=attack&&arm===0?(-.7+progress*1.3)*(back?-1:1):walking?Math.sin(phase)*(arm?1:-1)*.07:0;
@@ -42,9 +48,9 @@ export class GuardSprites{
   }
   const head=look.helm==='none'?2:look.helm==='hood'?14:look.helm==='greathelm'?12:0,[hx,hy,hw,hh]=face.head;c.save();c.beginPath();c.rect(hx*S,hy*S,hw*S,hh*S);c.clip();this.tile(c,head+offset);c.restore();
   this.accessories(c,look,back);if(look.surcoat==='iron'){c.save();c.globalCompositeOperation='source-atop';c.fillStyle='#8d99951a';c.fillRect(0,0,S,S);c.restore();}
-  this.cache.set(key,canvas);if(this.cache.size>100)this.cache.delete(this.cache.keys().next().value);return canvas;
+  c.restore();this.cache.set(key,canvas);if(this.cache.size>256)this.cache.delete(this.cache.keys().next().value);return canvas;
  }
- bone(c,index,mask,fromA,fromB,toA,toB){const source=Math.atan2(fromB.y-fromA.y,fromB.x-fromA.x),target=Math.atan2(toB.y-toA.y,toB.x-toA.x);c.save();c.translate(toA.x,toA.y);c.rotate(target-source);c.translate(-fromA.x,-fromA.y);this.clipTile(c,index,mask);c.restore();}
+ bone(c,index,mask,fromA,fromB,toA,toB,width=1){const source=Math.atan2(fromB.y-fromA.y,fromB.x-fromA.x),target=Math.atan2(toB.y-toA.y,toB.x-toA.x),length=Math.hypot(toB.x-toA.x,toB.y-toA.y)/Math.hypot(fromB.x-fromA.x,fromB.y-fromA.y);c.save();c.translate(toA.x,toA.y);c.rotate(target);c.scale(length,width);c.rotate(-source);c.translate(-fromA.x,-fromA.y);this.clipTile(c,index,mask);c.restore();}
  hand(c,gloves,back,arm,face,closed=false){
   const h=arm===0?face.hand:face.offHand,x=h[0],y=h[1],source=gloves==='none'?(back?arm===0?[.84,.56]:[.25,.55]:arm===0?[.28,.56]:[.835,.56]):back?arm===0?[.80,.54]:[.29,.54]:arm===0?[.323,.51]:[.80,.55],sx=source[0],sy=source[1],mask=[[sx-.035,sy-.045],[sx+.03,sy-.04],[sx+.033,sy+.035],[sx+.015,sy+.055],[sx-.03,sy+.042]];
   c.save();c.translate((x-sx)*S,(y-sy)*S);this.clipTile(c,(gloves==='steel'?0:gloves==='leather'?4:2)+(back?1:0),mask);c.restore();
@@ -60,5 +66,12 @@ export class GuardSprites{
  }
  shield(c,look,back,center){const x=center[0]*S,y=center[1]*S;c.save();c.beginPath();if(look==='kite'){c.moveTo(x-39,y-62);c.lineTo(x+43,y-56);c.lineTo(x+38,y+25);c.lineTo(x,y+80);c.lineTo(x-38,y+27);c.closePath();}else c.ellipse(x,y,49,71,back?-.12:.12,0,Math.PI*2);c.clip();if(look==='kite'){c.fillStyle='#3d3023';c.fillRect(x-55,y-80,110,165);}this.tile(c,back?1:0);c.restore();if(look==='kite'){c.strokeStyle='#8c7855';c.lineWidth=2;c.beginPath();c.moveTo(x-39,y-62);c.lineTo(x+43,y-56);c.lineTo(x+38,y+25);c.lineTo(x,y+80);c.lineTo(x-38,y+27);c.closePath();c.stroke();}}
  accessories(c,look,back){if(back)return;const gold=look.beltRarity==='legendary'?'#c1a45e':'#9c8051';if(look.belt!=='none'){c.fillStyle='#34291d';c.fillRect(151,164,59,8);c.strokeStyle=gold;c.lineWidth=3;c.strokeRect(171,161,14,12);}if(look.charm!=='none'){c.strokeStyle='#a78c5a';c.lineWidth=1.5;c.beginPath();c.moveTo(171,83);c.lineTo(188,115);c.lineTo(208,89);c.stroke();c.fillStyle='#b2924f';c.beginPath();c.ellipse(188,116,5,7,0,0,Math.PI*2);c.fill();}if(look.ring!=='none'){c.fillStyle='#bb9f55';c.fillRect(99,159,6,3);}if(look.ring2!=='none'){c.fillStyle='#c1a565';c.fillRect(251,174,6,3);}if(look.armorRarity==='legendary'){c.fillStyle='#bd914b';c.fillRect(177,113,4,23);c.fillRect(171,118,16,3);}}
- draw(c,game){const direction=(game.attackAnim>0?game.actionFacing:game.facing)||game.lastMove,back=direction.x+direction.y<0,screenX=direction.x-direction.y,unarmed=!game.player.equipment.weapon,mirror=unarmed&&!back?screenX>0:screenX<0,attack=game.attackAnim>0,column=attack?9+Math.min(game.player.equipment.weapon?3:5,Math.floor((1-game.attackAnim/(game.player.equipment.weapon?.4:.32))*(game.player.equipment.weapon?4:6))):game.moving?1+Math.floor(game.walkPhase)%8:0,length=Math.hypot(screenX*34,(direction.x+direction.y)*17)||1,heading={x:(unarmed&&!back?-1:1)*Math.abs(screenX*34)/length,y:(direction.x+direction.y)*17/length},frame=this.frame(game.player,back,column,heading);if(!frame)return null;c.save();if(mirror)c.scale(-1,1);if(game.dodgeTime>0)c.globalAlpha*=.7;c.drawImage(frame,-48,-98,96,108);c.restore();return {row:(back?2:0)+(mirror?1:0),column,action:game.dodgeTime>0?'evade':attack&&!game.player.equipment.weapon?'punch':attack?'attack':game.moving?'walk':'idle',style:'painted-guard'};}
+ draw(c,game){
+  const vector=(game.attackAnim>0?game.actionFacing:game.facing)||game.lastMove,direction=facingPose(vector),back=direction.back,unarmed=!game.player.equipment.weapon,attack=game.attackAnim>0,mirror=unarmed&&!back?direction.screen.x>0:direction.mirror;
+  const column=attack?WALK_FRAMES+1+Math.min(unarmed?5:3,Math.floor((1-game.attackAnim/(unarmed?.32:.4))*(unarmed?6:4))):game.moving?1+Math.floor(game.walkPhase)%WALK_FRAMES:0;
+  // The base artwork's handedness is kept for gear. Mirroring is compensated
+  // inside the directional pose so projected foot travel follows movement.
+  const local={...direction,forward:{x:mirror?-direction.forward.x:direction.forward.x,y:direction.forward.y},turn:mirror?-direction.turn:direction.turn};
+  const frame=this.frame(game.player,back,column,local.forward,attack?null:local);if(!frame)return null;c.save();if(mirror)c.scale(-1,1);if(game.dodgeTime>0)c.globalAlpha*=.7;c.drawImage(frame,-48,-98,96,108);c.restore();return {row:direction.index,directions:16,column,action:game.dodgeTime>0?'evade':attack&&unarmed?'punch':attack?'attack':game.moving?'walk':'idle',style:'painted-guard'};
+ }
 }
