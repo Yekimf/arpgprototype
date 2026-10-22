@@ -1,3 +1,4 @@
+import {renderQuestBook} from './quest-book.js';
 import {CHAPTERS,chapterFor} from './campaign-content.js';
 import {chapterOf,fieldKey,captainId} from './campaign.js';
 import {ACTS,actFor,canTravel,canAdvance,locationId} from './campaign.js';
@@ -9,8 +10,7 @@ export function renderCampaignPanel(game,panel){
  m.classList.add('expanded-modal','campaign-modal');
  if(panel==='journal'&&!c){m.innerHTML=header('THE LOYALIST’S FIELD BOOK','A new oath')+'<p>This character belongs to the original crypt expedition. Begin a new character from the title screen to follow the chapter campaign.</p>';return true;}
  if(panel==='journal'){
- const act=game.zone==='town'?c.act:game.act,chapter=game.zone==='town'?chapterOf(p,act):game.chapter||0,ch=chapterFor(act,chapter);
- m.innerHTML=header('THE LOYALIST’S FIELD BOOK','An oath unbroken')+`<div class="journal-layout"><aside><h3>${esc(actFor(act).title)}</h3><p>Act ${act} · Chapter ${chapter+1} / 4</p><h4>${esc(ch.wilds)}</h4><p>${esc(ch.task)}</p><p>Read field accounts, open the way through each garrison, then free the province’s fallen knight.</p><small>${c.records.length} field accounts recovered · ${c.defeated.length} commanders defeated</small></aside><div class="journal-pages">${CHAPTERS.flatMap((chapters,ai)=>chapters.map((_,ci)=>{const entry=chapterFor(ai+1,ci),found=c.records.includes(fieldKey(ai+1,ci)),won=c.defeated.includes(captainId(ai+1,ci));return found||won?`<article><span class="eyebrow">ACT ${ai+1} · CHAPTER ${ci+1}</span><h3>${esc(entry.stronghold)}</h3>${found?`<p>${esc(entry.account)}</p>`:''}${won?`<p class="journal-aftermath">${esc(entry.aftermath)}</p>`:''}</article>`:'';})).join('')||'<p>Your field book is empty. Speak to Maelin, then search the Kingsroad for the patrol orders.</p>'}</div></div>`;
+ renderQuestBook(game);
  }else if(panel==='chaptercomplete'){
  const ch=chapterFor(game.act,game.chapter),next=chapterFor(game.act,game.chapter+1);
  m.innerHTML=header(`ACT ${game.act} · CHAPTER ${game.chapter+1}`,'The garrison is broken')+`<h3>${esc(ch.stronghold)}</h3><p>${esc(ch.aftermath)}</p><div class="modal-rule"></div><p>The road continues through <b>${esc(next.wilds)}</b>. Prepare before you leave.</p><div class="modal-footer"><button class="small-button" data-campaign-action="home">Return to Emberfall</button><button class="primary-button" data-campaign-action="next-chapter">Continue to ${esc(next.wilds)}</button></div>`;

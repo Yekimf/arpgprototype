@@ -44,3 +44,8 @@ export const TITLE_LANDSCAPE=localAsset(titleLandscape);
 export const TITLE_LOGO=localAsset(titleLogo);
 export const MENU_BUTTON=localAsset(menuButton);
 export const MENU_BUTTON_LIT=localAsset(menuButtonLit);
+
+import marchgate from './art/runtime/marchgate.webp?inline';
+import questSeals from './art/runtime/quest-seals.webp?inline';
+export const MARCHGATE_ART=localAsset(marchgate);
+export const QUEST_ART=localAsset(questSeals);

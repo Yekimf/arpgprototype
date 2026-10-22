@@ -5,7 +5,7 @@ export default defineConfig({
   fullyParallel:false,
   workers:1,
   timeout:60000,
-  use:{baseURL:process.env.GAME_URL||'http://127.0.0.1:5173',launchOptions:{executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']},trace:'retain-on-failure'},
+  use:{storageState:{cookies:[],origins:[{origin:new URL(process.env.GAME_URL||'http://127.0.0.1:5173').origin,localStorage:[{name:'ashen-reliquary-options-v1',value:JSON.stringify({cursorCapture:false})}]}]},baseURL:process.env.GAME_URL||'http://127.0.0.1:5173',launchOptions:{executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']},trace:'retain-on-failure'},
   webServer:{command:'npm run dev -- --port 5173',url:'http://127.0.0.1:5173',reuseExistingServer:!process.env.CI},
   projects:[{name:'desktop',use:{viewport:{width:1440,height:1000}}}],
 });

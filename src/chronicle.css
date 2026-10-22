@@ -6,3 +6,6 @@
 .cinematic-screen .cinematic-subtitles{width:min(850px,88%);bottom:78px}
 .cinematic-screen .cinematic-subtitles p{color:#24170f;text-shadow:0 1px 2px #f2d6a4,0 0 7px #e8c28c,0 0 14px #e8c28c;font:16px/1.7 Georgia}
 .cinematic-screen .cinematic-progress{background:#62402177}.cinematic-screen .scene-dots i{border-color:#65452d}.cinematic-screen .scene-dots i.active{background:#65452d}
+/* The chronicle uses the same sculpted ironwork as the illustrated main menu. */
+.front-end.cinematic-screen .cinematic-top button,.front-end.cinematic-screen .cinematic-controls button{border:9px solid transparent;border-image:var(--menu-button) 48 115 fill / 9px 18px / 2px stretch;background:none;box-shadow:none;padding:7px 15px;color:#e0cba5;font:small-caps 12px Georgia;text-shadow:0 1px 2px #000;min-height:36px}
+.front-end.cinematic-screen .cinematic-top button:hover,.front-end.cinematic-screen .cinematic-controls button:hover{border-image-source:var(--menu-button-lit);color:#fff0c7}

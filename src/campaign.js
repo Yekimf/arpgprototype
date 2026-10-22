@@ -1,3 +1,4 @@
+import {generateMarchgate} from './marchgate.js';
 import {frontierEdges} from './wilderness-boundary.js';
 import {chapterFor,dressEnemy} from './campaign-content.js';
 import {generateTown,TOWN_BOUNDS} from './settlement.js';
@@ -61,21 +62,27 @@ export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
  for(let y=4;y<size-4;y++)for(let x=4;x<size-4;x++)if(tiles[y][x]&&!roads.has(y*size+x)&&!(townBounds&&x>townBounds.x1-3&&x<townBounds.x2+3&&y>townBounds.y1-3&&y<townBounds.y2+3)){
    const n=rng();if(n<.018)props.push({x:x+.5,y:y+.5,type:'building',sprite:7,width:110+rng()*55,height:135+rng()*45});else if(n<.027)props.push({x:x+.5,y:y+.5,type:'bones',variant:1});
  }
- props.push({type:'building',sprite:15,x:portal.x,y:portal.y-1,width:225,height:230,exit:true});
+ props.push(camp?{type:'kingdom-gate',x:portal.x,y:portal.y-1,width:1120,height:747,exit:true}:{type:'building',sprite:15,x:portal.x,y:portal.y-1,width:225,height:230,exit:true});
+ if(camp){
+  // A walled forecourt funnels the last stretch into a long gate approach.
+  for(let y=18;y<=25;y++)for(let x=61;x<=90;x++)if(x<73||x>80){tiles[y][x]=0;roads.delete(y*size+x);}
+  for(let y=20;y<=37;y+=5)for(const x of [69,85])props.push({type:'building',sprite:7,x:x+rng()*2,y:y+rng()*2,width:130+rng()*22,height:163+rng()*26});
+ }
  const waypoint={x:56.5,y:30.5},supplies={x:67.5,y:27.5};carve(waypoint.x,waypoint.y,2);carve(supplies.x,supplies.y,2);carve(portal.x,portal.y,3);
  carve(37.5,29.5,2);
  // The keep's gate is a solid barrier. Approach its south side and interact;
  // the arch is not a walk-through opening onto the back of the map.
  sealNorth();
  for(let x=1;x<size-1;x++)if(tiles[18][x]&&(x<74||x>79))props.push({type:'frontier',axis:'x',x,y:18});
- props.push({type:'road-gate',x:74,y:18,span:6});
+ props.push({type:'road-gate',x:74,y:18,span:6,stone:camp});
+ for(let i=enemies.length-1;i>=0;i--)if(!isWalkable({tiles},enemies[i].x,enemies[i].y,.23))enemies.splice(i,1);
  props.push(...frontierEdges(tiles,water));
  const d={seed,size,tiles,rooms,start,portal,enemies,props,roads,water,depth:act,seen:new Set(),bossDead:false,outdoor:true,act,kind:'wilderness',chapter,field:{x:37.5,y:29.5,label:ch.task},waypoint,supplies,exitReady:true,townBounds,npcs:[]};
  if(camp){d.npcs=generateTown(player).npcs.map(n=>({...n,x:n.x+16,y:n.y+18}));d.townWaypoint={x:49,y:52};for(let y=townBounds.y1-2;y<=townBounds.y2+2;y++)for(let x=townBounds.x1-2;x<=townBounds.x2+2;x++)d.seen.add(y*size+x);}
  return d;
 }
 export function generateStronghold(seed,act=1,chapter=0){
- const level=actFor(act).level+chapter*2,ch=chapterFor(act,chapter),d=generateDungeon(seed,level,{roomCount:22,size:80}),boss=d.enemies.find(e=>e.type==='warden'),rng=random(seed+41);
+ const level=actFor(act).level+chapter*2,ch=chapterFor(act,chapter),d=act===1&&chapter===0?generateMarchgate(seed,level):generateDungeon(seed,level,{roomCount:22,size:80}),boss=d.enemies.find(e=>e.type==='warden'),rng=random(seed+41);
  for(const enemy of d.enemies)if(enemy!==boss)dressEnemy(enemy,act,rng);
  d.act=act;d.chapter=chapter;d.kind='stronghold';d.returnGate={x:d.start.x,y:d.start.y-1};d.waypoint={x:d.start.x+2,y:d.start.y+1};
  Object.assign(boss,{name:ch.captain||actFor(act).knight,bossId:captainId(act,chapter),phaseType:['thorns','flood','fire','frost','oath'][act-1],tint:actFor(act).color,chapter});

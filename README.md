@@ -10,6 +10,13 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.11
+
+- Cursor capture uses Pointer Lock and a clamped, skinned virtual cursor for both mouse buttons, world aiming, item inspection and inventory actions. Ctrl+Esc releases it; the capture button near the minimap restores capture. Browsers reserve Escape as an additional release. Capture on entry can be disabled in Options, and unsupported browsers retain normal mouse controls. Text fields and native selects release capture for editing.
+- The first Marchgate approach has a new monumental gatehouse, walled forecourt and forest approach. Inside is a 144×144 fortress with sixteen connected spaces: a long barbican, gatehouse, outer and inner courts, barracks, stores, cells and Hadrin’s command keep. Other strongholds retain their seeded layouts.
+- J opens an illustrated quest book with six quest seals per act, act tabs, active/completed/locked states, objectives and recovered accounts. Quest topics in conversations show an exclamation mark and offer the quest book directly.
+- Prologue controls now share the main menu’s sculpted iron-and-brass frames.
+
 ## Version 0.10.1
 
 - All six prologue scenes now use sepia ink, rough cross-hatching, muted washes and weathered golden parchment, following the supplied visual reference. Each illustration fills the screen and fades in as one image; there is no drawing-on effect or framed cutout.
