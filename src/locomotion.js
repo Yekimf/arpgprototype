@@ -18,3 +18,10 @@ export function walkingLeg(phase,leg,face,forward){
  const floor=(face.legs[0].ankle[1]+face.legs[1].ankle[1])*160;
  return {hip:{x:hipCenter.x+side.x*sign*19,y:hipCenter.y+side.y*sign*19},heel:{x:hipCenter.x+side.x*sign*17+forward.x*112*travel,y:floor+side.y*sign*17+forward.y*36*travel-lift},stance,lift,lane:sign*17};
 }
+
+// Re-aim the painted boot on the ground without rotating its upright cuff.
+// Both toes share one projected heading; the ankle stays attached to the shin.
+export function walkingFoot(forward,toe){
+ const width=.68,heading=forward.x*.95;
+ return {width,shear:heading-width*toe.x/toe.y};
+}

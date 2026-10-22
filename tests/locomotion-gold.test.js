@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {facingPose,walkingLeg,WALK_FRAMES} from '../src/locomotion.js';
+import {facingPose,walkingLeg,walkingFoot,WALK_FRAMES} from '../src/locomotion.js';
 import {collectGold,GOLD_PICKUP_RADIUS} from '../src/economy.js';
 const front={legs:[{hip:[.52,.60],ankle:[.52,.945]},{hip:[.67,.60],ankle:[.73,.91]}]};
 test('sixteen facing sectors follow the projected direction, including the intermediate headings',()=>{
@@ -12,4 +12,13 @@ test('a narrow walk keeps the heel lanes fixed while each leg alternates contact
 });
 test('walking over a gold pile credits its exact amount once and preserves equipment drops',()=>{
  const p={x:0,y:0,gold:0},loot=[{x:1.2,y:0,gold:17},{x:0,y:0,item:{id:'sword'}}];assert.ok(GOLD_PICKUP_RADIUS<1.2);assert.equal(collectGold(p,loot),0);p.x=.3;assert.equal(collectGold(p,loot),17);assert.equal(p.gold,17);assert.equal(p.goldEarned,17);assert.equal(collectGold(p,loot),0);assert.equal(p.gold,17);assert.equal(loot.length,1);assert.equal(loot[0].item.id,'sword');
+});
+
+test('both boot toes stay parallel and follow lateral travel instead of turning inward',()=>{
+ const toes=[{x:-.02,y:.04},{x:.025,y:.04},{x:-.035,y:.035},{x:.045,y:.03}];
+ for(let row=0;row<16;row++){
+  const a=row*Math.PI/8,forward={x:Math.sin(a),y:Math.cos(a)};
+  const slopes=toes.map(toe=>{const foot=walkingFoot(forward,toe);return (foot.width*toe.x+foot.shear*toe.y)/toe.y;});
+  for(const slope of slopes){assert.ok(Math.abs(slope-slopes[0])<1e-9);if(Math.abs(forward.x)<1e-9)assert.ok(Math.abs(slope)<1e-9);else assert.ok(slope*forward.x>0);}
+ }
 });
