@@ -10,6 +10,11 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.13.0
+
+- Character creation now offers male and female loyalists with a live camp preview. The female guard has her own painted equipment atlas, tied-back dark hair and a hooded starting look.
+- Female movement, armed attacks, punches and equipment changes use her artwork. Character choice survives saving and reloading; older characters retain the male appearance and both choices have equal starting stats.
+
 ## Version 0.12.3
 
 - The offhand arm now uses exposed arm artwork fitted to its shoulder, elbow and wrist instead of artwork obscured by the shield. Removing the shield leaves the arm and glove connected in front/rear views, walking and attacks, with the equipped armour material.

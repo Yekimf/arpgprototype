@@ -27,9 +27,11 @@ export const CAMPAIGN_ART=localAsset(campaign);
 export const MAP_ART=localAsset(worldmap);
 
 import guard from './art/runtime/guard-equipment.webp?inline';
+import femaleGuard from './art/runtime/female-guard-equipment.webp?inline';
 import original from './art/runtime/guard-combat.webp?inline';
 import stone from './art/runtime/inventory-stone.webp?inline';
 export const GUARD_ART=localAsset(guard);
+export const FEMALE_GUARD_ART=localAsset(femaleGuard);
 export const ORIGINAL_ART=localAsset(original);
 export const STONE_ART=localAsset(stone);
 

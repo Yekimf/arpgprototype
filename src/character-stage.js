@@ -3,7 +3,8 @@ import {createPlayer} from './game.js';
 import {WORLD_ART,ITEM_ART} from './assets.js';
 export class CharacterStage{
  constructor(canvas){this.canvas=canvas;this.guard=new GuardSprites();this.world=new Image();this.world.src=WORLD_ART;this.floor=new Image();this.floor.src=ITEM_ART;this.player=createPlayer();this.stopped=false;this.observer=new ResizeObserver(()=>this.background=null);this.observer.observe(canvas);this.start();}
- async start(){await Promise.all([this.guard.art,this.guard.items,this.guard.original,this.world,this.floor].map(i=>i.decode()));if(this.stopped)return;this.draw(0);}
+ async start(){await Promise.all([this.guard.art,this.guard.femaleArt,this.guard.items,this.guard.original,this.world,this.floor].map(i=>i.decode()));if(this.stopped)return;this.draw(0);}
+ setSex(sex){this.player=createPlayer({sex});this.canvas.setAttribute('aria-label',`Your ${this.player.sex} loyalist standing in a dark camp`);}
  sprite(c,index,x,y,w,h){const s=this.world.naturalWidth/4;c.drawImage(this.world,index%4*s,Math.floor(index/4)*s,s,s,x-w/2,y-h,w,h);}
  draw(now){if(this.stopped)return;const c=this.canvas.getContext('2d'),w=Math.max(1,Math.round(this.canvas.clientWidth)),h=Math.max(1,Math.round(this.canvas.clientHeight));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;this.background=null;}const x=w*.51,y=h*.68;
   if(!this.background){const bg=document.createElement('canvas');bg.width=w;bg.height=h;const b=bg.getContext('2d');b.fillStyle='#0d0d09';b.fillRect(0,0,w,h);const s=this.floor.naturalWidth/4;

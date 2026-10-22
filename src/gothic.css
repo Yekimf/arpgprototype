@@ -23,3 +23,5 @@ button,select,input{font-family:Georgia,'Times New Roman',serif}
 @media(max-height:760px){.creation-heading{top:17%}.creation-screen #creation-form{top:32%}.creation-caption{bottom:11%}}
 
 .natural-item-art[data-armor-look]{overflow:hidden}
+
+.creation-sex label+label{margin-left:22px}.creation-sex label:has(input:checked){color:#dcc28e}
