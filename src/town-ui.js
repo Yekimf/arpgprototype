@@ -1,3 +1,6 @@
+import {ensureFlask,refillFlask} from './flasks.js';
+import {BASES} from './itemization.js';
+import {itemArt} from './item-art.js';
 import {requiresIdentification} from './game.js';
 import {equipmentEtching} from './equipment-icons.js';
 import {playerStats,itemDescription,clamp} from './game.js';
@@ -10,7 +13,7 @@ const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>'
 const rarity=item=>['normal','magic','rare','legendary'].includes(item?.rarity)?item.rarity:'normal';
 const btn=(action,label,disabled=false,kind='small-button')=>`<button class="${kind}" data-town-action="${action}" ${disabled?'disabled':''}>${label}</button>`;
 function art(index,classes=''){return `<span class="item-art ${classes}" style="--ax:${index%4*100/3}%;--ay:${Math.floor(index/4)*100/3}%" aria-hidden="true"></span>`;}
-function icon(item){return art(item.slot==='weapon'&&/axe|mace/i.test(item.name)?5:SLOT_ART[item.slot]??4);}
+const icon=itemArt;
 function header(kicker,title){return `<button class="close" data-action="close" aria-label="Close panel">×</button><div class="eyebrow">${kicker}</div><h2 id="modal-title">${title}</h2>`;}
 
 export class TownUI {
@@ -47,7 +50,7 @@ export class TownUI {
   detail(){
     const item=this.selected;if(!item)return `<div class="empty-detail"><span>✧</span><p>Select a relic to inspect its properties.</p><small>Drag items to rearrange. Double-click to equip.<br>On mobile, tap an item and use the action buttons.</small></div>`;
     const p=this.player,unknown=requiresIdentification(item),equipped=p.equipment[item.slot],pack=this.source==='pack',panel=this.game.panel;
-    const name=escape(itemName(item));
+    const name=escape(itemName(item)),base=BASES.find(b=>b.id===item.base)?.name;
     let actions='';
     if(unknown&&pack)actions+=btn('identify',`Identify · 1 scroll`,!p.identifyScrolls);
     if(!unknown&&pack)actions+=btn('equip','Equip item');
@@ -61,7 +64,7 @@ export class TownUI {
     if(panel==='scholar'&&unknown&&pack)actions=btn('scholar-identify','Reveal relic · Free');
     const comparison=!unknown&&pack&&equipped?`<div class="comparison"><div class="eyebrow">CURRENTLY EQUIPPED</div><strong class="${rarity(equipped)}">${escape(equipped.name)}</strong><p>${itemDescription(equipped).join('<br>')}</p><div class="stat-deltas">${['damage','armor','life','spirit','crit','speed','bonus'].filter(k=>item[k]||equipped[k]).map(k=>{const delta=Math.round(((item[k]||0)-(equipped[k]||0))*100)/100;return `<span class="${delta>=0?'positive':'negative'}">${delta>=0?'+':''}${delta} ${k}</span>`;}).join('')}</div></div>`:'';
     const forge=panel==='smith'&&!unknown&&['pack','equipped'].includes(this.source)?this.forgeControls(item):'';
-    return `<div class="relic-heading ${rarity(item)}">${icon(item)}<div><span class="eyebrow">${escape(item.rarity.toUpperCase())} · ${EQUIPMENT[item.slot]}</span><h3>${name}</h3><small>Item level ${item.level||1}${item.reforges?' · Reforged '+item.reforges+' times':''}</small></div></div>${unknown?'<p class="unknown-description">Its true nature is concealed. Use a scroll of insight, or seek the archivist once he has been rescued.</p>':`<div class="relic-stats">${itemDescription(item).map(s=>`<div>${s}</div>`).join('')}</div><div class="durability">Durability ${Math.ceil(item.durability??100)} / 100${item.durability<=0?' · Broken: base stats halved':''}<i><b style="width:${clamp(item.durability??100,0,100)}%"></b></i></div>`}${comparison}<div class="item-actions">${actions}</div>${forge}`;
+    return `<div class="relic-heading ${rarity(item)}">${icon(item)}<div><span class="eyebrow">${escape(item.rarity.toUpperCase())} · ${EQUIPMENT[item.slot]}</span><h3>${name}</h3><small>${base?escape(base)+' · ':''}Item level ${item.level||1}${item.requiredLevel?' · Requires level '+item.requiredLevel:''}${item.reforges?' · Reforged '+item.reforges+' times':''}</small></div></div>${unknown?'<p class="unknown-description">Its true nature is concealed. Use a scroll of insight, or seek the archivist once he has been rescued.</p>':`${item.unique?'<div class="unique-oath">'+({"ember-vow":'The Cinderbound Oath · tempered for sacrifice',"pilgrim-vow":'The Long Vigil · a well that never sleeps',"royal-vow":'Alaric’s Remembrance · the old oath endures'}[item.unique]||'')+'</div>':''}<div class="relic-stats">${item.affixes?.length?`<small class="affix-tier">Tier ${Math.max(...item.affixes.map(a=>a.tier||1))} enchantments</small>`:''}${itemDescription(item).map(s=>`<div>${s}</div>`).join('')}</div><div class="durability">Durability ${Math.ceil(item.durability??100)} / 100${item.durability<=0?' · Broken: base stats halved':''}<i><b style="width:${clamp(item.durability??100,0,100)}%"></b></i></div>`}${comparison}<div class="item-actions">${actions}</div>${forge}`;
   }
   forgeControls(item){
     const affixes=reforgeAffixes(item);if(!affixes.length)return '<p class="smith-note">Only magical bonus properties can be reforged. This item has no eligible affix.</p>';
@@ -98,7 +101,7 @@ export class TownUI {
     if(inTown.includes(action)&&!this.isTown){this.toast('This service is only available in Emberfall.');return true;}
     if(action==='sort'){arrange(p.inventory,BAG,true);if(this.game.panel==='stash')arrange(p.stash,STASH,true);this.refresh();}
     else if(action==='equip')this.apply(equipItem(p,this.selection));
-    else if(action==='unequip'&&item)this.apply(unequipItem(p,item.slot));
+    else if(action==='unequip'&&item)this.apply(unequipItem(p,Object.keys(p.equipment).find(s=>p.equipment[s]?.id===item.id)));
     else if(action==='identify')this.apply(identifyItem(p,this.selection));
     else if(action==='store')this.apply(moveItem(p,this.selection,true));
     else if(action==='withdraw')this.apply(moveItem(p,this.selection,false));
@@ -114,7 +117,7 @@ export class TownUI {
     else if(action==='scholar-identify')this.apply(identifyItem(p,this.selection,true));
     else if(action==='accept-quest')this.apply(acceptGuideQuest(p));
     else if(action==='claim-reward')this.apply(claimGuideReward(p));
-    else if(action==='heal'){p.hp=this.game.stats.maxHp;p.mana=this.game.stats.maxMana;p.potions=Math.max(3,p.potions);this.toast('Maelin restores you. Your flask holds at least 3 charges.');this.refresh();}
+    else if(action==='heal'){p.hp=this.game.stats.maxHp;p.mana=this.game.stats.maxMana;refillFlask(p,Math.max(0,60-ensureFlask(p).charges));this.toast('Maelin restores you. Your flask holds at least 60 charges.');this.refresh();}
     else if(action==='shop-stock'||action==='shop-buyback'){this.shopTab=action==='shop-stock'?'stock':'buyback';this.render('merchant');}
     else if(action==='guide-depart')this.openPanel('departure');
     else if(action==='depart'){this.closePanel();this.enterDungeon();}
@@ -126,7 +129,7 @@ export class TownUI {
     event.preventDefault();let data;try{data=JSON.parse(event.dataTransfer.getData('text/plain'));}catch{return;}
     if(data.source!=='pack'&&data.source!=='stash')return;
     const source=data.source==='pack'?this.player.inventory:this.player.stash,item=source.find(i=>i.id===data.id);if(!item)return;
-    if(slot){if(data.source!=='pack'||slot.dataset.equipSlot!==item.slot){this.toast('That relic belongs in a different equipment slot.');return;}this.apply(equipItem(this.player,item.id));return;}
+    if(slot){if(data.source!=='pack'||slot.dataset.equipSlot!==item.slot&&!(item.slot==='ring'&&slot.dataset.equipSlot==='ring2')){this.toast('That relic belongs in a different equipment slot.');return;}this.apply(equipItem(this.player,item.id,slot.dataset.equipSlot));return;}
     const destination=grid.dataset.bagGrid;if(destination==='stash'&&!this.isTown)return;
     const dimensions=destination==='stash'?STASH:BAG,target=destination==='stash'?this.player.stash:this.player.inventory;
     const rect=grid.getBoundingClientRect(),x=Math.floor((event.clientX-rect.left)/rect.width*dimensions.width),y=Math.floor((event.clientY-rect.top)/rect.height*dimensions.height);

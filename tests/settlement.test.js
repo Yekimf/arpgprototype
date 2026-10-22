@@ -18,7 +18,7 @@ test('spatial inventory respects item dimensions, boundaries, and occupied cells
 test('migration preserves overflowing legacy inventory and adds equipment and service fields',()=>{
   const p=createPlayer();p.inventory=Array.from({length:24},(_,i)=>({...ring(`legacy-${i}`),slot:'armor'}));
   migratePlayer(p);assert.equal(p.inventory.length,24);assert.ok(p.inventory.some(i=>i.bagX<0));
-  assert.equal(Object.keys(p.equipment).length,9);assert.deepEqual(p.stash,[]);assert.equal(p.shards,0);
+  assert.equal(Object.keys(p.equipment).length,10);assert.deepEqual(p.stash,[]);assert.equal(p.shards,0);
   assert.equal(arrange(p.inventory),19);assert.equal(p.inventory.length,24);
 });
 test('failed equipment swaps, stash transfers, and purchases are atomic',()=>{
@@ -44,7 +44,7 @@ test('merchant trades, buyback, supplies, and salvage have consistent costs and 
   const afterPurchase=p.gold;assert.ok(sellItem(p,id).ok);assert.equal(p.inventory.length,0);assert.equal(p.buyback.length,1);
   assert.ok(buyBack(p,0).ok);assert.equal(p.gold,afterPurchase);assert.equal(p.buyback.length,0);
   assert.ok(buySupply(p,'scroll').ok);assert.equal(p.identifyScrolls,1);assert.equal(p.gold,afterPurchase-12);
-  p.potions=5;const old=p.gold;assert.equal(buySupply(p,'flask').ok,false);assert.equal(p.gold,old);
+  p.potions=5;p.flask.charges=100;const old=p.gold;assert.equal(buySupply(p,'flask').ok,false);assert.equal(p.gold,old);
   assert.ok(salvageItem(p,id).ok);assert.ok(p.shards>0);assert.equal(p.inventory.length,0);
 });
 test('reforging rerolls one property and preserves identity, base power, and all other properties',()=>{

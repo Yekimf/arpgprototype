@@ -1,8 +1,9 @@
+import {ensureFlask,refillFlask} from './flasks.js';
 import {generateItem, random, requiresIdentification} from './game.js';
 
 export const BAG={width:10,height:4}, STASH={width:10,height:8};
-export const EQUIPMENT={helm:'Head',charm:'Amulet',weapon:'Main hand',armor:'Body armor',shield:'Off hand',gloves:'Hands',belt:'Belt',ring:'Ring',boots:'Feet'};
-export const AFFIXES={life:'Life',crit:'Critical chance',bonus:'All damage',spirit:'Spirit'};
+export const EQUIPMENT={helm:'Head',charm:'Amulet',weapon:'Main hand',armor:'Body armor',shield:'Off hand',gloves:'Hands',belt:'Belt',ring:'Left ring',ring2:'Right ring',boots:'Feet'};
+export const AFFIXES={life:'Life',crit:'Critical chance',bonus:'All damage',spirit:'Spirit',fireResist:'Fire resistance',coldResist:'Cold resistance',lightningResist:'Storm resistance',lifeRegen:'Life regeneration',fireDamage:'Fire damage',flaskGain:'Flask charge recovery',attackRate:'Attack speed',block:'Block chance'};
 export const NPCS=[
   {id:'guide',name:'Sister Maelin',role:'HEALER & GUIDE',x:31.5,y:30.5,sprite:1,description:'Keeper of the last light'},
   {id:'merchant',name:'Orrin',role:'PROVISIONS & TRADE',x:29.5,y:34.5,sprite:3,description:'A fair price for a hard road'},
@@ -57,17 +58,20 @@ export function migratePlayer(player){
     item.id??=`legacy-${Math.random().toString(36).slice(2)}`;
     item.durability??=100;if(!['magic','rare','legendary'].includes(item.rarity))item.identified=true;item.identified??=true;item.reforges??=0;
   }
-  arrange(player.inventory);arrange(player.stash,STASH);return player;
+  ensureFlask(player);arrange(player.inventory);arrange(player.stash,STASH);return player;
 }
 function result(ok,message,extra={}){return {ok,message,...extra};}
-export function equipItem(player,id){
+export function equipItem(player,id,targetSlot=null){
   const index=player.inventory.findIndex(i=>i.id===id),item=player.inventory[index];
   if(!item)return result(false,'Choose an item first.');
   if(requiresIdentification(item))return result(false,'Identify this relic before equipping it.');
-  const old=player.equipment[item.slot],remaining=player.inventory.filter(i=>i.id!==id);
+  if(item.requiredLevel>player.level)return result(false,`Requires level ${item.requiredLevel}.`);
+  const slot=targetSlot||((item.slot==='ring'&&player.equipment.ring&&!player.equipment.ring2)?'ring2':item.slot);
+  if(slot!==item.slot&&!(item.slot==='ring'&&slot==='ring2'))return result(false,'That item belongs in a different slot.');
+  const old=player.equipment[slot],remaining=player.inventory.filter(i=>i.id!==id);
   let spot=null;
   if(old){spot=findSpace(remaining,old);if(!spot)return result(false,'Make space in your pack for the equipped item.');}
-  player.inventory.splice(index,1);player.equipment[item.slot]=item;
+  player.inventory.splice(index,1);player.equipment[slot]=item;
   if(old){old.bagX=spot.x;old.bagY=spot.y;player.inventory.push(old);}
   return result(true,`${item.name} equipped.`);
 }
@@ -120,9 +124,9 @@ export function buyBack(player,index){
 }
 export function buySupply(player,type){
   const cost=type==='flask'?8:12;if(player.gold<cost)return result(false,`You need ${cost} gold.`);
-  if(type==='flask'&&player.potions>=5)return result(false,'Your flask is already full.');
-  player.gold-=cost;if(type==='flask')player.potions++;else player.identifyScrolls++;
-  return result(true,type==='flask'?'One flask charge restored.':'Scroll of insight purchased.');
+  if(type==='flask'&&ensureFlask(player).charges>=100)return result(false,'Your flask is already full.');
+  player.gold-=cost;if(type==='flask')refillFlask(player,20);else player.identifyScrolls++;
+  return result(true,type==='flask'?'20 flask charges restored.':'Scroll of insight purchased.');
 }
 export function salvageItem(player,id){
   const index=player.inventory.findIndex(i=>i.id===id),item=player.inventory[index];if(!item)return result(false,'Choose an item from your pack.');
@@ -130,19 +134,22 @@ export function salvageItem(player,id){
   player.shards+=shards;player.inventory.splice(index,1);return result(true,`Salvaged into ${shards} ember shard${shards===1?'':'s'}.`);
 }
 export function reforgeCost(item){return {gold:25+(item.level||1)*10+(item.reforges||0)*20,shards:item.rarity==='legendary'?3:item.rarity==='rare'?2:1};}
-export function reforgeAffixes(item){return Object.keys(AFFIXES).filter(k=>item[k]>0&&!(k==='spirit'&&item.slot==='charm')&&!(k==='crit'&&item.slot==='ring'));}
+export function reforgeAffixes(item){
+  if(Array.isArray(item.affixes))return [...new Set(item.affixes.map(a=>a.stat))].filter(k=>AFFIXES[k]&&item[k]>0);
+  return Object.keys(AFFIXES).filter(k=>item[k]>0&&!(k==='spirit'&&item.slot==='charm')&&!(k==='crit'&&item.slot==='ring'));
+}
 export function reforgeItem(player,id,affix,rng=Math.random){
   const item=[...player.inventory,...Object.values(player.equipment).filter(Boolean)].find(i=>i.id===id);
   if(!item)return result(false,'Choose an item first.');
   if(requiresIdentification(item))return result(false,'Identify this item before reforging it.');
   if(!reforgeAffixes(item).includes(affix))return result(false,'Choose a magical property to reroll.');
   const cost=reforgeCost(item);if(player.gold<cost.gold||player.shards<cost.shards)return result(false,`Reforging needs ${cost.gold} gold and ${cost.shards} ember shards.`);
-  const old=item[affix],scale=(1+(item.level||1)*.18)*({normal:1,magic:1.35,rare:1.8,legendary:2.5}[item.rarity]||1);
-  const range=affix==='life'?[5,22]:affix==='crit'?[1,5]:affix==='bonus'?[2,9]:[5,18];
-  const min=Math.max(1,Math.round(range[0]*scale)),max=Math.round(range[1]*scale);
-  let next=Math.round(min+rng()*(max-min));if(next===old)next=next<max?next+1:Math.max(min,next-1);
-  player.gold-=cost.gold;player.shards-=cost.shards;item[affix]=next;item.reforges=(item.reforges||0)+1;item.durability=100;
-  return result(true,`${AFFIXES[affix]} reforged: ${old} → ${next}.`,{old,value:next});
+  const old=item[affix],metadata=item.affixes?.find(a=>a.stat===affix),baseValue=metadata?old-metadata.value:0,scale=(1+(item.level||1)*.18)*({normal:1,magic:1.35,rare:1.8,legendary:2.5}[item.rarity]||1);
+  const range=affix==='life'?[5,22]:affix==='crit'?[1,5]:affix==='bonus'?[2,9]:affix==='lifeRegen'?[.5,1.8]:affix==='attackRate'?[2,8]:[5,18];
+  const precision=affix==='lifeRegen'?100:1,min=Math.max(1,Math.round(range[0]*scale*precision)),max=Math.round(range[1]*scale*precision);
+  let next=Math.round(min+rng()*(max-min));if(next===Math.round(old*precision))next=next<max?next+1:Math.max(min,next-1);next/=precision;
+  player.gold-=cost.gold;player.shards-=cost.shards;item[affix]=Math.round((baseValue+next)*100)/100;const roll=item.affixes?.find(a=>a.stat===affix);if(roll)roll.value=next;item.reforges=(item.reforges||0)+1;item.durability=100;
+  return result(true,`${AFFIXES[affix]} reforged: ${old} → ${item[affix]}.`,{old,value:item[affix]});
 }
 export function repairCost(player){return Object.values(player.equipment).filter(i=>i&&i.durability<100).reduce((sum,i)=>sum+Math.ceil((100-i.durability)*.55)+2,0);}
 export function repairAll(player){

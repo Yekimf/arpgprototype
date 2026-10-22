@@ -1,3 +1,4 @@
+import {createRelic} from './itemization.js';
 export const requiresIdentification=item=>!!item&&['magic','rare','legendary'].includes(item.rarity)&&item.identified===false;
 export const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 export const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -84,34 +85,34 @@ export function findPath(dungeon,from,to) {
 
 export const MASTERIES = {
   iron: {name:'Ironbound',subtitle:'STEEL · ENDURANCE · RUPTURE',description:'Stand against the dark. Turn raw strength into sweeping strikes and relentless momentum.',color:'#d8b579',nodes:[
-    {id:'cleave',name:'Rift Cleave',icon:'╱',max:5,req:0,active:true,cost:16,cooldown:4,description:'A sweeping arc deals {v}% weapon damage. Hits all enemies in front of you.',base:170,step:30},
+    {id:'cleave',name:'Sweeping Cut',icon:'╱',max:5,req:0,active:true,cost:16,cooldown:4,description:'A sweeping arc deals {v}% weapon damage. Hits all enemies in front of you.',base:170,step:30},
     {id:'vigor',name:'Unyielding',icon:'♜',max:5,req:0,description:'+{v} maximum life and +2 armor per rank.',base:18,step:18},
     {id:'precision',name:'Keen Edge',icon:'⟡',max:5,req:0,description:'+{v}% critical chance. Critical strikes deal 175% damage.',base:3,step:3},
-    {id:'quake',name:'Earthshatter',icon:'✹',max:5,req:3,active:true,cost:26,cooldown:8,description:'Slam the ground for {v}% weapon damage. Slows nearby enemies.',base:230,step:40},
+    {id:'quake',name:'Shieldbreaker',icon:'✹',max:5,req:3,active:true,cost:26,cooldown:8,description:'Slam the ground for {v}% weapon damage. Slows nearby enemies.',base:230,step:40},
     {id:'blood',name:'Blood Drinker',icon:'♧',max:3,req:3,description:'Attacks restore {v} life per enemy hit.',base:2,step:2},
-    {id:'whirl',name:'Blade Tempest',icon:'✺',max:5,req:7,active:true,cost:32,cooldown:11,description:'Release six expanding blades for {v}% damage each.',base:85,step:18},
+    {id:'whirl',name:'Whirling Guard',icon:'✺',max:5,req:7,active:true,cost:32,cooldown:11,description:'A close whirling defence strikes nearby foes for {v}% damage per sweep over 1.2 seconds.',base:85,step:18},
     {id:'execution',name:'Executioner',icon:'♔',max:3,req:7,description:'Deal {v}% more damage to enemies below 35% life.',base:15,step:15},
   ]},
   ember: {name:'Cinderweaver',subtitle:'FIRE · DEVOTION · IMMOLATION',description:'Bind the last embers of a fallen star. Every flame carries the promise of another.',color:'#d89a6d',nodes:[
     {id:'bolt',name:'Ember Bolt',icon:'♨',max:5,req:0,active:true,cost:12,cooldown:1.5,description:'Launch a piercing ember for {v}% damage. Burns for 3 seconds.',base:145,step:28},
     {id:'kindling',name:'Kindling',icon:'♢',max:5,req:0,description:'+{v}% fire damage, including burning damage.',base:8,step:8},
     {id:'spirit',name:'Inner Furnace',icon:'☼',max:5,req:0,description:'+{v} maximum spirit and +0.6 spirit regeneration per rank.',base:12,step:12},
-    {id:'meteor',name:'Falling Star',icon:'☄',max:5,req:3,active:true,cost:30,cooldown:8,description:'Call a meteor at your aim for {v}% fire damage in an area.',base:260,step:45},
+    {id:'meteor',name:'Consecrated Ground',icon:'☄',max:5,req:3,active:true,cost:30,cooldown:8,description:'Kindle the aimed ground for 5 seconds, dealing {v}% fire damage per second to enemies standing within it.',base:75,step:15},
     {id:'ash',name:'Ashen Veil',icon:'◈',max:3,req:3,description:'+{v}% damage resistance while your spirit is above 50%.',base:5,step:5},
-    {id:'inferno',name:'Sunfire',icon:'✷',max:5,req:7,active:true,cost:38,cooldown:12,description:'Ignite an expanding ring for {v}% damage and burning.',base:310,step:50},
+    {id:'inferno',name:'Martyr’s Pyre',icon:'✷',max:5,req:3,active:true,toggle:true,cost:0,cooldown:0,description:'Toggle a burning aura. Scorches nearby enemies using maximum life and spirit. Burns 9% of your maximum life each second before fire resistance; life regeneration and flasks sustain it. Stops at 5% life. Higher ranks deal {v}% base aura damage.',base:100,step:18},
     {id:'phoenix',name:'Phoenix Heart',icon:'♧',max:3,req:7,description:'Kills restore {v} life and 3 spirit per rank.',base:6,step:6},
   ]},
   aether: {name:'Hollow Sage',subtitle:'FROST · AETHER · CONVERGENCE',description:'Listen to the silence between worlds. Shape its stillness into a weapon.',color:'#8dc2be',nodes:[
-    {id:'nova',name:'Frost Nova',icon:'❄',max:5,req:0,active:true,cost:22,cooldown:6,description:'A freezing wave deals {v}% damage and slows foes for 3 seconds.',base:130,step:25},
+    {id:'nova',name:'Hoarfrost',icon:'❄',max:5,req:0,active:true,cost:22,cooldown:6,description:'A freezing wave deals {v}% damage and slows foes for 3 seconds.',base:130,step:25},
     {id:'resonance',name:'Resonance',icon:'✧',max:5,req:0,description:'+{v}% cold and aether damage.',base:8,step:8},
     {id:'flow',name:'Temporal Flow',icon:'⌛',max:5,req:0,description:'Reduce all ability cooldowns by {v}%.',base:4,step:4},
-    {id:'chain',name:'Arc Lightning',icon:'ϟ',max:5,req:3,active:true,cost:24,cooldown:4,description:'Lightning jumps between up to 5 targets for {v}% damage.',base:155,step:30},
+    {id:'chain',name:'Storm Thread',icon:'ϟ',max:5,req:3,active:true,cost:24,cooldown:4,description:'Lightning jumps between up to 5 targets for {v}% damage.',base:155,step:30},
     {id:'ward',name:'Aether Ward',icon:'⛊',max:3,req:3,description:'+{v} armor. Dodge restores 6 spirit per rank.',base:4,step:4},
-    {id:'vortex',name:'Gravity Well',icon:'◎',max:5,req:7,active:true,cost:35,cooldown:11,description:'Pull enemies into a vortex for 4 seconds, dealing {v}% damage per second.',base:65,step:15},
+    {id:'vortex',name:'Gravewind',icon:'◎',max:5,req:7,active:true,cost:35,cooldown:11,description:'Pull enemies into a vortex for 4 seconds, dealing {v}% damage per second.',base:65,step:15},
     {id:'convergence',name:'Convergence',icon:'❖',max:3,req:7,description:'+{v}% all damage for each mastery with 3+ invested points.',base:5,step:5},
   ]},
 };
-export const INNATE_SKILL={id:'lance',name:'Spirit Lance',icon:'➹',max:5,req:0,active:true,cost:8,cooldown:2,base:110,step:20,description:'A focused aether projectile deals {v}% weapon damage, aimed at the cursor.'};
+export const INNATE_SKILL={id:'lance',name:'Spectral Shard',icon:'➹',max:5,req:0,active:true,cost:8,cooldown:2,base:110,step:20,description:'A focused aether projectile deals {v}% weapon damage, aimed at the cursor.'};
 MASTERIES.aether.nodes.push(INNATE_SKILL);
 export const ALL_SKILLS=Object.values(MASTERIES).flatMap(m=>m.nodes);
 export const getSkill=id=>ALL_SKILLS.find(n=>n.id===id);
@@ -128,38 +129,26 @@ export function playerStats(player) {
   const items=Object.values(player.equipment).filter(Boolean);
   const total=key=>items.reduce((s,i)=>s+(requiresIdentification(i)?0:(i[key]||0)*(['damage','armor'].includes(key)&&i.durability<=0?.5:1)),0);
   const r=id=>rankOf(player,id), invested=Object.keys(MASTERIES).filter(k=>masteryPoints(player,k)>=3).length,a=player.attributes||{},might=a.might||0,vitality=a.vitality||0,will=a.will||0,dexterity=a.dexterity||0;
-  return {maxHp:120+(player.level-1)*16+r('vigor')*18+total('life')+vitality*6,maxMana:80+r('spirit')*12+total('spirit')+will*4,damage:18+(player.level-1)*2+total('damage')+might*1.5,armor:3+r('vigor')*2+r('ward')*4+total('armor')+vitality*.25,crit:7+r('precision')*3+total('crit')+dexterity*.4,speed:3.8+total('speed'),regen:5+r('spirit')*.6+will*.08,bonus:1+(total('bonus')+r('convergence')*5*invested)/100,fire:1+r('kindling')*.08,cold:1+r('resonance')*.08,cdr:1-r('flow')*.04};
+  return {maxHp:120+(player.level-1)*16+r('vigor')*18+total('life')+vitality*6,maxMana:80+r('spirit')*12+total('spirit')+will*4,damage:18+(player.level-1)*2+total('damage')+might*1.5,armor:3+r('vigor')*2+r('ward')*4+total('armor')+vitality*.25,crit:7+r('precision')*3+total('crit')+dexterity*.4,reach:player.equipment.weapon?.reach||1.85,attackSpeed:(player.equipment.weapon?.attackSpeed||1)*(1+total('attackRate')/100),fireResist:clamp(total('fireResist'),0,75),coldResist:clamp(total('coldResist'),0,75),lightningResist:clamp(total('lightningResist'),0,75),lifeRegen:.8+total('lifeRegen'),flaskGain:total('flaskGain'),flaskRecovery:total('flaskRecovery'),block:clamp(total('block'),0,60),evasion:clamp(total('evasion'),0,50),speed:Math.max(2.4,3.8+total('speed')),regen:5+r('spirit')*.6+will*.08,bonus:1+(total('bonus')+r('convergence')*5*invested)/100,fire:1+r('kindling')*.08+total('fireDamage')/100,cold:1+r('resonance')*.08,cdr:1-r('flow')*.04};
+}
+export function mitigateDamage(amount,stats,element='physical',guard=0){
+  const resistance=element==='fire'?stats.fireResist:element==='cold'?stats.coldResist:element==='aether'||element==='lightning'?stats.lightningResist:0;
+  return Math.max(1,Math.round(amount*(element==='physical'?100/(100+stats.armor*3):1)*(1-guard)*(1-(resistance||0)/100)));
 }
 export const xpNeeded=level=>Math.round(55+level*30+Math.pow(level,1.7)*10);
 export const ORIGINS={vanguard:{name:'Royal Vanguard',description:'You held the king’s shield wall. Strength and endurance are your inheritance.',attributes:{might:2,vitality:2,will:0,dexterity:0}},templar:{name:'Sun-sworn Templar',description:'You guarded the royal chapel. The old gods have not forgotten your oath.',attributes:{might:0,vitality:1,will:3,dexterity:0}},outrider:{name:'King’s Outrider',description:'You carried the king’s word beyond the walls. Your blade is swift and certain.',attributes:{might:1,vitality:0,will:0,dexterity:3}}};
 export function createPlayer(options={}) {
   const origin=ORIGINS[options.origin]?options.origin:'vanguard';
-  return {name:String(options.name||'The Loyalist').trim().slice(0,24),origin,appearance:options.appearance==='iron'?'iron':'crimson',progressionVersion:2,attributes:{...ORIGINS[origin].attributes},attributePoints:0,x:0,y:0,level:1,xp:0,gold:0,points:0,skills:{},slots:[null,null,null,null],mouseSkill:'basic',equipment:{weapon:{name:'King’s Service Sword',slot:'weapon',rarity:'normal',damage:5,level:1,icon:'⚔',id:'starter-sword'},armor:{name:'Weathered Hauberk',slot:'armor',rarity:'normal',armor:3,level:1,icon:'⛊',id:'starter-armor'},charm:null,boots:null,helm:null,gloves:null,belt:null,ring:null,shield:null},inventory:[],stash:[],shards:0,identifyScrolls:0,buyback:[],shopStock:null,quests:{guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false},hp:120,mana:80,potions:3,kills:0,deaths:0};
+  return {name:String(options.name||'The Loyalist').trim().slice(0,24),origin,appearance:options.appearance==='iron'?'iron':'crimson',progressionVersion:2,attributes:{...ORIGINS[origin].attributes},attributePoints:0,x:0,y:0,level:1,xp:0,gold:0,points:0,skills:{},slots:[null,null,null,null],mouseSkill:'basic',equipment:{weapon:{name:'King’s Service Sword',slot:'weapon',rarity:'normal',damage:5,level:1,icon:'⚔',id:'starter-sword'},armor:{name:'Weathered Hauberk',slot:'armor',rarity:'normal',armor:3,level:1,icon:'⛊',id:'starter-armor'},charm:null,boots:{id:'starter-greaves',name:'Worn Greaves',slot:'boots',rarity:'normal',level:1,look:'steel'},helm:{id:'starter-helm',name:'Worn Sallet',slot:'helm',rarity:'normal',level:1,armor:1,look:'sallet'},gloves:{id:'starter-gauntlets',name:'Worn Gauntlets',slot:'gloves',rarity:'normal',level:1,look:'steel'},belt:null,ring:null,ring2:null,shield:{id:'starter-buckler',name:'Scarred Buckler',slot:'shield',rarity:'normal',level:1,armor:1,block:4,look:'round'}},inventory:[],stash:[],shards:0,identifyScrolls:0,buyback:[],shopStock:null,quests:{guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false},hp:120,mana:80,potions:3,kills:0,deaths:0};
 }
 export function grantExperience(player,amount){
   if(!Number.isFinite(amount)||amount<=0)return 0;player.xp+=amount;let levels=0;
   while(player.xp>=xpNeeded(player.level)&&player.level<60){player.xp-=xpNeeded(player.level);player.level++;player.points+=2;player.attributePoints=(player.attributePoints||0)+5;levels++;}
-  if(levels){const s=playerStats(player);player.hp=s.maxHp;player.mana=s.maxMana;player.potions=Math.min(5,player.potions+levels);}return levels;
+  if(levels){const s=playerStats(player);player.hp=s.maxHp;player.mana=s.maxMana;player.potions=Math.min(5,player.potions+levels);if(player.flask){player.flask.charges=Math.min(100,player.flask.charges+levels*20);player.potions=Math.floor(player.flask.charges/20);}}return levels;
 }
 export function spendAttribute(player,key){if(!['might','vitality','will','dexterity'].includes(key)||!(player.attributePoints>0))return false;player.attributes??={};player.attributes[key]=(player.attributes[key]||0)+1;player.attributePoints--;return true;}
-const ITEM_BASES={weapon:['Falchion','War Axe','Runeblade','Mace'],armor:['Chainmail','Brigandine','Cuirass','Vestment'],charm:['Talisman','Moonstone','Reliquary','Pendant'],boots:['Greaves','Pathfinders','Sabatons','Treads'],helm:['Sallet','War Helm','Crown','Great Helm'],gloves:['Gauntlets','Grips','Gloves','Handguards'],belt:['Girdle','War Belt','Sash','Belt'],ring:['Signet','Band','Ring','Seal'],shield:['Buckler','Kite Shield','Round Shield','Ward']};
-export function generateItem(rng,depth,guaranteedRare=false) {
-  const roll=rng(),rarity=guaranteedRare?(roll<.2?'legendary':'rare'):roll<.03?'legendary':roll<.22?'rare':roll<.65?'magic':'normal';
-  const slot=Object.keys(ITEM_BASES)[Math.floor(rng()*Object.keys(ITEM_BASES).length)],power=({normal:1,magic:1.35,rare:1.8,legendary:2.5}[rarity])*(1+depth*.18);
-  const base=ITEM_BASES[slot][Math.floor(rng()*4)];
-  const prefix=['Ashen','Hollow','Gilded','Stormbound','Dread','Runic'][Math.floor(rng()*6)];
-  const item={id:`${Date.now()}-${Math.floor(rng()*1e8)}`,name:rarity==='normal'?base:`${prefix} ${base}`,slot,rarity,level:depth,icon:{weapon:'⚔',armor:'⛊',charm:'◈',boots:'♜',helm:'♔',gloves:'✥',belt:'∞',ring:'◉',shield:'⛨'}[slot],identified:rarity==='normal',durability:100,reforges:0};
-  if(slot==='weapon')item.damage=Math.round((4+rng()*4)*power);
-  if(slot==='armor')item.armor=Math.round((3+rng()*4)*power);
-  if(slot==='charm')item.spirit=Math.round((7+rng()*7)*power);
-  if(slot==='boots')item.speed=Math.round((.1+rng()*.25)*power*100)/100;
-  if(['helm','gloves','belt','shield'].includes(slot))item.armor=Math.round((2+rng()*3)*power);
-  if(slot==='ring')item.crit=Math.max(1,Math.round(2*power));
-  if(rarity!=='normal') {const key=['life','crit','bonus'][Math.floor(rng()*3)];item[key]=Math.round((key==='life'?12:key==='crit'?2:4)*power);}
-  if(rarity==='rare'||rarity==='legendary') item.life=(item.life||0)+Math.round(10*power);
-  if(rarity==='legendary')item.bonus=(item.bonus||0)+12;
-  return item;
-}
+export const generateItem=createRelic;
 export function itemDescription(item) {
-  return [['damage','Weapon damage'],['armor','Armor'],['life','Life'],['spirit','Spirit'],['crit','% critical chance'],['speed','Movement speed'],['bonus','% all damage']].filter(([key])=>item[key]).map(([key,name])=>`+${item[key]} ${name}`);
+  const lines=[['damage','Weapon damage'],['armor','Armor'],['life','Life'],['spirit','Spirit'],['crit','% critical chance'],['speed','Movement speed'],['bonus','% all damage'],['fireResist','% fire resistance'],['coldResist','% cold resistance'],['lightningResist','% storm resistance'],['lifeRegen','Life regenerated / sec'],['fireDamage','% fire damage'],['flaskGain','% flask charge recovery'],['attackRate','% attack speed'],['block','% block chance'],['evasion','% evasion']].filter(([key])=>item[key]).map(([key,name])=>`${item[key]<0?'':'+'}${item[key]} ${name}`);
+  if(item.reach)lines.push(`Reach ${item.reach.toFixed(2)}`);if(item.attackSpeed)lines.push(`Attack speed ×${item.attackSpeed.toFixed(2)}`);return lines;
 }

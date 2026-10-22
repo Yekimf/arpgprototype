@@ -1,0 +1,53 @@
+// Item families drive both combat statistics and visible equipment layers.
+export const BASES=[
+ {id:'sword',name:'Falchion',slot:'weapon',look:'sword',art:4,damage:[5,9],reach:1.85,attackSpeed:1},
+ {id:'axe',name:'War Axe',slot:'weapon',look:'axe',art:5,damage:[7,12],reach:1.7,attackSpeed:.88},
+ {id:'mace',name:'Flanged Mace',slot:'weapon',look:'mace',art:15,damage:[8,13],reach:1.65,attackSpeed:.82},
+ {id:'spear',name:'Boar Spear',slot:'weapon',look:'spear',art:4,damage:[5,10],reach:2.65,attackSpeed:.92},
+ {id:'leather',name:'Hardened Jerkin',slot:'armor',look:'leather',art:6,armor:[3,6],evasion:[3,7]},
+ {id:'chain',name:'Mail Hauberk',slot:'armor',look:'chain',art:6,armor:[6,10]},
+ {id:'plate',name:'Iron Cuirass',slot:'armor',look:'plate',art:6,armor:[9,14],speed:[-.12,-.04]},
+ {id:'vestment',name:'Ashen Vestment',slot:'armor',look:'robe',art:6,armor:[2,4],spirit:[8,15]},
+ {id:'sallet',name:'Sallet',slot:'helm',look:'sallet',art:7,armor:[2,4]},
+ {id:'greathelm',name:'Great Helm',slot:'helm',look:'greathelm',art:7,armor:[4,7]},
+ {id:'hood',name:'Pilgrim Hood',slot:'helm',look:'hood',art:7,armor:[1,3],spirit:[4,7]},
+ {id:'gloves',name:'Leather Grips',slot:'gloves',look:'leather',art:8,armor:[1,3],attackRate:[2,5]},
+ {id:'gauntlets',name:'Steel Gauntlets',slot:'gloves',look:'steel',art:8,armor:[3,5]},
+ {id:'boots',name:'Wayfarer Boots',slot:'boots',look:'leather',art:9,speed:[.12,.28]},
+ {id:'greaves',name:'Iron Greaves',slot:'boots',look:'steel',art:9,armor:[2,4],speed:[.05,.16]},
+ {id:'belt',name:'Soldier’s Girdle',slot:'belt',look:'leather',art:10,life:[6,12]},
+ {id:'ring',name:'Iron Signet',slot:'ring',look:'iron',art:11,crit:[1,3]},
+ {id:'charm',name:'Sunstone Pendant',slot:'charm',look:'amber',art:12,spirit:[7,13]},
+ {id:'buckler',name:'Round Buckler',slot:'shield',look:'round',art:13,armor:[3,6],block:[6,10]},
+ {id:'kite',name:'Kite Shield',slot:'shield',look:'kite',art:13,armor:[5,9],block:[10,16]},
+];
+export const AFFIX_POOL=[
+ {id:'stalwart',name:'Stalwart',stat:'life',range:[8,16]},
+ {id:'keen',name:'Keen',stat:'crit',range:[1,3]},
+ {id:'ferocious',name:'Merciless',stat:'bonus',range:[4,8]},
+ {id:'warded',name:'Emberward',stat:'fireResist',range:[8,16]},
+ {id:'winter',name:'Winterbound',stat:'coldResist',range:[8,16]},
+ {id:'storm',name:'Stormward',stat:'lightningResist',range:[8,16]},
+ {id:'renewal',name:'Mending',stat:'lifeRegen',range:[.6,1.4]},
+ {id:'devout',name:'Devout',stat:'fireDamage',range:[7,14]},
+ {id:'brimming',name:'Brimming',stat:'flaskGain',range:[10,20]},
+ {id:'quick',name:'Deft',stat:'attackRate',range:[3,7]},
+];
+const precision=stat=>['speed','lifeRegen'].includes(stat)?100:1;
+const scaled=(n,rng,power,step=1)=>Math.round((n[0]+rng()*(n[1]-n[0]))*power*step)/step;
+export function createRelic(rng,depth,guaranteedRare=false){
+ const roll=rng(),rarity=guaranteedRare?(roll<.2?'legendary':'rare'):roll<.03?'legendary':roll<.22?'rare':roll<.65?'magic':'normal';
+ // Select a slot before its base so accessories do not crowd out equipment drops.
+ const slots=['weapon','armor','helm','shield','gloves','boots','belt','ring','charm'],slot=slots[Math.floor(rng()*slots.length)],choices=BASES.filter(b=>b.slot===slot),base=choices[Math.floor(rng()*choices.length)],power=1+Math.max(0,depth-1)*.27;
+ const item={id:`${Date.now()}-${Math.floor(rng()*1e8)}`,name:base.name,base:base.id,slot,look:base.look,art:base.art,rarity,level:depth,requiredLevel:Math.max(1,Math.floor((depth-1)*2)+1),identified:rarity==='normal',durability:100,reforges:0,affixes:[]};
+ for(const [key,value] of Object.entries(base))if(Array.isArray(value))item[key]=scaled(value,rng,power,precision(key));
+ if(base.reach)item.reach=base.reach;if(base.attackSpeed)item.attackSpeed=base.attackSpeed;
+ const pool=[...AFFIX_POOL],count=rarity==='normal'?0:rarity==='magic'?1:rarity==='rare'?3:4;
+ for(let i=0;i<count;i++){const at=Math.floor(rng()*pool.length),affix=pool.splice(at,1)[0],tier=Math.min(5,1+Math.floor(depth/2)),value=scaled(affix.range,rng,1+(tier-1)*.3,precision(affix.stat));item[affix.stat]=(item[affix.stat]||0)+value;item.affixes.push({id:affix.id,stat:affix.stat,value,tier});}
+ if(rarity==='rare'||rarity==='legendary')item.life=(item.life||0)+Math.round(10*power);
+ if(count)item.name=`${AFFIX_POOL.find(a=>a.id===item.affixes[0].id).name} ${base.name}`;
+ if(rarity==='legendary'){item.unique=slot==='armor'||slot==='helm'?'ember-vow':slot==='boots'||slot==='belt'?'pilgrim-vow':'royal-vow';if(item.unique==='ember-vow'){item.name='The Cinderbound Oath';item.fireResist=(item.fireResist||0)+20;item.lifeRegen=(item.lifeRegen||0)+1.5;}else if(item.unique==='pilgrim-vow'){item.name='The Long Vigil';item.flaskGain=(item.flaskGain||0)+25;item.life=(item.life||0)+20;}else{item.name='Alaric’s Remembrance';item.bonus=(item.bonus||0)+12;item.life=(item.life||0)+24;}}
+ return item;
+}
+export function itemLook(item,slot=item?.slot){if(!item)return 'none';if(item.look)return item.look;if(slot==='armor'&&(item.id==='starter-armor'||item.name==='Weathered Hauberk'))return 'original';const name=item.name?.toLowerCase()||'';return slot==='weapon'?/axe/.test(name)?'axe':/mace|hammer/.test(name)?'mace':/spear|pike/.test(name)?'spear':'sword':slot==='armor'?/vest|robe/.test(name)?'robe':/cuirass|plate|brigand/.test(name)?'plate':/leather|jerkin/.test(name)?'leather':'chain':slot==='helm'?/hood|cowl/.test(name)?'hood':/great|crown/.test(name)?'greathelm':'sallet':slot==='shield'?/kite|tower/.test(name)?'kite':'round':slot==='boots'||slot==='gloves'?/iron|steel|sabat|greave|gaunt/.test(name)?'steel':'leather':'leather';}
+export function appearanceOf(p){const out={surcoat:p.appearance||'crimson'};for(const slot of ['armor','helm','weapon','shield','boots','gloves','belt','charm','ring','ring2']){const item=p.equipment[slot];out[slot]=itemLook(item,slot);out[slot+'Rarity']=item?.rarity||'none';}return out;}

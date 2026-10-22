@@ -1,20 +1,27 @@
+import {itemArt} from './item-art.js';
+import {skillIcon} from './skill-icons.js';
+import {ensureFlask,refillFlask,drinkFlask,tickFlask,combatFlaskCharges,FLASK} from './flasks.js';
+import {togglePyre,tickPyre,pyreStats} from './devotion.js';
+import {appearanceOf} from './itemization.js';
 import './style.css';
 import './town.css';
 import './hud.css';
 import './front-end.css';
 import './retro.css';
+import './classic-inventory.css';
 import {NPCDialogue} from './npc-dialogue.js';
-import {STORY_ART,LEATHER_ART,MAP_ART,SOLDIER_ART} from './assets.js';
+import {STORY_ART,LEATHER_ART,MAP_ART,GUARD_ART,STONE_ART} from './assets.js';
 import {FrontEnd} from './front-end.js';
 import {ACTS,actFor,createCampaign,ensureCampaign,discoverLocation,attuneWaypoint,canTravel,locationId,defeatCampaignBoss,canAdvance,advanceCampaign,campaignObjective,generateWilderness,generateStronghold,inSanctuary} from './campaign.js';
 import {renderCampaignPanel} from './campaign-ui.js';
-import {generateDungeon,makeEnemy,grantExperience,spendAttribute,skillLevel,ORIGINS,random,distance,moveEntity,isWalkable,findPath,createPlayer,playerStats,MASTERIES,ALL_SKILLS,getSkill,rankOf,masteryPoints,learnSkill,canLearn,clamp,xpNeeded,generateItem} from './game.js';
+import {generateDungeon,makeEnemy,grantExperience,spendAttribute,skillLevel,ORIGINS,random,distance,moveEntity,isWalkable,findPath,createPlayer,playerStats,mitigateDamage,MASTERIES,ALL_SKILLS,getSkill,rankOf,masteryPoints,learnSkill,canLearn,clamp,xpNeeded,generateItem} from './game.js';
 import {Renderer} from './renderer.js';
 import {migratePlayer,generateTown,generateStock,addToContainer,itemName} from './settlement.js';
 import {TownUI,HUD_PANELS} from './town-ui.js';
 
 const $=id=>document.getElementById(id);
 const escapeText=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+$('basic-slot').querySelector('.ability-art').innerHTML=skillIcon('basic');$('potion-slot').querySelector('.ability-art').innerHTML=itemArt({art:14});
 const isTouch=matchMedia('(pointer:coarse)').matches;
 const SAVE_KEY='ashen-reliquary-save-v1';
 const renderer=new Renderer($('world'),$('minimap'));
@@ -23,8 +30,8 @@ try{saved=JSON.parse(localStorage.getItem(SAVE_KEY));}catch{}
 const validSave=saved?.version===1&&saved.player?.skills&&Array.isArray(saved.player.inventory)&&saved.player.equipment;
 const player=migratePlayer(validSave?{...createPlayer(),...saved.player,progressionVersion:saved.player.progressionVersion??1,attributes:saved.player.attributes??{might:0,vitality:0,will:0,dexterity:0},attributePoints:saved.player.attributePoints??Math.max(0,((saved.player.level||1)-1)*5)}:createPlayer());
 ensureCampaign(player);
-for(const [key,url] of Object.entries({'--soldier-art':SOLDIER_ART,'--story-art':STORY_ART,'--leather-texture':LEATHER_ART,'--map-art':MAP_ART}))document.documentElement.style.setProperty(key,`url("${url}")`);
-const game={player,stats:playerStats(player),dungeon:null,loot:[],projectiles:[],effects:[],floaters:[],cooldowns:{},attackCooldown:0,attackAnim:0,dodgeCooldown:0,dodgeTime:0,potionCooldown:0,hurtFlash:0,moving:false,paused:false,panel:null,time:0,showLoot:false,largeMap:false,depth:validSave?saved.depth:1,seed:validSave?saved.seed:Math.floor(Math.random()*1e9),flow:null,flowTimer:0,aim:{x:player.x+1,y:player.y},target:null,mouseDown:false,lastMove:{x:1,y:0},sound:false,selectedMastery:'iron',selectedItem:null};
+for(const [key,url] of Object.entries({'--guard-art':GUARD_ART,'--inventory-stone':STONE_ART,'--story-art':STORY_ART,'--leather-texture':LEATHER_ART,'--map-art':MAP_ART}))document.documentElement.style.setProperty(key,`url("${url}")`);
+const game={player,stats:playerStats(player),dungeon:null,loot:[],projectiles:[],effects:[],floaters:[],cooldowns:{},attackCooldown:0,attackAnim:0,dodgeCooldown:0,dodgeTime:0,hurtFlash:0,moving:false,paused:false,panel:null,time:0,showLoot:false,largeMap:false,depth:validSave?saved.depth:1,seed:validSave?saved.seed:Math.floor(Math.random()*1e9),flow:null,flowTimer:0,aim:{x:player.x+1,y:player.y},target:null,mouseDown:false,lastMove:{x:1,y:0},sound:false,selectedMastery:'iron',selectedItem:null};
 let keys=new Set(),touchMove={x:0,y:0},toastTimer,saveTimer=0,audioCtx,mouseScreen=null;
 const townUI=new TownUI(game,{save,toast,openPanel,closePanel,enterDungeon,sound});
 const dialogue=new NPCDialogue(game,{project:(x,y)=>renderer.screen(x,y),openPanel,save,toast});
@@ -130,30 +137,33 @@ function damageEnemy(e,base,element='physical',allowCrit=true){
   if(e.hp<=0)kill(e);
 }
 function kill(e){
+  combatFlaskCharges(player,game.stats,{elite:e.elite,boss:e.type==='warden'});
   e.dead=true;e.hp=0;player.kills++;const boss=e.type==='warden';
   const xp=boss?150+game.depth*30:e.elite?32:12+game.depth*2;const levels=grantExperience(player,xp);
   effect('impact',e.x,e.y,.5,{color:boss?'#d1b971':'#a5b78e'});
   game.loot.push({x:e.x+.2,y:e.y,gold:boss?80+game.depth*30:3+Math.floor(Math.random()*9*game.depth)});
   const rng=random(Math.floor(Math.random()*1e9));
   if(boss||e.elite||rng()<.3)game.loot.push({x:e.x-.3,y:e.y+.3,item:generateItem(rng,game.depth,boss)});
-  if(boss&&player.campaign){campaignBossKilled(e);}else if(boss){game.dungeon.bossDead=true;player.quests.wardenDefeated=true;player.quests.scholarRescued=true;player.points+=2;player.potions=Math.min(5,player.potions+2);$('objective').textContent='Return to Maelin · or descend deeper';$('quest-progress').textContent='Archivist rescued · +2 mastery points';toast('EDRIN IS FREE · The archivist awaits you in Emberfall. Press T.',5500);sound(560,.7,'sine');}
+  if(boss&&player.campaign){campaignBossKilled(e);}else if(boss){game.dungeon.bossDead=true;player.quests.wardenDefeated=true;player.quests.scholarRescued=true;player.points+=2;refillFlask(player,40);$('objective').textContent='Return to Maelin · or descend deeper';$('quest-progress').textContent='Archivist rescued · +2 mastery points';toast('EDRIN IS FREE · The archivist awaits you in Emberfall. Press T.',5500);sound(560,.7,'sine');}
   player.hp=Math.min(game.stats.maxHp,player.hp+rankOf(player,'phoenix')*6);player.mana=Math.min(game.stats.maxMana,player.mana+rankOf(player,'phoenix')*3);
   if(levels){game.stats=playerStats(player);effect('ring',player.x,player.y,1.2,{radius:3,color:'#cbd69c'});toast(`LEVEL ${player.level} · +${levels*2} skill points · +${levels*5} attributes · K / C`,4500);sound(680,.45,'sine');const notice=document.createElement('div');notice.className='level-up-notice';notice.innerHTML=`<strong>LEVEL ${player.level}</strong><span>+${levels*2} SKILL POINTS · +${levels*5} ATTRIBUTE POINTS</span>`;document.getElementById('app').append(notice);setTimeout(()=>notice.remove(),4100);}
-  if(Math.random()<.07&&player.potions<5){player.potions++;floater('+1 flask',e.x,e.y,'#ba9b87');}
+
 }
-function hurt(amount){
+function hurt(amount,element='physical'){
   if(game.zone==='town'||game.dodgeTime>0||player.hp<=0)return;
   if(game.channel){game.channel=null;toast('Portal interrupted by damage.',1300);}
   for(const item of Object.values(player.equipment).filter(Boolean))item.durability=Math.max(0,(item.durability??100)-.35);
   const reduction=player.mana>game.stats.maxMana*.5?rankOf(player,'ash')*.05:0;
-  const damage=Math.max(1,Math.round(amount*100/(100+game.stats.armor*3)*(1-reduction)));
+  if(element==='physical'&&Math.random()*100<game.stats.evasion){floater('Evade',player.x,player.y,'#b4b9a3');return;}
+  if(element==='physical'&&Math.random()*100<game.stats.block){floater('Block',player.x,player.y,'#c1b895');sound(210,.1);return;}
+  const damage=mitigateDamage(amount,game.stats,element,reduction);
   player.hp-=damage;game.hurtFlash=.8;floater(`−${damage}`,player.x,player.y,'#df8e78');sound(95,.1,'sawtooth',.018);
-  if(player.hp<=0){player.hp=0;player.deaths++;game.mouseDown=false;openPanel('death');save();}
+  if(player.hp<=0){game.pyre=null;game.whirl=null;player.hp=0;player.deaths++;game.mouseDown=false;openPanel('death');save();}
 }
 function basicAttack(target=null){
   if(game.zone==='town'||game.channel||game.dodgeTime>0||game.attackCooldown>0||game.paused||player.hp<=0)return false;
   if(player.equipment.weapon)player.equipment.weapon.durability=Math.max(0,(player.equipment.weapon.durability??100)-.12);
-  game.castColor=null;game.attackCooldown=.48;game.attackAnim=.38;game.castLock=.28;const aim=target||aimPoint();facePoint(aim);const ax=aim.x-player.x,ay=aim.y-player.y,len=Math.hypot(ax,ay)||1;
+  game.castColor=null;game.attackCooldown=.48/game.stats.attackSpeed;game.attackAnim=.38;game.castLock=.28;const aim=target||aimPoint();facePoint(aim);const ax=aim.x-player.x,ay=aim.y-player.y,len=Math.hypot(ax,ay)||1;
   effect('slash',player.x,player.y,.28,{dx:ax/len,dy:ay/len,radius:1.85});
   game.melee={remaining:.14,ax:ax/len,ay:ay/len};
   return true;
@@ -167,6 +177,7 @@ function castSkill(id,quiet=false){
   if(game.channel){game.channel=null;toast('Portal interrupted.',1000);}
   const skill=getSkill(id),rank=rankOf(player,id);
   if(!skill||!rank)return toast('Learn and equip an ability in Masteries · K');
+  if(id==='inferno'){if(quiet||(game.cooldowns.inferno||0)>0)return;togglePyre(game);game.cooldowns.inferno=.3;toast(game.pyre?'MARTYR’S PYRE · Your life feeds the flame.':'Martyr’s Pyre extinguished.',1500);return true;}
   if((game.cooldowns[id]||0)>0)return;
   if(player.mana<skill.cost){if(!quiet){toast('Not enough spirit',1200);sound(100,.08);}return;}
   player.mana-=skill.cost;game.cooldowns[id]=skill.cooldown*game.stats.cdr;
@@ -178,15 +189,15 @@ function castSkill(id,quiet=false){
     game.attackAnim=.4;sound(150,.22,'sawtooth',.025);
   }else if(id==='bolt'||id==='lance'){
     game.projectiles.push({x:player.x,y:player.y,dx,dy,speed:id==='lance'?12:10,life:1.05,damage:power,kind:id==='lance'?'aether':'fire',hits:new Set(),hostile:false});sound(id==='lance'?570:410,.2,'sawtooth',.015);
-  }else if(id==='nova'||id==='quake'||id==='inferno'){
+  }else if(id==='nova'||id==='quake'){
     const radius=id==='quake'?3.2:id==='nova'?3.6:4.5;elementBurst(id,player.x,player.y,radius,power);sound(id==='nova'?620:130,.4,'triangle');
   }else if(id==='meteor'){
-    effect('meteor-warning',point.x,point.y,.85,{radius:2.4,pending:true,damage:power});sound(180,.6,'sine');
+    effect('meteor-warning',point.x,point.y,.45,{radius:2.15,pending:true,damage:power,playerGround:true});sound(180,.6,'sine');
   }else if(id==='chain'){
     const targets=game.dungeon.enemies.filter(e=>!e.dead&&distance(e,player)<8).sort((a,b)=>distance(a,aim)-distance(b,aim)).slice(0,5);
     let source=player;for(const e of targets){effect('lightning',source.x,source.y,.35,{tx:e.x,ty:e.y});damageEnemy(e,power,'aether');source=e;}if(!targets.length)effect('lightning',player.x,player.y,.3,{tx:point.x,ty:point.y});sound(730,.2,'sawtooth',.02);
   }else if(id==='whirl'){
-    for(let i=0;i<6;i++){const a=i*Math.PI/3;game.projectiles.push({x:player.x,y:player.y,dx:Math.cos(a),dy:Math.sin(a),speed:6,life:1,damage:power,kind:'blade',hits:new Set(),hostile:false});}effect('ring',player.x,player.y,.65,{radius:4,color:'#d3c59c'});sound(200,.4);
+    game.whirl={remaining:1.2,tick:0,damage:power};effect('whirl',player.x,player.y,1.2,{radius:2.4});sound(160,.3);
   }else if(id==='vortex'){
     effect('vortex',point.x,point.y,4,{radius:3,damage:power,tick:.5});sound(220,.4,'sine');
   }
@@ -202,11 +213,12 @@ function dodge(){
   clearAttackOrder();game.melee=null;game.path=null;game.attackAnim=0;game.facing={x:dx/len,y:dy/len};game.dodgeVector={x:dx/len,y:dy/len};game.dodgeTime=.28;game.dodgeCooldown=2.8;player.mana=Math.min(game.stats.maxMana,player.mana+rankOf(player,'ward')*6);effect('ring',player.x,player.y,.35,{radius:1,color:'#b5c5a4'});game.target=null;sound(140,.12);
 }
 function potion(){
-  if(game.paused||game.potionCooldown>0||player.hp<=0)return;
+  if(game.paused||player.hp<=0)return;
   if(player.hp>=game.stats.maxHp)return toast('Your life is already full',1200);
-  if(!player.potions)return toast('Flask empty · Enemies may drop charges',1800);
-  player.potions--;player.hp=Math.min(game.stats.maxHp,player.hp+game.stats.maxHp*.55);game.potionCooldown=4;effect('heal',player.x,player.y,.8);floater('+55% life',player.x,player.y,'#c4d995');sound(440,.3,'sine');
+  if(!drinkFlask(player,game.stats))return toast('Flask needs 20 charges · Combat and time restore it.',1800);
+  effect('heal',player.x,player.y,.65);floater('Recovering life',player.x,player.y,'#b4b28b');sound(330,.22,'sine');save();
 }
+
 function interact(){
   if(game.paused)return;
   if(player.campaign){const target=campaignTargets().filter(t=>distance(t,player)<2.8).sort((a,b)=>distance(a,player)-distance(b,player))[0];if(target){performInteraction(target.interaction);return;}}
@@ -222,7 +234,7 @@ function interact(){
 }
 function descend(){
   if(player.campaign){if(game.zone==='wilderness')enterCampaignArea('stronghold',game.act);else if(game.dungeon.bossDead)openPanel(game.act===5?'victory':'actcomplete');return;}
-  player.hp=game.stats.maxHp;player.mana=game.stats.maxMana;player.potions=Math.min(5,player.potions+1);
+  player.hp=game.stats.maxHp;player.mana=game.stats.maxMana;refillFlask(player,20);
   newFloor(game.depth+1,Math.floor(Math.random()*1e9));save();toast(`DEPTH ${game.depth} · The darkness grows stronger`,3500);
   const intro=$('zone-intro');intro.querySelector('h1').textContent=$('location').textContent;intro.style.animation='none';void intro.offsetWidth;intro.style.animation='intro 9s forwards';
 }
@@ -249,16 +261,16 @@ function movement(){
 function update(dt){
   game.time+=dt;if(game.paused)return;
   game.playerSlow=Math.max(0,game.playerSlow-dt);
-  if(game.melee){game.melee.remaining-=dt;if(game.melee.remaining<=0){const {ax,ay}=game.melee;game.melee=null;let hit=false;for(const e of game.dungeon.enemies){const range=distance(e,player);if(e.dead||range>1.85)continue;const dot=((e.x-player.x)*ax+(e.y-player.y)*ay)/(range||1);if(dot>.35||isTouch){damageEnemy(e,game.stats.damage);hit=true;effect('impact',e.x,e.y,.23);}}sound(hit?180:120,.1,'triangle');}}
+  if(game.melee){game.melee.remaining-=dt;if(game.melee.remaining<=0){const {ax,ay}=game.melee;game.melee=null;let hit=false;for(const e of game.dungeon.enemies){const range=distance(e,player);if(e.dead||range>game.stats.reach)continue;const dot=((e.x-player.x)*ax+(e.y-player.y)*ay)/(range||1);if(dot>.35||isTouch){damageEnemy(e,game.stats.damage);hit=true;effect('impact',e.x,e.y,.23);}}sound(hit?180:120,.1,'triangle');}}
 
   if(game.dungeon.pendingBoss){game.dungeon.pendingBoss.remaining-=dt;if(game.dungeon.pendingBoss.remaining<=0){const next=game.dungeon.pendingBoss.id;game.dungeon.pendingBoss=null;finalBoss(next);}}
   if(mouseScreen&&!isTouch)game.aim=aimPoint();
   $('world').classList.toggle('is-hostile',Boolean(enemyUnderPointer()));
   game.castLock=Math.max(0,game.castLock-dt);game.moveRefresh-=dt;game.combatRefresh-=dt;
-  game.statsTimer=(game.statsTimer||0)-dt;if(game.statsTimer<=0){game.stats=playerStats(player);game.statsTimer=.18;}game.attackCooldown=Math.max(0,game.attackCooldown-dt);game.attackAnim=Math.max(0,game.attackAnim-dt);game.dodgeCooldown=Math.max(0,game.dodgeCooldown-dt);game.potionCooldown=Math.max(0,game.potionCooldown-dt);game.hurtFlash=Math.max(0,game.hurtFlash-dt*2);
+  game.statsTimer=(game.statsTimer||0)-dt;if(game.statsTimer<=0){game.stats=playerStats(player);game.statsTimer=.18;}game.attackCooldown=Math.max(0,game.attackCooldown-dt);game.attackAnim=Math.max(0,game.attackAnim-dt);game.dodgeCooldown=Math.max(0,game.dodgeCooldown-dt);game.hurtFlash=Math.max(0,game.hurtFlash-dt*2);
   for(const id in game.cooldowns)game.cooldowns[id]=Math.max(0,game.cooldowns[id]-dt);
   player.mana=Math.min(game.stats.maxMana,player.mana+game.stats.regen*dt);
-  if(!nearestEnemy(6))player.hp=Math.min(game.stats.maxHp,player.hp+dt*.8);
+  tickFlask(player,game.stats,dt,game.zone==='town');if(player.hp>0)player.hp=Math.min(game.stats.maxHp,player.hp+dt*game.stats.lifeRegen);
   let m=movement();const manual=Math.hypot(m.x,m.y)>.05;
   if(manual){game.target=null;game.path=null;game.interactTarget=null;game.combatTarget=null;game.attackPending=false;}
   if(game.primaryHeld&&game.primaryMode==='move'&&mouseScreen&&game.moveRefresh<=0&&game.pointerOverWorld&&!manual){
@@ -266,7 +278,7 @@ function update(dt){
   }
   if(game.combatTarget?.dead){game.combatTarget=null;game.attackPending=false;game.target=null;game.path=null;}
   if(game.combatTarget){
-    if(distance(game.combatTarget,player)>1.55){if(game.combatRefresh<=0){setMoveTarget(game.combatTarget);game.combatRefresh=.3;}}
+    if(distance(game.combatTarget,player)>game.stats.reach-.3){if(game.combatRefresh<=0){setMoveTarget(game.combatTarget);game.combatRefresh=.3;}}
     else{game.target=null;game.path=null;if(game.attackPending||game.primaryHeld){if(basicAttack(game.combatTarget)){game.attackPending=false;if(!game.primaryHeld)game.combatTarget=null;}}}
   }
   if(!manual&&game.target){
@@ -290,23 +302,25 @@ function update(dt){
     else{game.channel.remaining-=dt;if(game.channel.remaining<=0){enterTown();return;}}
   }
   if(game.interactTarget&&distance(player,game.interactTarget)<1.5){const target=game.interactTarget;game.interactTarget=null;game.target=null;game.path=null;performInteraction(target.interaction);return;}
-  if(game.zone==='town'){player.hp=Math.min(game.stats.maxHp,player.hp+dt*6);}
+  if(game.zone==='town'){game.pyre=null;game.whirl=null;player.hp=Math.min(game.stats.maxHp,player.hp+dt*6);}
   if(game.mouseDown||game.primaryHeld&&game.primaryMode==='force')basicAttack();
   if(game.zone!=='town'){
     if(game.secondaryHeld)castSkill(player.mouseSkill,true);
     SKILL_KEYS.forEach((key,slot)=>{if(keys.has(key))castSkill(player.slots[slot],true);});
   }
+  tickPyre(game,dt,(e,damage)=>damageEnemy(e,damage/(game.stats.fire*game.stats.bonus),'fire',false));
+  if(game.whirl){game.whirl.remaining-=dt;game.whirl.tick-=dt;if(game.whirl.tick<=0){game.whirl.tick+=.24;game.attackAnim=.3;for(const e of game.dungeon.enemies)if(!e.dead&&distance(e,player)<2.4)damageEnemy(e,game.whirl.damage,'physical');}if(game.whirl.remaining<=0)game.whirl=null;}
   reveal();game.flowTimer-=dt;if(game.flowTimer<=0)buildFlow();
   const nearbyEnemies=game.dungeon.enemies.filter(e=>!e.dead&&Math.abs(e.x-player.x)<19&&Math.abs(e.y-player.y)<19);
   const buckets=new Map();for(const e of nearbyEnemies){const key=Math.floor(e.x)+','+Math.floor(e.y);if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(e);}
   for(const e of nearbyEnemies){
-    if(e.dead)continue;e.hit=Math.max(0,e.hit-dt);e.slow=Math.max(0,e.slow-dt);e.attackAnim=Math.max(0,(e.attackAnim||0)-dt);e.cooldown-=dt;e.phase+=dt;
-    if(e.burn>0){e.burn-=dt;e.burnTick=(e.burnTick||0)-dt;if(e.burnTick<=0){e.burnTick=.7;damageEnemy(e,e.burnPower||4,'fire',false);}}
+    if(e.dead)continue;e.pyreGlow=Math.max(0,(e.pyreGlow||0)-dt);e.hit=Math.max(0,e.hit-dt);e.slow=Math.max(0,e.slow-dt);e.attackAnim=Math.max(0,(e.attackAnim||0)-dt);e.cooldown-=dt;e.phase+=dt;
+    if(e.burn>0){e.burn-=dt;e.burnTick=(e.burnTick||0)-dt;if(e.burnTick<=0){e.burnTick=.7;if(e.burnPower>0)damageEnemy(e,e.burnPower,'fire',false);}}
     if(e.dead)continue;
     const dist=distance(e,player),boss=e.type==='warden';
     if(boss&&e.bossId&&dist<10){e.special=(e.special??4)-dt;if(e.special<=0){bossSpecial(e);e.special=e.bossId==='wanderer'?3.8:6;}}
     if(game.zone==='town')continue;if(dist<(boss?9:6.5))e.aggro=true;if(!e.aggro||dist>18)continue;
-    if(e.windup>0){e.windup-=dt;if(e.windup<=0){e.attackAnim=.3;if(boss){effect('quake',e.x,e.y,.65,{radius:2.6,color:'#b7a579'});if(dist<2.7){hurt(e.damage*1.6);if(e.phaseType==='frost'||e.phaseType==='flood')game.playerSlow=2;}e.cooldown=3.2;}else{if(dist<1.35)hurt(e.damage);e.cooldown=1.2;}}continue;}
+    if(e.windup>0){e.windup-=dt;if(e.windup<=0){e.attackAnim=.3;if(boss){effect('quake',e.x,e.y,.65,{radius:2.6,color:'#b7a579'});if(dist<2.7){hurt(e.damage*1.6,e.phaseType==='frost'?'cold':e.phaseType==='fire'?'fire':'physical');if(e.phaseType==='frost'||e.phaseType==='flood')game.playerSlow=2;}e.cooldown=3.2;}else{if(dist<1.35)hurt(e.damage);e.cooldown=1.2;}}continue;}
     if(boss&&dist<2.6&&e.cooldown<=0){e.windup=.85;continue;}
     if(e.type==='wraith'&&dist<6&&e.cooldown<=0){const dx=player.x-e.x,dy=player.y-e.y;game.projectiles.push({x:e.x,y:e.y,dx:dx/dist,dy:dy/dist,speed:3.4,life:2.8,damage:e.damage,kind:'aether',hostile:true});e.cooldown=2.5;continue;}
     if(dist<1.05){if(e.cooldown<=0)e.windup=.32;continue;}
@@ -325,13 +339,14 @@ function update(dt){
   for(const b of game.projectiles){
     b.life-=dt;b.x+=b.dx*b.speed*dt;b.y+=b.dy*b.speed*dt;
     if(!isWalkable(game.dungeon,b.x,b.y,.05)){b.life=0;effect('impact',b.x,b.y,.2,{color:'#d5a671'});continue;}
-    if(b.hostile){if(distance(b,player)<.55){hurt(b.damage);b.life=0;effect('impact',b.x,b.y,.3,{color:'#92c7b0'});}}
+    if(b.hostile){if(distance(b,player)<.55){hurt(b.damage,b.element||(b.kind==='fire'?'fire':'aether'));b.life=0;effect('impact',b.x,b.y,.3,{color:'#92c7b0'});}}
     else for(const e of game.dungeon.enemies){if(e.dead||b.hits.has(e.id)||distance(b,e)>.65)continue;b.hits.add(e.id);damageEnemy(e,b.damage,b.kind==='blade'?'physical':b.kind==='aether'?'aether':'fire');if(b.kind==='fire'){e.burn=3;e.burnPower=b.damage*.12;}effect('impact',e.x,e.y,.3,{color:b.kind==='fire'?'#ebbc7c':'#b4cee5'});}
   }
   game.projectiles=game.projectiles.filter(b=>b.life>0);
   for(const e of game.effects){
-    e.life-=dt;
-    if(e.type==='meteor-warning'&&e.life<=0&&e.pending){e.pending=false;if(e.hostile){effect('inferno',e.x,e.y,.65,{radius:e.radius,color:e.color||'#bc7060'});if(distance(player,e)<e.radius)hurt(e.damage);}else elementBurst('inferno',e.x,e.y,e.radius,e.damage);}
+    e.life-=dt;if(e.type==='whirl'){e.x=player.x;e.y=player.y;}
+    if(e.type==='meteor-warning'&&e.life<=0&&e.pending){e.pending=false;if(e.playerGround){effect('ground-fire',e.x,e.y,5,{radius:e.radius,damage:e.damage,tick:0});}else if(e.hostile){effect('inferno',e.x,e.y,.65,{radius:e.radius,color:e.color||'#bc7060'});if(distance(player,e)<e.radius)hurt(e.damage,e.element||'physical');}else elementBurst('inferno',e.x,e.y,e.radius,e.damage);}
+    if(e.type==='ground-fire'){e.tick-=dt;if(e.tick<=0){e.tick=.4;for(const enemy of game.dungeon.enemies)if(!enemy.dead&&distance(enemy,e)<e.radius){damageEnemy(enemy,e.damage*.4,'fire',false);enemy.pyreGlow=.5;}}}
     if(e.type==='vortex'){
       e.tick-=dt;
       for(const enemy of game.dungeon.enemies)if(!enemy.dead&&distance(enemy,e)<3.5){const dx=e.x-enemy.x,dy=e.y-enemy.y;moveEntity(game.dungeon,enemy,dx*dt*.9,dy*dt*.9);enemy.slow=.2;if(e.tick<=0)damageEnemy(enemy,e.damage*.5,'aether');}
@@ -357,19 +372,19 @@ function updateHud(dt){
   const specialTarget=player.campaign?campaignTargets().filter(t=>distance(t,player)<2.8).sort((a,b)=>distance(a,player)-distance(b,player))[0]:null;
   $('interact-button').classList.toggle('hidden',!npc&&!nearbyStash&&!nearGate&&!specialTarget);
   $('interact-label').textContent=specialTarget?specialTarget.label:npc?`Speak to ${npc.name}`:nearbyStash?'Open personal stash':'Enter the crypt';
-  $('health-text').textContent=`${Math.ceil(player.hp)} / ${s.maxHp}`;$('mana-text').textContent=`${Math.floor(player.mana)} / ${s.maxMana}`;
+  $('health-text').textContent=`${Math.ceil(player.hp)} / ${Math.round(s.maxHp)}`;$('mana-text').textContent=`${Math.floor(player.mana)} / ${Math.round(s.maxMana)}`;
   $('health-liquid').style.height=`${player.hp/s.maxHp*100}%`;$('mana-liquid').style.height=`${player.mana/s.maxMana*100}%`;
   $('level-text').textContent=`${player.name||'THE LOYALIST'} · LV. ${player.level}`;
   $('xp-caption').textContent=`${Math.floor(player.xp)} / ${xpNeeded(player.level)} XP`;$('gold-text').textContent=`◈ ${player.gold.toLocaleString()}`;
   $('xp-fill').style.width=`${player.xp/xpNeeded(player.level)*100}%`;$('skill-badge').textContent=player.points;$('skill-badge').classList.toggle('hidden',!player.points);
-  $('potion-text').textContent=`Flask · ${player.potions}`;
+  const flask=ensureFlask(player);$('potion-text').textContent=`${Math.floor(flask.charges)} / 100`;$('potion-slot').title=`Life flask · ${Math.floor(flask.charges)} / 100 charges · 20 per use · Recovers over 3 seconds · No cooldown`;$('potion-slot').style.setProperty('--flask-level',flask.charges+'%');$('potion-slot').classList.toggle('recovering',flask.remaining>0);$('potion-slot').classList.toggle('empty-flask',flask.charges<FLASK.cost);
   document.querySelectorAll('[data-slot]').forEach(button=>{
     const id=player.slots[Number(button.dataset.slot)],skill=getSkill(id),cd=game.cooldowns[id]||0;
-    button.classList.toggle('empty-skill',!skill);button.querySelector('.ability-art').textContent=skill?.icon||'✧';button.querySelector('.ability-name').textContent=skill?.name||'Unlearned';button.title=skill?`${skill.name} · ${skill.cost} spirit · ${skill.cooldown}s cooldown`:'Assign an ability in Masteries';
-    const overlay=button.querySelector('i');overlay.style.display=cd>0?'flex':'none';overlay.textContent=cd.toFixed(1);button.style.opacity=skill&&player.mana<skill.cost?'.5':'1';
+    button.classList.toggle('empty-skill',!skill);button.classList.toggle('sustained-active',id==='inferno'&&!!game.pyre);const skillArt=button.querySelector('.ability-art');if(skillArt.dataset.skill!==(id||'empty')){skillArt.dataset.skill=id||'empty';skillArt.innerHTML=skillIcon(id||'empty');}button.querySelector('.ability-name').textContent=skill?.name||'Unlearned';button.title=skill?`${skill.name} · ${skill.cost} spirit · ${skill.cooldown}s cooldown`:'Assign an ability in Masteries';
+    if(skill?.toggle){const pyre=pyreStats(player,s);button.title=`Martyr’s Pyre · Toggle · ${pyre.dps.toFixed(0)} fire damage / sec · ${pyre.selfDps.toFixed(1)} life consumed / sec`; }const overlay=button.querySelector('i');overlay.style.display=cd>0&&!skill?.toggle?'flex':'none';overlay.textContent=cd.toFixed(1);button.style.opacity=skill&&player.mana<skill.cost?'.5':'1';
   });
-  const mouseSkill=getSkill(player.mouseSkill)||{icon:'⚔',name:'Strike'},mouseButton=$('mouse-slot'),mouseCd=game.cooldowns[player.mouseSkill]||0;mouseButton.querySelector('.ability-art').textContent=mouseSkill.icon;mouseButton.querySelector('.ability-name').textContent=mouseSkill.name;mouseButton.title=`Right mouse: ${mouseSkill.name} · Click to rebind`;mouseButton.querySelector('i').style.display=mouseCd>0?'flex':'none';mouseButton.querySelector('i').textContent=mouseCd.toFixed(1);
-  for(const[id,cd]of[['dodge-slot',game.dodgeCooldown],['potion-slot',game.potionCooldown]]){const overlay=$(id).querySelector('i');overlay.style.display=cd>0?'flex':'none';overlay.textContent=cd.toFixed(1);}
+  const mouseSkill=getSkill(player.mouseSkill)||{icon:'⚔',name:'Strike'},mouseButton=$('mouse-slot'),mouseCd=game.cooldowns[player.mouseSkill]||0;const mouseArt=mouseButton.querySelector('.ability-art');if(mouseArt.dataset.skill!==player.mouseSkill){mouseArt.dataset.skill=player.mouseSkill;mouseArt.innerHTML=skillIcon(player.mouseSkill);}mouseButton.querySelector('.ability-name').textContent=mouseSkill.name;mouseButton.title=`Right mouse: ${mouseSkill.name} · Click to rebind`;mouseButton.querySelector('i').style.display=mouseCd>0?'flex':'none';mouseButton.querySelector('i').textContent=mouseCd.toFixed(1);
+  for(const[id,cd]of[['dodge-slot',game.dodgeCooldown]]){const overlay=$(id).querySelector('i');overlay.style.display=cd>0?'flex':'none';overlay.textContent=cd.toFixed(1);}
   const enemy=nearestEnemy(8,game.aim),boss=game.dungeon.enemies.find(e=>e.type==='warden'&&!e.dead&&distance(e,player)<9),target=boss||(enemy&&distance(enemy,game.aim)<1.4?enemy:null);
   $('enemy-health').classList.toggle('hidden',!target);
   if(target){$('enemy-name').textContent=target.type==='warden'?(target.name||'The Hollow Warden'):target.type==='wraith'?'Sepulchral Wraith':target.type==='crawler'?'Crypt Crawler':target.elite?'Oathbound Remnant':'Restless Remnant';$('enemy-fill').style.width=`${target.hp/target.maxHp*100}%`;$('enemy-kind').textContent=target.type==='warden'?(target.bossId==='wanderer'?'THE SOURCE OF THE BARGAIN':target.bossId==='king'?'THE USURPER':target.bossId?'CORRUPTED KNIGHT · ROUND TABLE':'ANCIENT · BOSS'):target.elite?'CHAMPION · UNDEAD':'UNDEAD';}
@@ -394,19 +409,19 @@ function renderPanel(){
     const key=game.selectedMastery,mastery=MASTERIES[key],points=masteryPoints(player,key);
     modal.innerHTML=title('THREE PATHS. ONE FATE.','Shape your legacy')+`<p>Weave any of the three masteries into your build. Invest points to unlock deeper powers.</p><div class="mastery-tabs">${Object.entries(MASTERIES).map(([k,m])=>`<button class="${k===key?'active':''}" data-mastery="${k}">${m.name}<small>${m.subtitle}</small></button>`).join('')}</div><div class="skill-summary"><span><strong>${player.points}</strong> points available · <strong>${points}</strong> invested in ${mastery.name}</span><button class="text-button" data-action="respec">Respec · ${respecCost()} gold</button></div><div class="skill-tree">${mastery.nodes.map(n=>{
       const rank=rankOf(player,n.id),locked=points<n.req||player.level<skillLevel(n.id),value=n.base+Math.max(0,rank-1)*n.step;
-      return `<article class="skill-node ${locked?'locked':''} ${rank?'learned':''}"><span class="node-icon">${n.icon}</span><h3>${n.name}</h3><span class="rank">${n.active?'ACTIVE':'PASSIVE'} · ${rank} / ${n.max}</span><p>${n.description.replace('{v}',value)}</p><span class="rank">${locked?(player.level<skillLevel(n.id)?`REQUIRES LEVEL ${skillLevel(n.id)}`:`REQUIRES ${n.req} INVESTED POINTS`):n.active?`${n.cost} SPIRIT · ${n.cooldown}s COOLDOWN`:`${rank?'NEXT RANK: '+(n.base+rank*n.step):'AVAILABLE TO LEARN'}`}</span><div class="node-actions"><button class="small-button" data-learn="${n.id}" ${!canLearn(player,n.id)?'disabled':''}>${rank===n.max?'Max rank':rank?'Rank up +':'Learn +'}</button>${n.active&&rank?`<select data-bind="${n.id}" aria-label="Assign ${n.name} to skill slot"><option value="">Equip…</option>${[0,1,2,3].map(s=>`<option value="${s}">${SKILL_KEYS[s].toUpperCase()}${player.slots[s]===n.id?' ✓':''}</option>`).join('')}</select>`:''}</div></article>`;
+      return `<article class="skill-node ${locked?'locked':''} ${rank?'learned':''}"><span class="node-icon">${skillIcon(n.id)}</span><h3>${n.name}</h3><span class="rank">${n.active?'ACTIVE':'PASSIVE'} · ${rank} / ${n.max}</span><p>${n.description.replace('{v}',value)}</p>${n.id==='inferno'?`<p class="pyre-readout">${Math.round(pyreStats(player,game.stats).dps)} fire damage / sec · ${pyreStats(player,game.stats).selfDps.toFixed(1)} life consumed / sec<br>Fire resistance and life regeneration sustain the flame.</p>`:''}<span class="rank">${locked?(player.level<skillLevel(n.id)?`REQUIRES LEVEL ${skillLevel(n.id)}`:`REQUIRES ${n.req} INVESTED POINTS`):n.toggle?'TOGGLE · LIFE-FUELLED AURA':n.active?`${n.cost} SPIRIT · ${n.cooldown}s COOLDOWN`:`${rank?'NEXT RANK: '+(n.base+rank*n.step):'AVAILABLE TO LEARN'}`}</span><div class="node-actions"><button class="small-button" data-learn="${n.id}" ${!canLearn(player,n.id)?'disabled':''}>${rank===n.max?'Max rank':rank?'Rank up +':'Learn +'}</button>${n.active&&rank?`<select data-bind="${n.id}" aria-label="Assign ${n.name} to skill slot"><option value="">Equip…</option>${[0,1,2,3].map(s=>`<option value="${s}">${SKILL_KEYS[s].toUpperCase()}${player.slots[s]===n.id?' ✓':''}</option>`).join('')}</select>`:''}</div></article>`;
     }).join('')}</div><div class="modal-footer"><small>Level up: +2 skill points · +5 attributes · Warden defeated: +2 points<br>Masteries and equipment combine. Experiment freely.</small><button class="primary-button" data-action="close">Return to ${game.zone==='town'?'Emberfall':'the crypt'}</button></div>`;
   }else if(game.panel==='character'){
-    const s=game.stats,stats=[['Level',player.level],['Life',s.maxHp],['Spirit',s.maxMana],['Weapon damage',s.damage],['Armor',s.armor],['Critical chance',`${s.crit}%`],['Damage multiplier',`${Math.round(s.bonus*100)}%`],['Spirit regeneration',`${s.regen.toFixed(1)} / sec`],['Fire damage',`${Math.round(s.fire*100)}%`],['Cold / aether damage',`${Math.round(s.cold*100)}%`],['Cooldown reduction',`${Math.round((1-s.cdr)*100)}%`],['Movement speed',s.speed.toFixed(2)],['Enemies defeated',player.kills],['Deepest descent',game.depth],['Deaths',player.deaths],['Next level',`${player.xp} / ${xpNeeded(player.level)} XP`]];
+    const s=game.stats,stats=[['Level',player.level],['Life',s.maxHp],['Spirit',s.maxMana],['Weapon damage',s.damage],['Armor',s.armor],['Critical chance',`${s.crit}%`],['Damage multiplier',`${Math.round(s.bonus*100)}%`],['Spirit regeneration',`${s.regen.toFixed(1)} / sec`],['Fire damage',`${Math.round(s.fire*100)}%`],['Cold / aether damage',`${Math.round(s.cold*100)}%`],['Cooldown reduction',`${Math.round((1-s.cdr)*100)}%`],['Movement speed',s.speed.toFixed(2)],['Fire resistance',s.fireResist+'%'],['Cold resistance',s.coldResist+'%'],['Storm resistance',s.lightningResist+'%'],['Life regeneration',s.lifeRegen.toFixed(1)+' / sec'],['Block chance',s.block+'%'],['Evasion',s.evasion+'%'],['Attack speed',s.attackSpeed.toFixed(2)+'×'],['Flask recovery',s.flaskGain+'%'],['Weapon reach',s.reach.toFixed(2)],['Enemies defeated',player.kills],['Deepest descent',game.depth],['Deaths',player.deaths],['Next level',`${player.xp} / ${xpNeeded(player.level)} XP`]];
     modal.innerHTML=title('LOYAL TO THE TRUE KING',escapeText(player.name||'The Loyalist'))+`<p>Level ${player.level} · ${ORIGINS[player.origin]?.name||'Royal guard'} · ${Math.floor(player.xp)} / ${xpNeeded(player.level)} experience</p>${attributePanel()}<div class="stats-grid">${stats.map(([n,v])=>`<div class="stat"><span>${n}</span><strong>${v}</strong></div>`).join('')}</div><div class="build-tags">${Object.entries(MASTERIES).map(([k,m])=>`<span>${m.name} · ${masteryPoints(player,k)} points</span>`).join('')}</div><div class="modal-footer"><button class="text-button" data-action="new-confirm">Begin a new chronicle</button><button class="primary-button" data-action="close">Return to ${game.zone==='town'?'Emberfall':'the crypt'}</button></div>`;
   }else if(game.panel==='help'){
-    modal.innerHTML=title('YOUR JOURNEY BEGINS','Into the Hollow')+`<p>A monastery fell silent. Beneath it, the dead keep a debt that only the living can repay. Find the Warden, claim its relic, and descend into a new dungeon.</p><div class="help-grid">${[['Move','Click / hold ground'],['Attack a target','Left click enemy'],['Attack in place','Shift + left click'],['Selected spell','Hold right click'],['Active abilities','Q · W · E · R'],['Evade (invulnerable)','Space'],['Healing flask','1'],['Talk / loot / descend','F'],['Town portal / crypt gate','T'],['Overlay automap','Tab'],['World map / waypoints','G'],['Show loot labels','Hold Alt'],['Masteries / inventory','K / I'],['Character / map zoom','C / M'],['Pause / close panel','Esc'],['Mobile','Stick · attack · skill buttons']].map(([n,k])=>`<p><span>${n}</span><kbd>${k}</kbd></p>`).join('')}</div><div class="modal-rule"></div><p>Begin with a basic strike. At each level earn <b>2 skill points</b> (K) and <b>5 attribute points</b> (C). Skills unlock at levels 2, 4, and 8. Mix any masteries; invest 3 and 7 points to unlock advanced abilities. Equip learned skills in one of four slots. Dodge the Warden’s marked attacks. Life slowly recovers outside combat; spirit regenerates continuously.</p><p>Your character, gear, and current dungeon seed save automatically on this device. Reloading preserves your character and town services. An expedition restarts at its saved depth. Speak to Maelin for your first quest. Rescue Edrin to unlock free identification. Visit Orrin to trade and Garran to repair or reforge. No account needed.</p><div class="modal-footer"><small>Free the corrupted knights. Confront the mad king and the Wanderer in Crownfall.</small><button class="primary-button" data-action="close">Enter the crypt</button></div>`;
+    modal.innerHTML=title('YOUR JOURNEY BEGINS','Into the Hollow')+`<p>A monastery fell silent. Beneath it, the dead keep a debt that only the living can repay. Find the Warden, claim its relic, and descend into a new dungeon.</p><div class="help-grid">${[['Move','Click / hold ground'],['Attack a target','Left click enemy'],['Attack in place','Shift + left click'],['Selected spell','Hold right click'],['Active abilities','Q · W · E · R'],['Evade (invulnerable)','Space'],['Healing flask','1'],['Talk / loot / descend','F'],['Town portal / crypt gate','T'],['Overlay automap','Tab'],['World map / waypoints','G'],['Show loot labels','Hold Alt'],['Masteries / inventory','K / I'],['Character / map zoom','C / M'],['Pause / close panel','Esc'],['Mobile','Stick · attack · skill buttons']].map(([n,k])=>`<p><span>${n}</span><kbd>${k}</kbd></p>`).join('')}</div><div class="modal-rule"></div><p>Begin with a basic strike. At each level earn <b>2 skill points</b> (K) and <b>5 attribute points</b> (C). Skills unlock at levels 2, 4, and 8. Mix any masteries; invest 3 and 7 points to unlock advanced abilities. Equip learned skills in one of four slots. Dodge the Warden’s marked attacks. Life and spirit regenerate continuously. Life flasks cost 20 charges, recover life over three seconds, and have no cooldown. Combat and slow passive recovery replenish their charges.</p><p>Your character, gear, and current dungeon seed save automatically on this device. Reloading preserves your character and town services. An expedition restarts at its saved depth. Speak to Maelin for your first quest. Rescue Edrin to unlock free identification. Visit Orrin to trade and Garran to repair or reforge. No account needed.</p><div class="modal-footer"><small>Free the corrupted knights. Confront the mad king and the Wanderer in Crownfall.</small><button class="primary-button" data-action="close">Enter the crypt</button></div>`;
   }else if(game.panel==='pause'){
     modal.innerHTML=title('A MOMENT BETWEEN BATTLES','The hollow can wait')+`<p>Your expedition is paused. Your progress is saved on this device.</p><div class="modal-footer"><button class="text-button" data-action="help">How to play</button><button class="text-button" data-action="main-menu">Main menu</button><button class="primary-button" data-action="close">Continue expedition</button></div>`;save();
   }else if(game.panel==='death'){
     modal.innerHTML=`<div class="death-content"><span class="eyebrow">THE HOLLOW CLAIMS ANOTHER</span><h2 id="modal-title">Not yet forgotten.</h2><p>You fell in depth ${game.depth}. Your equipment and mastery progress endure.<br>Awaken in Emberfall with full life and spirit. Your expedition remains accessible.</p><p>Cost of returning: ${Math.floor(player.gold*.1)} gold</p><button class="primary-button" data-action="revive">Rise from the ashes</button></div>`;
   }else if(game.panel==='descend'){
-    modal.innerHTML=title('THE WARDEN HAS FALLEN','The dark runs deeper')+`<p>A new dungeon waits beyond the rift. Descend with full life and spirit, and one replenished flask charge. The next Warden will be stronger.</p><div class="modal-footer"><button class="text-button" data-action="close">Stay on this floor</button><button class="primary-button" data-action="descend">Descend to depth ${game.depth+1}</button></div>`;
+    modal.innerHTML=title('THE WARDEN HAS FALLEN','The dark runs deeper')+`<p>A new dungeon waits beyond the rift. Descend with full life and spirit, and 20 replenished flask charges. The next Warden will be stronger.</p><div class="modal-footer"><button class="text-button" data-action="close">Stay on this floor</button><button class="primary-button" data-action="descend">Descend to depth ${game.depth+1}</button></div>`;
   }else if(game.panel==='new-confirm'){
     modal.innerHTML=title('A DIFFERENT PATH','Begin again?')+`<p>This replaces your saved character, skills, inventory, and dungeon progress on this device.</p><div class="modal-footer"><button class="text-button" data-action="character">Keep my chronicle</button><button class="primary-button" data-action="new-game">Start a new chronicle</button></div>`;
   }
@@ -427,7 +442,7 @@ $('modal').addEventListener('click',event=>{
     const cost=respecCost();if(player.gold<cost){toast(`Respec requires ${cost} gold`);return;}
     player.gold-=cost;player.points+=Object.values(player.skills).reduce((a,b)=>a+b,0);player.skills={};player.slots=[null,null,null,null];player.mouseSkill='basic';game.cooldowns={};game.stats=playerStats(player);player.hp=Math.min(player.hp,game.stats.maxHp);player.mana=Math.min(player.mana,game.stats.maxMana);renderPanel();save();
   }else if(action==='revive'){
-    player.gold-=Math.floor(player.gold*.1);player.hp=game.stats.maxHp;player.mana=game.stats.maxMana;player.potions=Math.max(2,player.potions);player.x=game.dungeon.start.x;player.y=game.dungeon.start.y;
+    game.pyre=null;game.whirl=null;player.gold-=Math.floor(player.gold*.1);player.hp=game.stats.maxHp;player.mana=game.stats.maxMana;refillFlask(player,Math.max(0,40-ensureFlask(player).charges));player.x=game.dungeon.start.x;player.y=game.dungeon.start.y;
     game.projectiles=[];game.panel=null;closePanel();enterTown();save();toast('You awaken beneath the lanterns of Emberfall.');
   }else if(action==='descend'){game.panel=null;closePanel();descend();}
   else if(action==='new-game'){
@@ -457,7 +472,7 @@ document.querySelectorAll('[data-npc]').forEach(button=>button.addEventListener(
 $('sound').addEventListener('click',()=>{game.sound=!game.sound;$('sound').textContent=game.sound?'♫':'♪';$('sound').title=game.sound?'Mute sound':'Enable sound';$('sound').setAttribute('aria-label',$('sound').title);toast(game.sound?'Sound enabled':'Sound muted',1200);sound(440,.2,'sine');});
 function showSkillPicker(target){
   game.bindingTarget=target;clearAttackOrder();
-  $('skill-picker').innerHTML=`<div class="skill-picker-title">Bind ${target==='mouse'?'right mouse':SKILL_KEYS[target].toUpperCase()}<button data-close-picker aria-label="Close skill selection">×</button></div><div class="skill-picker-options">${target==='mouse'?'<button data-choose-skill="basic"><span>⚔</span><div>Strike<small>Basic weapon attack · no spirit cost</small></div></button>':''}${ALL_SKILLS.filter(skill=>skill.active&&rankOf(player,skill.id)).map(skill=>`<button data-choose-skill="${skill.id}"><span>${skill.icon}</span><div>${skill.name}<small>${skill.cost} spirit · ${skill.cooldown}s${skill.innate?' · INNATE':''}</small></div></button>`).join('')}</div><div class="skill-picker-hint">${player.level===1?'Reach level 2 to earn your first skill points.':'Learn abilities in Masteries (K). Right-click QWER to bind.'}</div>`;
+  $('skill-picker').innerHTML=`<div class="skill-picker-title">Bind ${target==='mouse'?'right mouse':SKILL_KEYS[target].toUpperCase()}<button data-close-picker aria-label="Close skill selection">×</button></div><div class="skill-picker-options">${target==='mouse'?'<button data-choose-skill="basic"><span>⚔</span><div>Strike<small>Basic weapon attack · no spirit cost</small></div></button>':''}${ALL_SKILLS.filter(skill=>skill.active&&rankOf(player,skill.id)).map(skill=>`<button data-choose-skill="${skill.id}"><span>${skillIcon(skill.id)}</span><div>${skill.name}<small>${skill.cost} spirit · ${skill.cooldown}s${skill.innate?' · INNATE':''}</small></div></button>`).join('')}</div><div class="skill-picker-hint">${player.level===1?'Reach level 2 to earn your first skill points.':'Learn abilities in Masteries (K). Right-click QWER to bind.'}</div>`;
   $('skill-picker').classList.remove('hidden');
 }
 window.addEventListener('keydown',event=>{
@@ -509,7 +524,7 @@ $('world').addEventListener('pointerdown',e=>{
   const enemy=e.pointerType==='touch'?null:enemyUnderPointer();
   game.primaryHeld=e.pointerType!=='touch';game.primaryPointer=e.pointerId;
   if(e.shiftKey||keys.has('shift')){game.primaryMode='force';game.target=null;game.path=null;basicAttack();return;}
-  if(enemy){game.primaryMode='attack';game.combatTarget=enemy;game.attackPending=true;game.combatRefresh=0;if(distance(enemy,player)<=1.55&&basicAttack(enemy))game.attackPending=false;return;}
+  if(enemy){game.primaryMode='attack';game.combatTarget=enemy;game.attackPending=true;game.combatRefresh=0;if(distance(enemy,player)<=game.stats.reach-.3&&basicAttack(enemy))game.attackPending=false;return;}
   game.primaryMode='move';game.moveRefresh=.16;walkTo(renderer.unproject(e.clientX,e.clientY));
 });
 window.addEventListener('pointerup',e=>{
@@ -532,9 +547,9 @@ requestAnimationFrame(frame);
 setTimeout(()=>{if(!validSave)toast(isTouch?'Welcome to Emberfall · Tap Sister Maelin to begin.':'Welcome to Emberfall · Speak to Sister Maelin with F.',5000);},7500);
 
 // Read-only diagnostics are useful for smoke tests without granting in-game powers.
-window.__reliquary={project:(x,y,z=0)=>renderer.screen(x,y,z),snapshot:()=>({level:player.level,hp:player.hp,mana:player.mana,points:player.points,position:{x:player.x,y:player.y},depth:game.depth,zone:game.zone,act:game.act,campaign:player.campaign?structuredClone(player.campaign):null,frontScreen:game.frontScreen,attributes:{...player.attributes},attributePoints:player.attributePoints,xp:player.xp,waypoint:game.dungeon.waypoint?{...game.dungeon.waypoint,screen:renderer.screen(game.dungeon.waypoint.x,game.dungeon.waypoint.y)}:null,portal:{...game.dungeon.portal,screen:renderer.screen(game.dungeon.portal.x,game.dungeon.portal.y)},enemies:game.dungeon.enemies.filter(e=>!e.dead).length,enemyHealth:game.dungeon.enemies.reduce((sum,e)=>sum+Math.max(0,e.hp),0),loot:game.loot.length,inventory:player.inventory.length,paused:game.paused,panel:game.panel,skills:{...player.skills},slots:[...player.slots],cooldowns:{...game.cooldowns},seed:game.seed,bossDead:game.dungeon.bossDead,gold:player.gold,shards:player.shards,quests:{...player.quests},npcs:game.dungeon.npcs?.map(n=>({id:n.id,worldX:n.x,worldY:n.y,...renderer.screen(n.x,n.y)})),artLoaded:renderer.artLoaded,areaSeed:game.dungeon.seed,areaSize:game.dungeon.size,sanctuary:game.dungeon.townBounds,dialogue:game.dialogue||null,groundChunks:renderer.groundCache.size,animation:{...renderer.heroFrame},attackAnim:game.attackAnim,moving:game.moving,aim:{...game.aim},heroScreen:renderer.screen(player.x,player.y,24),mouseSkill:player.mouseSkill,projectiles:game.projectiles.map(b=>({...renderer.screen(b.x,b.y,24),dx:renderer.iso(b.dx,b.dy).x,dy:renderer.iso(b.dx,b.dy).y,kind:b.kind})),visibleEnemies:game.dungeon.enemies.filter(e=>!e.dead&&game.dungeon.seen.has(Math.floor(e.y)*game.dungeon.size+Math.floor(e.x))).map(e=>({id:e.id,bossId:e.bossId,name:e.name,hp:e.hp,x:e.x,y:e.y,screen:renderer.screen(e.x,e.y,24)}))})};
+window.__reliquary={project:(x,y,z=0)=>renderer.screen(x,y,z),snapshot:()=>({level:player.level,hp:player.hp,mana:player.mana,points:player.points,position:{x:player.x,y:player.y},depth:game.depth,zone:game.zone,act:game.act,campaign:player.campaign?structuredClone(player.campaign):null,frontScreen:game.frontScreen,flask:{...ensureFlask(player)},pyre:game.pyre?pyreStats(player,game.stats):null,appearance:appearanceOf(player),combatStats:{...game.stats},attributes:{...player.attributes},attributePoints:player.attributePoints,xp:player.xp,waypoint:game.dungeon.waypoint?{...game.dungeon.waypoint,screen:renderer.screen(game.dungeon.waypoint.x,game.dungeon.waypoint.y)}:null,portal:{...game.dungeon.portal,screen:renderer.screen(game.dungeon.portal.x,game.dungeon.portal.y)},enemies:game.dungeon.enemies.filter(e=>!e.dead).length,enemyHealth:game.dungeon.enemies.reduce((sum,e)=>sum+Math.max(0,e.hp),0),loot:game.loot.length,inventory:player.inventory.length,paused:game.paused,panel:game.panel,skills:{...player.skills},slots:[...player.slots],cooldowns:{...game.cooldowns},seed:game.seed,bossDead:game.dungeon.bossDead,gold:player.gold,shards:player.shards,quests:{...player.quests},npcs:game.dungeon.npcs?.map(n=>({id:n.id,worldX:n.x,worldY:n.y,...renderer.screen(n.x,n.y)})),artLoaded:renderer.artLoaded,areaSeed:game.dungeon.seed,areaSize:game.dungeon.size,sanctuary:game.dungeon.townBounds,dialogue:game.dialogue||null,groundChunks:renderer.groundCache.size,animation:{...renderer.heroFrame},attackAnim:game.attackAnim,moving:game.moving,aim:{...game.aim},heroScreen:renderer.screen(player.x,player.y,24),mouseSkill:player.mouseSkill,projectiles:game.projectiles.map(b=>({...renderer.screen(b.x,b.y,24),dx:renderer.iso(b.dx,b.dy).x,dy:renderer.iso(b.dx,b.dy).y,kind:b.kind})),visibleEnemies:game.dungeon.enemies.filter(e=>!e.dead&&game.dungeon.seen.has(Math.floor(e.y)*game.dungeon.size+Math.floor(e.x))).map(e=>({id:e.id,bossId:e.bossId,name:e.name,hp:e.hp,x:e.x,y:e.y,screen:renderer.screen(e.x,e.y,24)}))})};
 
-const frontEnd=new FrontEnd({player,hasSave:validSave,onPause:()=>{game.frontScreen=true;game.paused=true;clearAttackOrder();keys.clear();game.target=null;game.path=null;},onPlay:()=>{game.frontScreen=false;game.paused=Boolean(game.panel);$('world').focus({preventScroll:true});save();},onCreate:options=>{for(const key of Object.keys(player))delete player[key];Object.assign(player,migratePlayer(createPlayer(options)),{campaign:createCampaign()});game.act=1;game.depth=1;game.areas.clear();game.expedition=null;game.cooldowns={};game.seed=Math.floor(Math.random()*1e9);game.stats=playerStats(player);player.hp=game.stats.maxHp;player.mana=game.stats.maxMana;enterTown(true);game.frontScreen=true;game.paused=true;save();}});
+const frontEnd=new FrontEnd({player,hasSave:validSave,onPause:()=>{game.frontScreen=true;game.paused=true;clearAttackOrder();keys.clear();game.target=null;game.path=null;},onPlay:()=>{game.frontScreen=false;game.paused=Boolean(game.panel);$('world').focus({preventScroll:true});save();},onCreate:options=>{for(const key of Object.keys(player))delete player[key];Object.assign(player,migratePlayer(createPlayer(options)),{campaign:createCampaign()});game.act=1;game.depth=1;game.areas.clear();game.pyre=null;game.whirl=null;game.expedition=null;game.cooldowns={};game.seed=Math.floor(Math.random()*1e9);game.stats=playerStats(player);player.hp=game.stats.maxHp;player.mana=game.stats.maxMana;enterTown(true);game.frontScreen=true;game.paused=true;save();}});
 
 function attributePanel(){
  const descriptions={might:'+1.5 weapon damage',vitality:'+6 life, +0.25 armor',will:'+4 spirit, +regeneration',dexterity:'+0.4% critical chance'};
@@ -588,13 +603,13 @@ function handleCampaignClick(event){
  if(action==='home'){closePanel();enterTown();}
  if(action==='advance'){if(canAdvance(player,game.act)&&game.act<5){const next=game.act+1;if(next>player.campaign.act)advanceCampaign(player);closePanel();game.expedition=null;enterCampaignArea('wilderness',next);}}
  if(action==='blessing'){
-  if(game.zone==='town'||game.shrineKills!==player.kills){game.shrineKills=player.kills;player.hp=game.stats.maxHp;player.mana=game.stats.maxMana;player.potions=5;effect('heal',player.x,player.y,1);toast(`${actFor(game.act).god} restores you.`,2200);}else toast('The shrine rests. Defeat another enemy to renew its blessing.',2200);closePanel();save();
+  if(game.zone==='town'||game.shrineKills!==player.kills){game.shrineKills=player.kills;player.hp=game.stats.maxHp;player.mana=game.stats.maxMana;refillFlask(player);effect('heal',player.x,player.y,1);toast(`${actFor(game.act).god} restores you.`,2200);}else toast('The shrine rests. Defeat another enemy to renew its blessing.',2200);closePanel();save();
  }
  return true;
 }
 function campaignBossKilled(e){
  if(!defeatCampaignBoss(player,e.bossId))return;
- player.points++;player.shards+=2;player.potions=Math.min(5,player.potions+2);
+ player.points++;player.shards+=2;refillFlask(player,40);
  if(game.act===1){player.quests.wardenDefeated=true;player.quests.scholarRescued=true;}
  if(game.act===5&&e.bossId!=='wanderer'){
   const next=e.bossId==='knight-5'?'king':'wanderer';game.dungeon.pendingBoss={id:next,remaining:1.4};toast(next==='king'?'THE USURPER DESCENDS · King Vaelor draws his blade.':'THE BARGAIN UNRAVELS · The Veiled Wanderer reveals himself.',4500);
@@ -604,11 +619,11 @@ function campaignBossKilled(e){
 function bossSpecial(e){
  const dx=player.x-e.x,dy=player.y-e.y,angle=Math.atan2(dy,dx),type=e.phaseType;
  if(['thorns','flood','frost','wanderer'].includes(type)){
-  const count=type==='wanderer'?8:3;for(let i=0;i<count;i++){const a=count===8?i*Math.PI/4:angle+(i-1)*.3;game.projectiles.push({x:e.x,y:e.y,dx:Math.cos(a),dy:Math.sin(a),speed:type==='wanderer'?4.3:3,life:2.5,damage:e.damage*.8,hostile:true,kind:'aether'});}effect('ring',e.x,e.y,.5,{radius:2,color:e.tint});
+  const count=type==='wanderer'?8:3;for(let i=0;i<count;i++){const a=count===8?i*Math.PI/4:angle+(i-1)*.3;game.projectiles.push({x:e.x,y:e.y,dx:Math.cos(a),dy:Math.sin(a),speed:type==='wanderer'?4.3:3,life:2.5,damage:e.damage*.8,hostile:true,kind:'aether',element:type==='frost'?'cold':type==='thorns'?'physical':'aether'});}effect('ring',e.x,e.y,.5,{radius:2,color:e.tint});
  }else if(type==='fire'||type==='king'){
-  for(let i=0;i<3;i++)effect('meteor-warning',player.x+(i-1)*1.4,player.y+(i%2)*1.3,.95,{radius:1.2,pending:true,damage:e.damage,hostile:true,color:e.tint});
+  for(let i=0;i<3;i++)effect('meteor-warning',player.x+(i-1)*1.4,player.y+(i%2)*1.3,.95,{radius:1.2,pending:true,damage:e.damage,hostile:true,element:type==='oath'?'physical':'fire',color:e.tint});
  }else if(type==='oath'){
-  effect('meteor-warning',player.x,player.y,.8,{radius:2,pending:true,damage:e.damage,hostile:true,color:e.tint});
+  effect('meteor-warning',player.x,player.y,.8,{radius:2,pending:true,damage:e.damage,hostile:true,element:type==='oath'?'physical':'fire',color:e.tint});
  }
  if(type==='king'&&e.hp/e.maxHp<.5&&!e.summoned){e.summoned=true;for(let i=0;i<3;i++){const x=e.x+Math.cos(i*2.1)*1.2,y=e.y+Math.sin(i*2.1)*1.2;if(isWalkable(game.dungeon,x,y))game.dungeon.enemies.push(makeEnemy(1000+i,x,y,'skeleton',3,true));}toast('Vaelor calls the remnants of his royal guard.',2000);}
 }

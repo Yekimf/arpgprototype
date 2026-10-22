@@ -10,13 +10,13 @@ An original browser isometric ARPG for mouse/keyboard and touch. A loyal soldier
 
 The root HTML is the ready-to-play offline game; the other files are its editable source. It embeds the code, styles, artwork and interface. Mobile browsers that cannot execute downloaded HTML need the game served by a static website. Cloud onboarding does not supply a live localhost visualization or a public game URL.
 
-Version 0.5 rebuilds walking with an eight-direction articulated soldier, replaces scaled panels with a native-size rustic inventory, adds in-world NPC topic menus, and puts Emberfall inside an open 96×96 wilderness. The prologue reveals etched ink strokes on parchment. Compressed runtime art, cached ground and walls, bounded enemy simulation and a capped world render resolution reduce browser work; the UI stays at native resolution.
+Version 0.6 restores the original painted royal guard with rigid, opposing walking strides and equipment layers. The inventory uses grey marble, proportioned equipment sockets, two ring slots and square pack cells. Six panoramic ink illustrations fill the prologue screen. Life flasks use replenishing charges, and the reworked masteries include Martyr’s Pyre, a sustained self-burning aura. The cached world renderer and open 96×96 Kingsroad from version 0.5 remain in place.
 
 ## Begin a new oath
 
 Choose **Begin your oath** (or **New character** for an existing save), enter a name, choose your former calling and surcoat, and swear the oath. Royal Vanguard, Sun-sworn Templar and King’s Outrider begin with different attribute distributions. Each served King Alaric. All can combine the three skill masteries.
 
-The prologue shows Alaric refusing the visitor’s offer, Prince Vaelor’s betrayal, the corruption of the royal army, your return from visiting family, the old king’s guidance, and the road ahead. Its etched illustrations accumulate individual ink strokes on stained paper. There is no narrative text panel. Optional captions show one sentence at a time; you can pause, advance or skip. Optional narration uses the browser’s available system speech voices.
+The prologue shows Alaric refusing the visitor’s offer, Prince Vaelor’s betrayal, the corruption of the royal army, your return from visiting family, the old king’s guidance, and the road ahead. Its six full-screen panoramic illustrations accumulate individual ink strokes on stained paper, with dark outlines appearing before fine hatching. The artwork fills each viewport without a central frame. There is no narrative text panel. Optional captions show one sentence at a time; you can pause, advance or skip. Optional narration uses the browser’s available system speech voices.
 
 New characters start at **level 1 with a basic weapon strike**, an empty QWER bar and no skill points. Each level grants **2 skill points and 5 attribute points**. Spend them in Masteries (K) and Character (C). First-tier abilities unlock at level 2, intermediate skills at level 4, and advanced skills at level 8. The deeper tiers also require 3 or 7 points invested in their mastery. Learning an active ability fills the first empty slot and gives the right mouse button its first spell.
 
@@ -28,6 +28,10 @@ New characters start at **level 1 with a basic weapon strike**, an empty QWER ba
 | Dexterity | +0.4% critical chance |
 
 Ironbound, Cinderweaver and Hollow Sage contain 22 skills, including ten active abilities, with rank scaling and cross-mastery combinations. Respecialization costs gold and refunds purchased skill ranks. It clears skill bindings and returns the mouse spell to the basic strike.
+
+Martyr’s Pyre unlocks at level 4 after three Cinderweaver points. Toggle it to scorch nearby enemies; maximum life, spirit and fire damage increase its damage. It consumes 9% of maximum life per second before fire resistance and turns itself off at 5% life. Fire resistance, regeneration and flask investment support this build. It does not reserve spirit. Town travel extinguishes it. Sweeping Cut, Shieldbreaker and Whirling Guard use grounded steel, dust and close melee sweeps; Consecrated Ground leaves a persistent burning patch. Frost and lightning effects use smaller, subdued traces and engraved skill glyphs.
+
+Life flasks hold **100 charges**, spend **20 per use**, restore 6% life immediately and recover another 48% over three seconds. There is no cooldown; consecutive uses add recovery to a capped healing pool. Normal, elite and boss kills grant 6, 14 and 45 charges. Charges also regenerate slowly at 0.45 per second outdoors and 4 per second in town. Charge recovery affixes improve these rates. Old potion counts migrate into charges once, and fractional charges and active recovery are saved.
 
 ## The campaign
 
@@ -70,9 +74,9 @@ The bottom HUD gives QWER four large sockets. Smaller LMB/RMB bindings and utili
 
 ## Inventory and town services
 
-The inventory is a stained leather sheet in an angular iron frame. Its text and controls remain at native screen size; equipment, pack and action rows reflow within the available viewport instead of shrinking the entire panel. The travel pack uses **10×4 cells**; the stash has **10×8 cells**. Different item types occupy different footprints. Short landscape screens place equipment and pack side by side.
+The inventory is a grey marble equipment page in an angular iron frame. Weapons and shields occupy tall sockets, armour has its own three-cell height, and two rings can be worn independently. All item images retain their natural aspect ratio. Its text and controls remain at native screen size; equipment, pack and action rows reflow within the available viewport instead of shrinking the entire panel. The travel pack uses **10×4 cells**; the stash has **10×8 cells**. Different item types occupy different footprints. Short landscape screens place equipment and pack side by side.
 
-Press I, Escape or × to close it. Hover for a floating stat and equipment comparison; tap to inspect on touch screens. Selected actions stay in the footer. Drag to rearrange or equip, or double-click a carried item to equip it. Desktop inventory panels allow continued world play; touch inventory pauses combat. Legacy overflow is retained in a tray rather than discarded.
+Press I, Escape or × to close it. Hover for a floating stat and equipment comparison; tap to inspect on touch screens. Selected actions stay in the footer. Click to pin a tooltip; long descriptions scroll within it, and touch tooltips stop above the action footer. Drag to rearrange or equip, or double-click a carried item to equip it. Desktop inventory panels allow continued world play; touch inventory pauses combat. Legacy overflow is retained in a tray rather than discarded.
 
 | Townsfolk | Services |
 | --- | --- |
@@ -82,6 +86,10 @@ Press I, Escape or × to close it. Hover for a floating stat and equipment compa
 | Edrin | Returns after his rescue and identifies all carried relics freely. |
 
 Common gear equips immediately. Only magic, rare and legendary dungeon loot starts unidentified, including correct handling of older saves with a false identification flag on common gear. Use a scroll or the rescued archivist before equipping it. Reforging spends gold and embers to reroll one eligible property, preserving the other properties and base item. A roll can improve or worsen. It also repairs the item and increases future reforge costs. Broken gear contributes half its base weapon damage or armor. Failed equipment swaps, transfers and purchases leave items and currency unchanged.
+
+Equipment comes from 20 bases: swords, axes, maces, spears, leather, mail, plate, vestments, three headgear families, gloves, boots, shields and accessories. Bases provide distinct reach, attack speed, block, evasion, armour or spirit. Enchanted items roll one, three or four affixes according to rarity; affix tiers and level requirements rise with depth. Fire, frost and storm resistance, life regeneration, flask recovery and attack speed support different builds. Resistances cap at 75%, block at 60% and evasion at 50%. Three legendary oath families support fire devotion, sustain or damage. Reforging a generated affix retains the base contribution to that stat.
+
+Equipping or removing armour, helmets, weapons, shields, boots and gloves changes the painted player. Belts, pendants and rings add smaller worn details. The crimson and iron surcoats remain available. Artwork is shared within material families; this is not a separate sprite for every named item. The original outfit retains the original painted attack sequence, and layered outfits use a planted arm swing with their equipped gear.
 
 ## Saves and current scope
 
@@ -117,7 +125,7 @@ npm run test:e2e
 npm run test:standalone
 ```
 
-Unit checks cover generated dungeon and campaign connectivity, progression and level gates, waypoints, campaign gates, combat stats, inventory placement and overflow, atomic trades, identification, reforging, repairs and quest rewards. Browser checks cover desktop/touch creation, all six opening scenes, actual leveling and skill/attribute spending, waypoint travel, UI bounds, combat controls, services, save restoration and a complete five-act campaign ending. Campaign routing tests use high-power saved equipment to check progression without measuring balance. Desktop-only input and duplicate full journeys are intentionally skipped in the mobile project.
+Unit checks also cover charge migration and regeneration, sustained aura damage and self-burning, fire resistance, dual rings, item families and base-preserving affix rerolls. Unit checks cover generated dungeon and campaign connectivity, progression and level gates, waypoints, campaign gates, combat stats, inventory placement and overflow, atomic trades, identification, reforging, repairs and quest rewards. Browser checks also verify actual sprite pixel changes after equipping six gear types, consecutive flask use, held aura input, full-screen panoramic canvas bounds and square inventory cells on narrow and short screens, and long pinned descriptions that leave equipment actions visible. Browser checks cover desktop/touch creation, all six opening scenes, actual leveling and skill/attribute spending, waypoint travel, UI bounds, combat controls, services, save restoration and a complete five-act campaign ending. Campaign routing tests use high-power saved equipment to check progression without measuring balance. Desktop-only input and duplicate full journeys are intentionally skipped in the mobile project.
 
 The standalone check runs with networking disabled and denied storage, exercises the title/creation/prologue, town services, inventory, map, wilderness and basic combat, and verifies zero external HTTP requests or JavaScript errors. Managed cloud Chromium blocks direct `file:` navigation, so this check loads the HTML as an isolated document.
 
@@ -125,19 +133,19 @@ The standalone check runs with networking disabled and denied storage, exercises
 
 ## Artwork and browser performance
 
-Runtime WebP atlases are committed, so ordinary installation and builds do not require image-generation or 3D tools. Three.js is used only by the offline soldier baker; it is not part of the playable game. The source PNGs remain available for editing.
+Runtime WebP atlases and the six panoramic scenes are committed. Ordinary installation and builds do not require image generation or 3D tools. Source PNGs remain available for editing. The player uses cached painted layers with front/back views and mirrored facings; there is no runtime 3D renderer.
 
-- `node scripts/pack-art.mjs` regenerates compressed runtime scenery from source images.
-- `node scripts/bake-soldier.mjs` bakes the articulated model into eight directions with idle, eight walk frames and seven strike frames per direction. Start the Vite server first; the baker uses system Chromium with software WebGL.
+- `npm run art:pack` regenerates compressed scenery, painted equipment and combat sheets, marble, panoramic scenes and alpha-cropped item icon bounds.
+- `npm run art:guard` repacks just the player, inventory and prologue assets.
 - `node scripts/profile-browser.mjs` samples 120 animation frames in town and a stronghold at 1440×900 with Chromium’s CPU throttle set to 4×. Run it alone against the development server, not beside browser tests. FPS measures this headless environment and does not predict every device.
 
 The world is capped at 1280×800 internal pixels, while text and interface remain native resolution. Ground tiles are baked into reusable chunks, wall variants and light textures are cached, distant enemies sleep, and nearby separation uses spatial buckets. Covered title screens and hidden tabs do not redraw the game world.
 
-A local Chromium sample at 1440×900 with CPU throttled 4× measured the following idle scenes. These are render benchmarks, not a claim about combat FPS on every device. The larger connected camp is used in version 0.5.
+A local development-build Chromium sample at 1440×900 with CPU throttled 4× measured these idle scenes. These are render benchmarks, not combat FPS on every device. Both versions use the connected wilderness camp.
 
-| Scene | Previous median frame | Version 0.5 median frame |
+| Scene | Version 0.5 median frame | Version 0.6 median frame |
 | --- | --- | --- |
-| Town | 175.2 ms | 53.3 ms |
-| Stronghold | 140.1 ms | 46.6 ms |
+| Town | 53.3 ms | 48.0 ms |
+| Stronghold | 46.6 ms | 46.9 ms |
 
-The standalone HTML decreased from approximately 28,205 KiB to 4,243 KiB. Reported JavaScript heap in these scenes decreased from approximately 203–210 MiB to 28–31 MiB; decoded canvases and browser GPU memory are separate from that heap figure.
+Version 0.6’s standalone HTML is approximately **10,906 KiB**, including all six panoramic illustrations and the painted equipment sheets (version 0.5 was 4,243 KiB). The sample reported approximately 66 MiB of JavaScript heap in the development build, compared with 28–31 MiB previously. Embedded artwork in development modules contributes to that figure; decoded canvases and browser GPU memory are separate. These larger illustrations do not redraw during ordinary world play.

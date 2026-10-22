@@ -46,7 +46,7 @@ test('spatial inventory comparison, equipment, stash, and local save persist',as
   await restored.close();
 });
 
-test('all advanced abilities execute and death recovery preserves the character',async({page})=>{
+test('all advanced abilities execute and death recovery preserves the character',async({page,browser})=>{
   const p=createPlayer();p.equipment.charm={name:'Test reservoir',slot:'charm',rarity:'rare',spirit:1000,icon:'◈'};
   const skills=Object.fromEntries(ALL_SKILLS.map(s=>[s.id,1]));
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -59,21 +59,22 @@ test('all advanced abilities execute and death recovery preserves the character'
   await page.locator('[data-mastery="aether"]').click();await page.locator('[data-bind="vortex"]').selectOption('2');
   await page.locator('[data-action="close"]').last().click();
   for(let slot=0;slot<3;slot++)await page.locator(`[data-slot="${slot}"]`).dispatchEvent('pointerdown');
-  await page.waitForTimeout(500);s=await state(page);for(const id of ['whirl','inferno','vortex'])expect(s.cooldowns[id]).toBeGreaterThan(0);
+  await page.waitForTimeout(500);s=await state(page);for(const id of ['whirl','vortex'])expect(s.cooldowns[id]).toBeGreaterThan(0);expect(s.pyre).not.toBeNull();
   // A second page with a fragile fixture exercises actual enemy damage and recovery.
-  const fragile=await page.context().newPage(),f=createPlayer();f.hp=1;f.gold=100;
+  const isolated=await browser.newContext({viewport:page.viewportSize(),hasTouch:await page.evaluate(()=>matchMedia('(pointer:coarse)').matches)}),fragile=await isolated.newPage(),f=createPlayer();fragile.on('pageerror',e=>errors.push(e.message));f.hp=1;f.gold=100;
   await seedGame(fragile,f);await fragile.goto('/');await fragile.locator('[data-front="continue"]').click();
   await expect(fragile.locator('#modal-title')).toHaveText('Not yet forgotten.',{timeout:15000});
   await fragile.locator('[data-action="revive"]').click();
   expect((await state(fragile)).hp).toBeGreaterThan(100);
   const recovered=await fragile.evaluate(()=>JSON.parse(localStorage.getItem('ashen-reliquary-save-v1')));
-  expect(recovered.player.gold).toBe(90);expect(recovered.player.deaths).toBe(1);expect(errors).toEqual([]);await fragile.close();
+  expect(recovered.player.gold).toBe(90);expect(recovered.player.deaths).toBe(1);expect(errors).toEqual([]);await isolated.close();
 });
 
 test('a full expedition can defeat the Warden, earn loot, and descend',async({page},info)=>{
   test.skip(info.project.name==='mobile','Desktop navigation covers floor progression; mobile input is covered separately.');
-  const p=createPlayer();p.equipment.weapon.damage=2000;p.equipment.armor.armor=10000;
-  await seedGame(page,{equipment:p.equipment});await page.goto('/');await page.locator('[data-front="continue"]').click();
+  // Routing fixture survives physical and elemental damage; combat balance is separate.
+  const p=createPlayer();p.equipment.weapon.damage=2000;p.equipment.armor.armor=10000;p.equipment.armor.life=10000;p.hp=20000;
+  await seedGame(page,{equipment:p.equipment,hp:p.hp});await page.goto('/');await page.locator('[data-front="continue"]').click();
   const d=generateDungeon(42710),start=[Math.floor(d.start.x),Math.floor(d.start.y)],end=[Math.floor(d.portal.x),Math.floor(d.portal.y)],queue=[start],parents=new Map([[start.join(','),null]]);
   for(let i=0;i<queue.length;i++){const[x,y]=queue[i];if(x===end[0]&&y===end[1])break;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=`${nx},${ny}`;if(d.tiles[ny]?.[nx]&&!parents.has(k)){parents.set(k,[x,y]);queue.push([nx,ny]);}}}
   const path=[];let at=end;while(at){path.push({x:at[0]+.5,y:at[1]+.5});at=parents.get(at.join(','));}path.reverse();
