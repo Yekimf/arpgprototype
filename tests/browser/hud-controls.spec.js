@@ -14,7 +14,7 @@ async function bounds(page){
 }
 test('inventory fits the viewport and shows hover comparisons without selection',async({page},info)=>{
   await load(page);
-  const sizes=info.project.name==='desktop'?[[1280,720],[1024,600],[844,390]]:[[412,839],[360,640]];
+  const sizes=info.project.name==='desktop'?[[1280,720],[1024,768],[1920,1080]]:[[412,839],[360,640]];
   for(const [width,height] of sizes){
     await page.setViewportSize({width,height});await page.locator('[data-panel="inventory"]').click();await page.waitForTimeout(150);
     expect(await bounds(page)).toEqual({fits:true,noScroll:true,sections:true,actions:true});

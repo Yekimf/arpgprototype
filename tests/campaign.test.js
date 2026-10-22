@@ -14,10 +14,10 @@ test('ability tiers require both character level and mastery investment',()=>{
  const p=createPlayer();p.points=100;assert.equal(canLearn(p,'cleave'),false);p.level=2;assert.ok(learnSkill(p,'cleave'));assert.ok(learnSkill(p,'vigor'));assert.ok(learnSkill(p,'vigor'));assert.equal(canLearn(p,'quake'),false);p.level=4;assert.ok(learnSkill(p,'quake'));
  p.skills.vigor=5;p.skills.cleave=5;assert.equal(canLearn(p,'whirl'),false);p.level=8;assert.ok(canLearn(p,'whirl'));
 });
-test('all five wilderness roads and strongholds have connected entrances, waypoints, shrines and bosses',()=>{
+test('all five wilderness roads and strongholds have connected entrances, waypoints, supply caches and bosses',()=>{
  for(const a of ACTS)for(let seed=1;seed<=20;seed++){
   for(const d of [generateWilderness(seed,a.id),generateStronghold(seed,a.id)]){
-   assert.ok(findPath(d,d.start,d.portal).length,`${a.id}/${seed} portal`);assert.ok(findPath(d,d.start,d.waypoint).length,`${a.id}/${seed} waypoint`);assert.ok(findPath(d,d.start,d.spirit).length,`${a.id}/${seed} spirit`);assert.ok(findPath(d,d.start,d.shrine).length,`${a.id}/${seed} shrine`);
+   assert.ok(findPath(d,d.start,d.portal).length,`${a.id}/${seed} portal`);assert.ok(findPath(d,d.start,d.waypoint).length,`${a.id}/${seed} waypoint`);assert.equal(d.spirit,undefined);assert.equal(d.shrine,undefined);assert.ok(findPath(d,d.start,d.supplies).length,`${a.id}/${seed} shrine`);
    for(const e of d.enemies)assert.ok(isWalkable(d,e.x,e.y,.05));
   }
   const d=generateStronghold(seed,a.id);assert.equal(d.enemies.find(e=>e.type==='warden').bossId,`knight-${a.id}`);

@@ -1,6 +1,6 @@
 import {itemArt} from './item-art.js';
 import {playerStats,requiresIdentification} from './game.js';
-import {EQUIPMENT,itemName,buyPrice,repairCost,SLOT_ART} from './settlement.js';
+import {restockCost,EQUIPMENT,itemName,buyPrice,repairCost,SLOT_ART} from './settlement.js';
 
 export const HUD_PANELS=['inventory','stash','merchant','smith','scholar'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -27,7 +27,7 @@ export class InventoryHUD {
   detailFor(item,source){
     const o=this.owner,old={selection:o.selection,source:o.source,affix:o.affix};o.selection=item.id;o.source=source;
     const node=document.createElement('div');node.innerHTML=o.detail();Object.assign(o,old);
-    node.querySelectorAll('.item-actions,.forge-controls,.smith-note').forEach(n=>n.remove());
+    node.querySelectorAll('.item-actions,.forge-controls,.smith-note,button,input,select').forEach(n=>n.remove());
     return node.innerHTML;
   }
   showTooltip(element,pinned=false){
@@ -54,9 +54,9 @@ export class InventoryHUD {
   hideTooltip(){this.tip.classList.add('hidden');this.pinned=false;}
   actionDock(){
     const item=this.owner.selected;
-    if(!item)return '<div class="hud-selection-hint">Hover to inspect · Double-click to equip<br><span>Tap an item for details on mobile.</span></div>';
+    if(!item)return '<div class="hud-selection-hint">Hover to inspect · Double-click to equip<br><span>Shift: equip · Ctrl: trade / stash · Alt: identify</span></div>';
     const node=document.createElement('div');node.innerHTML=this.owner.detail();
-    return `<div class="hud-selected-name ${item.rarity}">${esc(itemName(item))}</div>${node.querySelector('.item-actions')?.outerHTML||''}${node.querySelector('.forge-controls')?.outerHTML||''}${node.querySelector('.smith-note')?.outerHTML||''}`;
+    return `<div class="hud-selected-name ${item.rarity}">${esc(itemName(item))}</div>${node.querySelector('.item-actions')?.outerHTML||''}${node.querySelector('[data-town-action=temper]')?.outerHTML||''}${node.querySelector('.forge-controls')?.outerHTML||''}${node.querySelector('.smith-note')?.outerHTML||''}`;
   }
   updateDock(){
     const dock=this.modal.querySelector('#hud-item-actions');if(dock)dock.innerHTML=this.actionDock();this.fit();
@@ -68,8 +68,9 @@ export class InventoryHUD {
   }
   handleClick(event){
     if(!HUD_PANELS.includes(this.game.panel))return false;
+    if(this.owner.suppressClick)return true;
     const item=event.target.closest('[data-pack-id],[data-equip-slot],[data-stock-id],[data-smith-equipped]');
-    if(item){this.select(item);return true;}
+    if(item){if((event.ctrlKey||event.shiftKey||event.altKey)&&this.owner.quickAction(item,event))return true;this.select(item);return true;}
     const tab=event.target.closest('[data-storage-tab]');if(tab){this.storageTab=tab.dataset.storageTab;this.render('stash');return true;}
     return false;
   }
@@ -77,7 +78,7 @@ export class InventoryHUD {
     if(!this.modal.classList.contains('hud-panel')||this.modal.offsetWidth===0)return;
     const sheet=this.modal.querySelector('.inventory-sheet');if(!sheet)return;
     const service=this.game.panel!=='inventory',mobile=innerWidth<=700,wide=innerHeight<580&&innerWidth>700,availableWidth=innerWidth-16,availableHeight=innerHeight-(wide?100:118);
-    let cell,width,height;const fixed=wide?120:166;if(!service){cell=Math.max(12,Math.min(42,Math.floor((availableWidth-(wide?50:26))/(wide?20:10)),Math.floor((availableHeight-fixed)/(wide?7.5:11.5))));width=cell*(wide?20:10)+(wide?50:26);height=Math.round(cell*(wide?7.5:11.5)+fixed);}else{width=Math.min(availableWidth,wide?760:!mobile?800:440);height=Math.min(720,availableHeight);}
+    let cell,width,height;const fixed=wide?120:166;if(!service){cell=Math.max(12,Math.min(42,Math.floor((availableWidth-(wide?50:26))/(wide?20:10)),Math.floor((availableHeight-fixed)/(wide?7.5:11.5))));width=cell*(wide?20:10)+(wide?50:26);height=Math.round(cell*(wide?7.5:11.5)+fixed);}else{width=Math.min(availableWidth,wide?820:840);height=Math.min(650,availableHeight);}
     sheet.classList.toggle('wide-inventory',wide);sheet.classList.toggle('narrow-service',service&&mobile);sheet.style.setProperty('--gear-cell',cell||32);
     sheet.style.width='100%';sheet.style.height='100%';sheet.style.transform='none';
     this.modal.style.width=width+'px';this.modal.style.height=height+'px';this.modal.style.setProperty('--panel-w',width+'px');this.modal.style.setProperty('--panel-h',height+'px');this.modal.style.top='8px';
@@ -105,10 +106,10 @@ export class InventoryHUD {
       toolbar=`<span class="inventory-inscription">THE LOYALIST’S BELONGINGS</span>${button('sort','Arrange')}${o.isTown?button('stash','Stash'):''}`;
       contents=`<div class="hud-content hud-inventory-content"><section class="hud-section hud-doll-section"><div class="hud-section-title ornate-rule">ARMS OF THE ROYAL GUARD</div>${o.equipment()}<div class="gear-readout"><span>Damage <b>${Math.round(stats.damage)}</b></span><span>Armor <b>${Math.round(stats.armor)}</b></span><span>Life <b>${stats.maxHp}</b></span></div></section>${pack}</div>`;
     }else if(panel==='stash'){
-      toolbar=`<div class="storage-tabs"><button data-storage-tab="stash" class="small-button ${this.storageTab==='stash'?'active':''}">Stash</button><button data-storage-tab="pack" class="small-button ${this.storageTab==='pack'?'active':''}">Pack</button></div>${button('sort','Arrange')}${button('inventory','Equipment')}`;
+      toolbar=`<div class="storage-tabs"><button data-storage-tab="stash" class="small-button ${this.storageTab==='stash'?'active':''}">Stash</button><button data-storage-tab="pack" class="small-button ${this.storageTab==='pack'?'active':''}">Pack</button></div>${button('sort','Arrange')}${button('inventory','Equipment')}<div class="bank-controls"><span>Stored: ${p.bankGold.toLocaleString()} gold</span><input id="bank-amount" type="number" min="1" value="${Math.min(100,p.gold)||1}" aria-label="Gold amount"><button data-town-action="deposit">Deposit</button><button data-town-action="withdraw-gold">Withdraw</button></div>`;
       contents=`<div class="hud-content hud-stash-content" data-storage-view="${this.storageTab}"><section class="hud-section hud-bag-section stash-section">${o.grid(p.stash,'stash')}</section><section class="hud-section hud-bag-section pack-section">${o.grid(p.inventory)}</section></div>`;
     }else if(panel==='merchant'){
-      toolbar=`${button('buy-flask','20 charges · 8 gold',p.gold<8||p.flask?.charges>=100)}${button('buy-scroll','Scroll · 12 gold',p.gold<12)}`;
+      toolbar=`${button('buy-flask','20 charges · 8 gold',p.gold<8||p.flask?.charges>=100)}${button('buy-scroll','Scroll · 12 gold',p.gold<12)}${button('restock',`Restock · ${restockCost(p)} gold`,p.gold<restockCost(p))}`;
       const stock=o.shopTab==='stock'?p.shopStock:p.buyback;
       contents=`<div class="hud-content hud-service-content"><section class="hud-section"><div class="shop-tabs">${button('shop-stock','For sale',o.shopTab==='stock')}${button('shop-buyback','Buyback',o.shopTab==='buyback')}</div><div class="shop-stock">${stock.map(i=>`<button data-stock-id="${esc(i.id)}" data-stock-source="${o.shopTab}" class="shop-item ${i.rarity} ${o.selection===i.id?'selected':''}" aria-label="${esc(itemName(i))}">${icon(i)}<span>${esc(itemName(i))}<small>${o.shopTab==='stock'?buyPrice(i):i.price} gold</small></span></button>`).join('')||'<p>No items here yet.</p>'}</div></section>${pack}</div>`;
     }else if(panel==='smith'){

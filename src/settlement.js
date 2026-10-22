@@ -1,9 +1,10 @@
+import {appraisal,transferGold} from './economy.js';
 import {ensureFlask,refillFlask} from './flasks.js';
 import {generateItem, random, requiresIdentification} from './game.js';
 
 export const BAG={width:10,height:4}, STASH={width:10,height:8};
 export const EQUIPMENT={helm:'Head',charm:'Amulet',weapon:'Main hand',armor:'Body armor',shield:'Off hand',gloves:'Hands',belt:'Belt',ring:'Left ring',ring2:'Right ring',boots:'Feet'};
-export const AFFIXES={life:'Life',crit:'Critical chance',bonus:'All damage',spirit:'Spirit',fireResist:'Fire resistance',coldResist:'Cold resistance',lightningResist:'Storm resistance',lifeRegen:'Life regeneration',fireDamage:'Fire damage',flaskGain:'Flask charge recovery',attackRate:'Attack speed',block:'Block chance'};
+export const AFFIXES={damage:'Weapon damage',armor:'Armour',life:'Life',crit:'Critical chance',bonus:'All damage',spirit:'Spirit',fireResist:'Fire resistance',coldResist:'Cold resistance',lightningResist:'Storm resistance',lifeRegen:'Life regeneration',fireDamage:'Fire damage',flaskGain:'Flask charge recovery',attackRate:'Attack speed',block:'Block chance'};
 export const NPCS=[
   {id:'guide',name:'Sister Maelin',role:'HEALER & GUIDE',x:31.5,y:30.5,sprite:1,description:'Keeper of the last light'},
   {id:'merchant',name:'Orrin',role:'PROVISIONS & TRADE',x:29.5,y:34.5,sprite:3,description:'A fair price for a hard road'},
@@ -16,7 +17,7 @@ export function itemSize(item){
   return ({weapon:{w:/axe|mace/i.test(item.name)?2:1,h:3},armor:{w:2,h:3},shield:{w:2,h:3},helm:{w:2,h:2},gloves:{w:2,h:2},boots:{w:2,h:2},belt:{w:2,h:1},charm:{w:1,h:1},ring:{w:1,h:1}})[item.slot]||{w:1,h:1};
 }
 export const itemName=item=>requiresIdentification(item)?`Unidentified ${EQUIPMENT[item.slot]||'relic'}`:item.name;
-export const itemValue=item=>Math.max(1,Math.round(({normal:6,magic:14,rare:30,legendary:70}[item.rarity]||6)*(item.level||1)));
+export const itemValue=appraisal;
 export const buyPrice=item=>item.price??itemValue(item)*3;
 export function cellsFree(items,item,x,y,dimensions=BAG,ignoreId=item.id){
   const {w,h}=itemSize(item);
@@ -51,7 +52,7 @@ export function migratePlayer(player){
   if(legacy&&player.slots.includes('lance'))player.skills.lance??=1;
   player.mouseSkill??=legacy?'bolt':'basic';
   player.attributes??={might:0,vitality:0,will:0,dexterity:0};player.attributePoints??=Math.max(0,(player.level-1)*5);player.name??='The Loyalist';
-  player.stash??=[];player.shards??=0;player.identifyScrolls??=0;player.buyback??=[];
+  player.bankGold=Math.max(0,Math.floor(player.bankGold||0));player.goldEarned??=0;player.stash??=[];player.shards??=0;player.identifyScrolls??=0;player.buyback??=[];
   player.quests={guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false,...player.quests};
   for(const slot of Object.keys(EQUIPMENT))player.equipment[slot]??=null;
   for(const item of [...player.inventory,...player.stash,...Object.values(player.equipment).filter(Boolean)]){
@@ -113,6 +114,7 @@ export function buyItem(player,index){
 }
 export function sellItem(player,id){
   const index=player.inventory.findIndex(i=>i.id===id),item=player.inventory[index];if(!item)return result(false,'Choose an item from your pack.');
+  if(item.favorite)return result(false,'Unmark this keepsake before selling it.');
   const price=itemValue(item);player.gold+=price;player.inventory.splice(index,1);player.buyback.unshift({...item,price});player.buyback=player.buyback.slice(0,8);
   return result(true,`Sold for ${price} gold.`);
 }
@@ -130,13 +132,14 @@ export function buySupply(player,type){
 }
 export function salvageItem(player,id){
   const index=player.inventory.findIndex(i=>i.id===id),item=player.inventory[index];if(!item)return result(false,'Choose an item from your pack.');
+  if(item.favorite)return result(false,'Unmark this keepsake before salvaging it.');
   const shards={normal:1,magic:1,rare:2,legendary:4}[item.rarity]||1;
   player.shards+=shards;player.inventory.splice(index,1);return result(true,`Salvaged into ${shards} ember shard${shards===1?'':'s'}.`);
 }
 export function reforgeCost(item){return {gold:25+(item.level||1)*10+(item.reforges||0)*20,shards:item.rarity==='legendary'?3:item.rarity==='rare'?2:1};}
 export function reforgeAffixes(item){
   if(Array.isArray(item.affixes))return [...new Set(item.affixes.map(a=>a.stat))].filter(k=>AFFIXES[k]&&item[k]>0);
-  return Object.keys(AFFIXES).filter(k=>item[k]>0&&!(k==='spirit'&&item.slot==='charm')&&!(k==='crit'&&item.slot==='ring'));
+  return Object.keys(AFFIXES).filter(k=>!['damage','armor'].includes(k)&&item[k]>0&&!(k==='spirit'&&item.slot==='charm')&&!(k==='crit'&&item.slot==='ring'));
 }
 export function reforgeItem(player,id,affix,rng=Math.random){
   const item=[...player.inventory,...Object.values(player.equipment).filter(Boolean)].find(i=>i.id===id);
@@ -146,8 +149,8 @@ export function reforgeItem(player,id,affix,rng=Math.random){
   const cost=reforgeCost(item);if(player.gold<cost.gold||player.shards<cost.shards)return result(false,`Reforging needs ${cost.gold} gold and ${cost.shards} ember shards.`);
   const old=item[affix],metadata=item.affixes?.find(a=>a.stat===affix),baseValue=metadata?old-metadata.value:0,scale=(1+(item.level||1)*.18)*({normal:1,magic:1.35,rare:1.8,legendary:2.5}[item.rarity]||1);
   const range=affix==='life'?[5,22]:affix==='crit'?[1,5]:affix==='bonus'?[2,9]:affix==='lifeRegen'?[.5,1.8]:affix==='attackRate'?[2,8]:[5,18];
-  const precision=affix==='lifeRegen'?100:1,min=Math.max(1,Math.round(range[0]*scale*precision)),max=Math.round(range[1]*scale*precision);
-  let next=Math.round(min+rng()*(max-min));if(next===Math.round(old*precision))next=next<max?next+1:Math.max(min,next-1);next/=precision;
+  const precision=affix==='lifeRegen'?100:1,min=metadata?.min!==undefined?Math.round(metadata.min*precision):Math.max(1,Math.round(range[0]*scale*precision)),max=metadata?.max!==undefined?Math.round(metadata.max*precision):Math.round(range[1]*scale*precision);
+  let next=Math.round(min+rng()*(max-min));if(next===Math.round((metadata?.value??old)*precision))next=next<max?next+1:Math.max(min,next-1);next/=precision;
   player.gold-=cost.gold;player.shards-=cost.shards;item[affix]=Math.round((baseValue+next)*100)/100;const roll=item.affixes?.find(a=>a.stat===affix);if(roll)roll.value=next;item.reforges=(item.reforges||0)+1;item.durability=100;
   return result(true,`${AFFIXES[affix]} reforged: ${old} → ${item[affix]}.`,{old,value:item[affix]});
 }
@@ -158,14 +161,14 @@ export function repairAll(player){
   player.gold-=cost;Object.values(player.equipment).filter(Boolean).forEach(i=>i.durability=100);return result(true,'All equipped items repaired.');
 }
 export function acceptGuideQuest(player){
-  if(player.quests.guideMet)return result(false,'The Warden still holds the archivist. Seek the crypt gate.');
+  if(player.quests.guideMet)return result(false,'Follow the north road to Marchgate. Aldren’s garrison holds Edrin there.');
   const gift={id:'maelin-talisman',name:'Hearthbound Talisman',slot:'charm',rarity:'magic',level:1,spirit:8,life:6,identified:false,durability:100,reforges:0,icon:'◈'};
   if(!addToContainer(player.inventory,gift))return result(false,'Make one cell of room for Maelin’s keepsake.');
   player.quests.guideMet=true;player.gold+=50;player.shards+=2;player.identifyScrolls+=2;
   return result(true,'A promise made · +50 gold, 2 shards, 2 scrolls, and a mysterious talisman.');
 }
 export function claimGuideReward(player){
-  if(!player.quests.wardenDefeated||player.quests.guideRewarded)return result(false,'Return after defeating the Hollow Warden.');
+  if(!player.quests.wardenDefeated||player.quests.guideRewarded)return result(false,'Return after defeating Aldren at Marchgate.');
   player.quests.guideRewarded=true;player.gold+=120;player.shards+=3;return result(true,'The debt is paid · +120 gold and 3 ember shards. Edrin awaits you in town.');
 }
 export function generateTown(player){
@@ -190,3 +193,9 @@ export function generateTown(player){
   const seen=new Set();for(let y=0;y<size;y++)for(let x=0;x<size;x++)seen.add(y*size+x);
   return {size,seed:7901,tiles,rooms:[],start:{x:32,y:32.5},portal:{x:33.5,y:24.5},enemies:[],props,depth:0,seen,bossDead:false,town:true,npcs:NPCS.filter(n=>n.id!=='scholar'||player.quests.scholarRescued).map(n=>({...n}))};
 }
+
+export function temperItem(player,id){const item=[...player.inventory,...Object.values(player.equipment).filter(Boolean)].find(i=>i.id===id);if(!item||requiresIdentification(item))return result(false,'Choose identified equipment.');const stat=item.damage?'damage':item.armor?'armor':null;if(!stat)return result(false,'Only weapons and armour can be tempered.');const quality=item.quality||0;if(quality>=20)return result(false,'This item is already masterfully tempered.');const gold=18+Math.ceil(item.level||1)*8;if(player.gold<gold||player.shards<1)return result(false,`Tempering needs ${gold} gold and 1 ember.`);const bonus=(item.affixes||[]).filter(a=>a.stat===stat).reduce((n,a)=>n+a.value,0),base=(item[stat]-bonus)/(1+quality/100),next=Math.min(20,quality+5);item[stat]=Math.round(base*(1+next/100))+bonus;item.quality=next;item.durability=100;player.gold-=gold;player.shards--;return result(true,`Tempered to ${next}% quality. Durability restored.`);}
+export function bankTransfer(player,direction,amount){return transferGold(player,direction,amount);}
+
+export function restockCost(player){return 30+player.level*5;}
+export function restockShop(player,seed=Math.floor(Math.random()*1e9)){const cost=restockCost(player);if(player.gold<cost)return result(false,`Restocking needs ${cost} gold.`);const stock=generateStock(player.level,seed);player.gold-=cost;player.shopStock=stock;return result(true,'Fresh equipment, selected for your level.');}

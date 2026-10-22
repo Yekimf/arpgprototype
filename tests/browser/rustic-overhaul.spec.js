@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import {createPlayer} from '../../src/game.js';
 import {createCampaign} from '../../src/campaign.js';
 const state=page=>page.evaluate(()=>window.__reliquary.snapshot());
-test('ink scenes reveal strokes, pause cleanly, and keep captions out of a narrative panel',async({page})=>{
+test('line illustrations fade in, pause cleanly, and keep captions out of a narrative panel',async({page})=>{
  await page.goto('/');await page.locator('[data-front="story"]').click();const drawing=page.locator('.sketch-page');await expect.poll(()=>drawing.getAttribute('data-reveal').then(Number)).toBeGreaterThan(2);
  await page.locator('[data-front="hold"]').click();const held=await drawing.getAttribute('data-reveal');await page.waitForTimeout(250);expect(await drawing.getAttribute('data-reveal')).toBe(held);
  const style=await page.locator('.cinematic-subtitles').evaluate(e=>({background:getComputedStyle(e).backgroundColor,border:getComputedStyle(e).borderTopWidth}));expect(style).toEqual({background:'rgba(0, 0, 0, 0)',border:'0px'});

@@ -31,6 +31,9 @@ export const AFFIX_POOL=[
  {id:'renewal',name:'Mending',stat:'lifeRegen',range:[.6,1.4]},
  {id:'devout',name:'Devout',stat:'fireDamage',range:[7,14]},
  {id:'brimming',name:'Brimming',stat:'flaskGain',range:[10,20]},
+ {id:'sharp',name:'Honed',stat:'damage',range:[2,5],slots:['weapon']},
+ {id:'stout',name:'Reinforced',stat:'armor',range:[2,5],slots:['armor','helm','shield','gloves','boots']},
+ {id:'scholar',name:'Insightful',stat:'spirit',range:[6,13]},
  {id:'quick',name:'Deft',stat:'attackRate',range:[3,7]},
 ];
 const precision=stat=>['speed','lifeRegen'].includes(stat)?100:1;
@@ -42,10 +45,11 @@ export function createRelic(rng,depth,guaranteedRare=false){
  const item={id:`${Date.now()}-${Math.floor(rng()*1e8)}`,name:base.name,base:base.id,slot,look:base.look,art:base.art,rarity,level:depth,requiredLevel:Math.max(1,Math.floor((depth-1)*2)+1),identified:rarity==='normal',durability:100,reforges:0,affixes:[]};
  for(const [key,value] of Object.entries(base))if(Array.isArray(value))item[key]=scaled(value,rng,power,precision(key));
  if(base.reach)item.reach=base.reach;if(base.attackSpeed)item.attackSpeed=base.attackSpeed;
- const pool=[...AFFIX_POOL],count=rarity==='normal'?0:rarity==='magic'?1:rarity==='rare'?3:4;
- for(let i=0;i<count;i++){const at=Math.floor(rng()*pool.length),affix=pool.splice(at,1)[0],tier=Math.min(5,1+Math.floor(depth/2)),value=scaled(affix.range,rng,1+(tier-1)*.3,precision(affix.stat));item[affix.stat]=(item[affix.stat]||0)+value;item.affixes.push({id:affix.id,stat:affix.stat,value,tier});}
+ item.quality=(item.damage||item.armor)?Math.floor(rng()*6)*2:0;item.baseTier=depth>=5?'elite':depth>=3?'exceptional':'standard';item.baseName=base.name;item.name=(item.baseTier==='elite'?'Royal ':item.baseTier==='exceptional'?'Tempered ':'')+base.name;for(const stat of ['damage','armor'])if(item[stat])item[stat]=Math.round(item[stat]*(1+item.quality/100));
+ const pool=AFFIX_POOL.filter(a=>!a.slots||a.slots.includes(slot)),count=rarity==='normal'?0:rarity==='magic'?2:rarity==='rare'?4:5;
+ for(let i=0;i<count;i++){const at=Math.floor(rng()*pool.length),affix=pool.splice(at,1)[0],tier=1+Math.floor(rng()*Math.min(5,1+Math.floor(depth/2))),factor=1+(tier-1)*.3,value=scaled(affix.range,rng,factor,precision(affix.stat));item[affix.stat]=(item[affix.stat]||0)+value;item.affixes.push({id:affix.id,stat:affix.stat,value,tier,min:Math.round(affix.range[0]*factor*precision(affix.stat))/precision(affix.stat),max:Math.round(affix.range[1]*factor*precision(affix.stat))/precision(affix.stat),kind:i%2?'suffix':'prefix'});}
  if(rarity==='rare'||rarity==='legendary')item.life=(item.life||0)+Math.round(10*power);
- if(count)item.name=`${AFFIX_POOL.find(a=>a.id===item.affixes[0].id).name} ${base.name}`;
+ if(count)item.name=`${AFFIX_POOL.find(a=>a.id===item.affixes[0].id).name} ${item.name}`;
  if(rarity==='legendary'){item.unique=slot==='armor'||slot==='helm'?'ember-vow':slot==='boots'||slot==='belt'?'pilgrim-vow':'royal-vow';if(item.unique==='ember-vow'){item.name='The Cinderbound Oath';item.fireResist=(item.fireResist||0)+20;item.lifeRegen=(item.lifeRegen||0)+1.5;}else if(item.unique==='pilgrim-vow'){item.name='The Long Vigil';item.flaskGain=(item.flaskGain||0)+25;item.life=(item.life||0)+20;}else{item.name='Alaric’s Remembrance';item.bonus=(item.bonus||0)+12;item.life=(item.life||0)+24;}}
  return item;
 }

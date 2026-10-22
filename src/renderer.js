@@ -1,3 +1,4 @@
+import {WORLD_FOOT_OFFSETS} from './world-bounds.js';
 import {GuardSprites} from './guard-sprites.js';
 import {pyreStats} from './devotion.js';
 import {clamp, distance} from './game.js';
@@ -14,7 +15,8 @@ export class Renderer {
     for(const art of [this.worldArt,this.itemArt,this.campaignArt,this.guard.art,this.guard.items,this.guard.original])art.addEventListener('load',()=>{this.artLoaded=[this.worldArt,this.itemArt,this.campaignArt,this.guard.art,this.guard.items,this.guard.original].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
     this.resize();window.addEventListener('resize',()=>this.resize());
   }
-  resize(){this.w=window.innerWidth;this.h=window.innerHeight;const dpr=Math.min(devicePixelRatio||1,1,1280/this.w,800/this.h);this.canvas.width=this.w*dpr;this.canvas.height=this.h*dpr;this.ctx.setTransform(dpr,0,0,dpr,0,0);this.zoom=this.w<650?.85:this.h<540?.85:1.12;this.needsDraw=true;}
+  configure(settings){this.settings=settings;this.canvas.style.filter=settings.brightness===100?'none':`brightness(${settings.brightness/100})`;this.resize();}
+  resize(){this.w=window.innerWidth;this.h=window.innerHeight;const cap=({performance:[960,600],balanced:[1280,800],high:[1920,1200]})[this.settings?.quality||'balanced'],dpr=Math.min(devicePixelRatio||1,1,cap[0]/this.w,cap[1]/this.h);this.canvas.width=this.w*dpr;this.canvas.height=this.h*dpr;this.ctx.setTransform(dpr,0,0,dpr,0,0);this.zoom=this.w<650?.85:this.h<540?.85:1.12;this.needsDraw=true;}
   iso(x,y){return {x:(x-y)*34,y:(x+y)*17};}
   screen(x,y,z=0){const p=this.iso(x,y);return{x:(p.x-this.camera.x)*this.zoom+(this.originX??this.w/2),y:(p.y-this.camera.y+17-z)*this.zoom+this.h*.53};}
   unproject(x,y,z=0){const a=(x-(this.originX??this.w/2))/this.zoom+this.camera.x,b=(y-this.h*.53)/this.zoom+this.camera.y-17+z;return{x:(a/34+b/17)/2,y:(b/17-a/34)/2};}
@@ -114,8 +116,8 @@ export class Renderer {
     for(const loot of game.loot)objects.push({...loot,type:'loot',loot});
     if(d.returnGate)objects.push({...d.returnGate,type:'entrance'});
     if(d.waypoint)objects.push({...d.waypoint,type:'waypoint'});if(d.townWaypoint)objects.push({...d.townWaypoint,type:'waypoint'});
-    if(d.spirit)objects.push({...d.spirit,type:'spirit'});
-    if(d.shrine)objects.push({...d.shrine,type:'shrine'});
+
+    if(d.supplies)objects.push({...d.supplies,type:'supplies'});
     if(d.bossDead)objects.push({...d.portal,type:'portal'});
     for(const enemy of d.enemies)if(!enemy.dead&&d.seen.has(Math.floor(enemy.y)*d.size+Math.floor(enemy.x)))objects.push({...enemy,type:'enemy',enemy});
     objects.push({...p,type:'hero'});
@@ -126,8 +128,7 @@ export class Renderer {
       if(o.type==='hero')this.hero(game);
       else if(o.type==='enemy')this.enemy(o.enemy,game);
       else if(o.type==='waypoint')this.waypoint(o,game);
-      else if(o.type==='spirit')this.spirit(o,game);
-      else if(o.type==='shrine')this.shrine(o,game);
+      else if(o.type==='supplies')this.supplies(o,game);
       else if(o.type==='wall')this.wall(o);
       else if(o.type==='palisade')this.palisade(o);
       else if(o.type==='brazier')this.brazier(o);
@@ -135,7 +136,7 @@ export class Renderer {
       else if(o.type==='tomb')this.tomb(o);
       else if(o.type==='loot')this.loot(o.loot,game);
       else if(o.type==='portal')this.portal();
-      else if(o.type==='building'){this.ellipse(0,1,o.width*.4,o.width*.19,'#07040377');this.sprite(o.sprite,o.width,o.height);if(o.exit)this.worldLabel(game.player.campaign?(d.outdoor?'KINGDOM GATE':'THE KING’S ROAD'):'THE HOLLOW CRYPT','ENTER · F',-o.height-10);if(o.stash)this.worldLabel('PERSONAL STASH','',-o.height-7);}
+      else if(o.type==='building'){this.ellipse(0,o.stash?-2:-o.height*.11,o.width*.37,o.stash?o.width*.07:o.height*.12,'#09070530');this.sprite(o.sprite,o.width,o.height,o.height*(WORLD_FOOT_OFFSETS[o.sprite]||0));if(o.exit)this.worldLabel(game.player.campaign?(d.outdoor?'KINGDOM GATE':'THE KING’S ROAD'):'THE HOLLOW CRYPT','ENTER · F',-o.height-10);if(o.stash)this.worldLabel('PERSONAL STASH','',-o.height-7);}
       else if(o.type==='entrance'){this.sprite(15,125,135);this.worldLabel('THE KING’S ROAD','F · LEAVE STRONGHOLD',-132);}
       else if(o.type==='npc')this.npc(o,game);
       else this.debris(o);
@@ -365,22 +366,20 @@ export class Renderer {
     this.poly([[0,-13],[8,-5],[0,3],[-8,-5]],lit?'#95e2eb88':'#96a09b33');if(lit){this.light(0,-13,65,'#75d4e324');for(let i=0;i<5;i++)this.ellipse(Math.sin(i*3+t)*11,-12-(t*15+i*12)%55,1,1,'#a8e6ec88');}
     this.worldLabel(lit?'ATTUNED WAYPOINT':'ANCIENT WAYPOINT','F · TRAVEL',-60);
   }
-  spirit(o,game){
-    const c=this.ctx;c.save();this.light(0,-45,90,'#9dc8e52b');c.globalAlpha=.68+Math.sin(this.time*1.8)*.09;c.translate(0,Math.sin(this.time*1.8)*3-7);this.campaignSprite(distance(o,game.player)<3?15:7,78,110);c.restore();this.worldLabel('KING ALARIC','THE UNFORGOTTEN · F',-127);
-  }
-  shrine(o,game){this.light(0,-38,85,'#ead6a126');this.pillar({variant:2});this.ellipse(0,-65,10,4,'#dbc37a66');this.ctx.font='29px Georgia';this.ctx.textAlign='center';this.ctx.fillStyle='#dcc489';this.ctx.fillText('☼',0,-69+Math.sin(this.time)*2);this.worldLabel('SHRINE OF THE OLD GODS','F · RECEIVE BLESSING',-111);}
+  supplies(o){this.sprite(13,72,65,65*(WORLD_FOOT_OFFSETS[13]||0));this.worldLabel('ROADSIDE PROVISIONS','F · REST & RESUPPLY',-70);}
   drawMap(game){
     if(this.time<(this.nextMap||0))return;this.nextMap=this.time+.1;
     const render=(c,w,h,overlay)=>{
-      const {dungeon:d,player:p}=game;c.clearRect(0,0,w,h);const scale=overlay?9:2.35,project=(x,y)=>({x:(x-y)*scale+w/2-(overlay?(p.x-p.y)*scale:0),y:(x+y)*scale*.5+h/2-(overlay?(p.x+p.y)*scale*.5:d.size*scale*.5)});
+      const {dungeon:d,player:p}=game;c.clearRect(0,0,w,h);const scale=overlay?11:6,project=(x,y)=>({x:(x-y)*scale+w/2-(p.x-p.y)*scale,y:(x+y)*scale*.5+h/2-(p.x+p.y)*scale*.5});
       c.lineWidth=overlay?1.2:.7;c.strokeStyle=overlay?'#d7c59c99':'#c5b68c9c';c.beginPath();
-      for(let y=0;y<d.size;y++)for(let x=0;x<d.size;x++){
+      const reach=Math.ceil(w/(4*scale)+h/(2*scale))+2;
+      for(let y=Math.max(0,Math.floor(p.y-reach));y<Math.min(d.size,p.y+reach);y++)for(let x=Math.max(0,Math.floor(p.x-reach));x<Math.min(d.size,p.x+reach);x++){
         if(!d.tiles[y][x]||!d.seen.has(y*d.size+x))continue;const at=project(x,y),a=scale,b=scale*.5;
         if(!d.tiles[y-1]?.[x]){c.moveTo(at.x,at.y);c.lineTo(at.x+a,at.y+b);}if(!d.tiles[y]?.[x+1]){c.moveTo(at.x+a,at.y+b);c.lineTo(at.x,at.y+2*b);}if(!d.tiles[y+1]?.[x]){c.moveTo(at.x,at.y+2*b);c.lineTo(at.x-a,at.y+b);}if(!d.tiles[y]?.[x-1]){c.moveTo(at.x-a,at.y+b);c.lineTo(at.x,at.y);}
       }c.stroke();
       if(d.roads){c.fillStyle=overlay?'#b19e7055':'#b19e7033';for(const key of d.roads)if(d.seen.has(key)){const at=project(key%d.size,Math.floor(key/d.size));c.fillRect(at.x-.6,at.y-.4,1.2,.8);}}
       const marker=(o,color,r=3)=>{if(!o||!d.seen.has(Math.floor(o.y)*d.size+Math.floor(o.x)))return;const at=project(o.x,o.y);c.strokeStyle=color;c.lineWidth=1.4;c.beginPath();c.moveTo(at.x,at.y-r);c.lineTo(at.x+r,at.y);c.lineTo(at.x,at.y+r);c.lineTo(at.x-r,at.y);c.closePath();c.stroke();};
-      marker(d.townWaypoint,'#99dce2',overlay?7:4);marker(d.returnGate,'#d1b271',overlay?6:3);marker(d.waypoint,'#99dce2',overlay?7:4);marker(d.portal,'#d1b271',overlay?8:4);marker(d.spirit,'#b9e0ed',overlay?5:2);marker(d.shrine,'#e0d5a3',overlay?5:2);
+      marker(d.townWaypoint,'#99dce2',overlay?7:4);marker(d.returnGate,'#d1b271',overlay?6:3);marker(d.waypoint,'#99dce2',overlay?7:4);marker(d.portal,'#d1b271',overlay?8:4);marker(d.supplies,'#b9ab83',overlay?5:2);
       for(const n of d.npcs||[])marker(n,'#cbb47e',2);for(const e of d.enemies)if(!e.dead&&distance(e,p)<8)marker(e,e.type==='warden'?'#d6a55f':'#b76c52',e.type==='warden'?4:1.5);
       const v=project(p.x,p.y);c.fillStyle='#f1dfb0';c.beginPath();c.moveTo(v.x,v.y-5);c.lineTo(v.x+3,v.y+3);c.lineTo(v.x,v.y+1);c.lineTo(v.x-3,v.y+3);c.closePath();c.fill();
       if(overlay){c.textAlign='center';c.font='12px Georgia';c.fillStyle='#cbb98caa';c.fillText(document.getElementById('location').textContent,w/2,25);c.font='9px Georgia';c.fillStyle='#b8a68099';c.fillText('TAB · CLOSE     ◈ WAYPOINT     ◆ ROAD / GATE     G · WORLD MAP',w/2,h-20);}

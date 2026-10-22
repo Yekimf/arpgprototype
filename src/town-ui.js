@@ -7,7 +7,7 @@ import {playerStats,itemDescription,clamp} from './game.js';
 import {WORLD_ART,ITEM_ART} from './assets.js';
 import {InventoryHUD,HUD_PANELS} from './inventory-hud.js';
 export {HUD_PANELS} from './inventory-hud.js';
-import {BAG,STASH,EQUIPMENT,SLOT_ART,AFFIXES,itemSize,itemName,itemValue,buyPrice,arrange,cellsFree,equipItem,unequipItem,moveItem,identifyItem,identifyAll,buyItem,sellItem,buyBack,buySupply,salvageItem,reforgeCost,reforgeAffixes,reforgeItem,repairCost,repairAll,acceptGuideQuest,claimGuideReward} from './settlement.js';
+import {restockCost,restockShop,bankTransfer,temperItem,BAG,STASH,EQUIPMENT,SLOT_ART,AFFIXES,itemSize,itemName,itemValue,buyPrice,arrange,cellsFree,equipItem,unequipItem,moveItem,identifyItem,identifyAll,buyItem,sellItem,buyBack,buySupply,salvageItem,reforgeCost,reforgeAffixes,reforgeItem,repairCost,repairAll,acceptGuideQuest,claimGuideReward} from './settlement.js';
 
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rarity=item=>['normal','magic','rare','legendary'].includes(item?.rarity)?item.rarity:'normal';
@@ -23,9 +23,12 @@ export class TownUI {
     document.documentElement.style.setProperty('--world-atlas',`url("${WORLD_ART}")`);
     const modal=document.getElementById('modal');
     this.hud=new InventoryHUD(this);
-    modal.addEventListener('dragstart',e=>{const item=e.target.closest('[data-pack-id]');if(!item)return;e.dataTransfer.setData('text/plain',JSON.stringify({id:item.dataset.packId,source:item.dataset.container}));e.dataTransfer.effectAllowed='move';});
-    modal.addEventListener('dragover',e=>{if(e.target.closest('[data-bag-grid],[data-equip-slot]')){e.preventDefault();e.dataTransfer.dropEffect='move';}});
-    modal.addEventListener('drop',e=>this.drop(e));
+    let held=null,ghost=null;
+    modal.addEventListener('pointerdown',e=>{const node=e.target.closest('[data-pack-id]');if(e.button!==0||!node||e.ctrlKey||e.shiftKey||e.altKey)return;held={id:node.dataset.packId,source:node.dataset.container,x:e.clientX,y:e.clientY,node,pointer:e.pointerId};});
+    window.addEventListener('pointermove',e=>{if(!held)return;if(!ghost&&Math.hypot(e.clientX-held.x,e.clientY-held.y)>6){ghost=held.node.cloneNode(true);ghost.removeAttribute('data-pack-id');ghost.className='drag-item';document.body.append(ghost);document.body.classList.add('dragging-item');this.hud.hideTooltip();}if(ghost){ghost.style.left=e.clientX+12+'px';ghost.style.top=e.clientY+12+'px';}});
+    window.addEventListener('pointerup',e=>{if(!held)return;const data=held;held=null;if(ghost){const target=document.elementFromPoint(e.clientX,e.clientY);ghost.remove();ghost=null;document.body.classList.remove('dragging-item');this.suppressClick=true;this.drop({target,clientX:e.clientX,clientY:e.clientY,preventDefault(){},dataTransfer:{getData:()=>JSON.stringify(data)}});setTimeout(()=>this.suppressClick=false,0);}});
+    const cancelDrag=()=>{held=null;ghost?.remove();ghost=null;document.body.classList.remove('dragging-item');};window.addEventListener('pointercancel',cancelDrag);window.addEventListener('blur',cancelDrag);window.addEventListener('keydown',e=>{if(e.key==='Escape'&&held){cancelDrag();e.preventDefault();e.stopImmediatePropagation();}});
+    modal.addEventListener('dragstart',e=>{e.preventDefault();});
     modal.addEventListener('dblclick',e=>{const item=e.target.closest('[data-pack-id]');if(!item||item.dataset.container!=='pack')return;this.apply(equipItem(game.player,item.dataset.packId));});
   }
   get player(){return this.game.player;}
@@ -41,19 +44,19 @@ export class TownUI {
     const dimensions=container==='stash'?STASH:BAG;
     const used=items.filter(i=>i.bagX>=0).reduce((s,i)=>{const size=itemSize(i);return s+size.w*size.h;},0);
     return `<div class="bag-label"><span>${container==='stash'?'PERSONAL STASH':'TRAVEL PACK'}</span><span>${used} / ${dimensions.width*dimensions.height} cells</span></div><div class="spatial-bag" data-bag-grid="${container}" style="--cols:${dimensions.width};--rows:${dimensions.height}">${items.filter(i=>i.bagX>=0).map(item=>{
-      const size=itemSize(item);return `<button class="bag-item ${rarity(item)} ${requiresIdentification(item)?'unidentified':''} ${item.id===this.selection?'selected':''}" data-pack-id="${escape(item.id)}" data-container="${container}" draggable="true" style="grid-column:${item.bagX+1}/span ${size.w};grid-row:${item.bagY+1}/span ${size.h}" aria-label="${escape(itemName(item))}" title="${escape(itemName(item))}">${icon(item)}${requiresIdentification(item)?'<b class="unknown-mark">?</b>':''}${item.reforges?`<small class="forge-mark">+${item.reforges}</small>`:''}</button>`;
+      const size=itemSize(item);return `<button class="bag-item ${rarity(item)} ${requiresIdentification(item)?'unidentified':''} ${item.id===this.selection?'selected':''}" data-pack-id="${escape(item.id)}" data-container="${container}" draggable="false" style="grid-column:${item.bagX+1}/span ${size.w};grid-row:${item.bagY+1}/span ${size.h}" aria-label="${escape(itemName(item))}" title="${escape(itemName(item))}">${icon(item)}${item.favorite?'<b class="keepsake-mark">◆</b>':''}${requiresIdentification(item)?'<b class="unknown-mark">?</b>':''}${item.reforges?`<small class="forge-mark">+${item.reforges}</small>`:''}</button>`;
     }).join('')}</div>${items.some(i=>i.bagX<0)?`<div class="overflow-items"><small>Legacy overflow · preserved safely. Free pack space to organize.</small>${items.filter(i=>i.bagX<0).map(i=>`<button data-pack-id="${escape(i.id)}" data-container="${container}" class="small-button">${escape(itemName(i))}</button>`).join('')}</div>`:''}`;
   }
   equipment(){const p=this.player;return `<div class="paperdoll"><div class="paperdoll-figure"></div>${Object.entries(EQUIPMENT).map(([slot,name])=>{
     const item=p.equipment[slot];return `<button class="paper-slot slot-${slot} ${rarity(item)} ${item?.id===this.selection?'selected':''}" data-equip-slot="${slot}" aria-label="${name}: ${escape(item?itemName(item):'Empty')}" title="${name}${item?' · '+escape(itemName(item)):''}">${item?icon(item):equipmentEtching(slot)}<small>${name}</small>${item&&item.durability<25?'<b class="wear-mark">!</b>':''}</button>`;
   }).join('')}</div>`;}
   detail(){
-    const item=this.selected;if(!item)return `<div class="empty-detail"><span>✧</span><p>Select a relic to inspect its properties.</p><small>Drag items to rearrange. Double-click to equip.<br>On mobile, tap an item and use the action buttons.</small></div>`;
+    const item=this.selected;if(!item)return `<div class="empty-detail"><span>✧</span><p>Select a relic to inspect its properties.</p><small>Drag items to rearrange. Double-click to equip.<br>Shift-click to equip; Ctrl-click to trade or transfer.</small></div>`;
     const p=this.player,unknown=requiresIdentification(item),equipped=p.equipment[item.slot],pack=this.source==='pack',panel=this.game.panel;
     const name=escape(itemName(item)),base=BASES.find(b=>b.id===item.base)?.name;
     let actions='';
     if(unknown&&pack)actions+=btn('identify',`Identify · 1 scroll`,!p.identifyScrolls);
-    if(!unknown&&pack)actions+=btn('equip','Equip item');
+    if(!unknown&&pack)actions+=btn('equip','Equip item');if(['pack','equipped'].includes(this.source))actions+=btn('favorite',item.favorite?'Unmark keepsake':'Keep item');
     if(this.source==='equipped')actions+=btn('unequip','Unequip');
     if(this.isTown&&pack)actions+=btn('store','Store in stash');
     if(this.source==='stash')actions+=btn('withdraw','Move to pack');
@@ -64,12 +67,12 @@ export class TownUI {
     if(panel==='scholar'&&unknown&&pack)actions=btn('scholar-identify','Reveal relic · Free');
     const comparison=!unknown&&pack&&equipped?`<div class="comparison"><div class="eyebrow">CURRENTLY EQUIPPED</div><strong class="${rarity(equipped)}">${escape(equipped.name)}</strong><p>${itemDescription(equipped).join('<br>')}</p><div class="stat-deltas">${['damage','armor','life','spirit','crit','speed','bonus'].filter(k=>item[k]||equipped[k]).map(k=>{const delta=Math.round(((item[k]||0)-(equipped[k]||0))*100)/100;return `<span class="${delta>=0?'positive':'negative'}">${delta>=0?'+':''}${delta} ${k}</span>`;}).join('')}</div></div>`:'';
     const forge=panel==='smith'&&!unknown&&['pack','equipped'].includes(this.source)?this.forgeControls(item):'';
-    return `<div class="relic-heading ${rarity(item)}">${icon(item)}<div><span class="eyebrow">${escape(item.rarity.toUpperCase())} · ${EQUIPMENT[item.slot]}</span><h3>${name}</h3><small>${base?escape(base)+' · ':''}Item level ${item.level||1}${item.requiredLevel?' · Requires level '+item.requiredLevel:''}${item.reforges?' · Reforged '+item.reforges+' times':''}</small></div></div>${unknown?'<p class="unknown-description">Its true nature is concealed. Use a scroll of insight, or seek the archivist once he has been rescued.</p>':`${item.unique?'<div class="unique-oath">'+({"ember-vow":'The Cinderbound Oath · tempered for sacrifice',"pilgrim-vow":'The Long Vigil · a well that never sleeps',"royal-vow":'Alaric’s Remembrance · the old oath endures'}[item.unique]||'')+'</div>':''}<div class="relic-stats">${item.affixes?.length?`<small class="affix-tier">Tier ${Math.max(...item.affixes.map(a=>a.tier||1))} enchantments</small>`:''}${itemDescription(item).map(s=>`<div>${s}</div>`).join('')}</div><div class="durability">Durability ${Math.ceil(item.durability??100)} / 100${item.durability<=0?' · Broken: base stats halved':''}<i><b style="width:${clamp(item.durability??100,0,100)}%"></b></i></div>`}${comparison}<div class="item-actions">${actions}</div>${forge}`;
+    return `<div class="relic-heading ${rarity(item)}">${icon(item)}<div><span class="eyebrow">${escape(item.rarity.toUpperCase())} · ${EQUIPMENT[item.slot]}</span><h3>${name}</h3><small>${base?escape(base)+' · ':''}Item level ${item.level||1}${item.requiredLevel?' · Requires level '+item.requiredLevel:''}${item.quality?' · '+item.quality+'% quality':''}${item.baseTier?' · '+escape(item.baseTier):''}${item.reforges?' · Reforged '+item.reforges+' times':''}</small></div></div>${unknown?'<p class="unknown-description">Its true nature is concealed. Use a scroll of insight, or seek the archivist once he has been rescued.</p>':`${item.unique?'<div class="unique-oath">'+({"ember-vow":'The Cinderbound Oath · tempered for sacrifice',"pilgrim-vow":'The Long Vigil · a well that never sleeps',"royal-vow":'Alaric’s Remembrance · the old oath endures'}[item.unique]||'')+'</div>':''}<div class="relic-stats">${item.affixes?.length?`<small class="affix-tier">Tier ${Math.max(...item.affixes.map(a=>a.tier||1))} enchantments</small>`:''}${itemDescription(item).map(s=>`<div>${s}</div>`).join('')}</div>${item.affixes?.length?'<div class="affix-rolls">'+item.affixes.map(a=>'<div>'+escape(AFFIXES[a.stat]||a.stat)+' <span>T'+a.tier+' · '+a.value+(a.min!==undefined?' ['+a.min+'–'+a.max+']':'')+'</span></div>').join('')+'</div>':''}<div class="durability">Durability ${Math.ceil(item.durability??100)} / 100${item.durability<=0?' · Broken: base stats halved':''}<i><b style="width:${clamp(item.durability??100,0,100)}%"></b></i></div>`}${comparison}<div class="item-actions">${actions}</div>${forge}`;
   }
   forgeControls(item){
-    const affixes=reforgeAffixes(item);if(!affixes.length)return '<p class="smith-note">Only magical bonus properties can be reforged. This item has no eligible affix.</p>';
+    const temper=(item.damage||item.armor)?btn('temper',`Temper · ${18+Math.ceil(item.level||1)*8} gold + 1 ember`,(item.quality||0)>=20):'';const affixes=reforgeAffixes(item);if(!affixes.length)return temper+ '<p class="smith-note">Only magical bonus properties can be reforged. This item has no eligible affix.</p>';
     if(!affixes.includes(this.affix))this.affix=affixes[0];const cost=reforgeCost(item);
-    return `<div class="forge-controls"><div class="eyebrow">THE REFORGING FIRE</div><p>Reroll one property. The base item and all other properties remain. The result may be higher or lower.</p><label>Property<select data-forge-affix aria-label="Property to reforge">${affixes.map(a=>`<option value="${a}" ${this.affix===a?'selected':''}>${AFFIXES[a]} · currently +${item[a]}</option>`).join('')}</select></label>${btn('reforge',`Reforge · ${cost.gold} gold + ${cost.shards} embers`,this.player.gold<cost.gold||this.player.shards<cost.shards,'primary-button')}<small>Reforging also repairs the item. Each reroll raises its gold cost.</small></div>`;
+    return `${temper}<div class="forge-controls"><div class="eyebrow">THE REFORGING FIRE</div><p>Reroll one property. The base item and all other properties remain. The result may be higher or lower.</p><label>Property<select data-forge-affix aria-label="Property to reforge">${affixes.map(a=>`<option value="${a}" ${this.affix===a?'selected':''}>${AFFIXES[a]} · currently +${item.affixes?.find(r=>r.stat===a)?.value??item[a]}</option>`).join('')}</select></label>${btn('reforge',`Reforge · ${cost.gold} gold + ${cost.shards} embers`,this.player.gold<cost.gold||this.player.shards<cost.shards,'primary-button')}<small>Reforging also repairs the item. Each reroll raises its gold cost.</small></div>`;
   }
   render(panel){
     if(HUD_PANELS.includes(panel))return this.hud.render(panel);
@@ -77,13 +80,13 @@ export class TownUI {
     const supported=['inventory','stash','guide','merchant','smith','scholar','departure'];if(!supported.includes(panel))return false;
     if(this.lastPanel!==panel){this.selection=null;this.source='pack';this.affix='';this.lastPanel=panel;}
     const modal=document.getElementById('modal'),p=this.player;modal.classList.add('expanded-modal');
-    if(panel==='departure'&&p.campaign){modal.innerHTML=header('THE KING’S ROAD BEGINS HERE','Beyond the last lantern')+`<p>Leave Emberfall for the wilderness. Follow the Kingsroad toward the gates of Aureth, find the ancient waypoints, and seek King Alaric’s spirit. His fallen knights guard each road into the kingdom.</p><p>Your service sword is enough to begin. Gain experience in battle; earn 2 skill points and 5 attributes each level. The first abilities unlock at level 2.</p>${this.wallet()}<div class="modal-footer">${btn('depart',this.game.expedition?'Return to the road':'Journey to the wilderness',false,'primary-button')}<button class="text-button" data-action="close">Stay in Emberfall</button></div>`;return true;}
+    if(panel==='departure'&&p.campaign){modal.innerHTML=header('THE KING’S ROAD BEGINS HERE','Beyond the last lantern')+`<p>Leave Emberfall for the wilderness. Follow the Kingsroad toward the gates of Aureth, find the ancient waypoints, and break the garrisons guarding each road into the kingdom.</p><p>Your service sword is enough to begin. Gain experience in battle; earn 2 skill points and 5 attributes each level. The first abilities unlock at level 2.</p>${this.wallet()}<div class="modal-footer">${btn('depart',this.game.expedition?'Return to the road':'Journey to the wilderness',false,'primary-button')}<button class="text-button" data-action="close">Stay in Emberfall</button></div>`;return true;}
     if(panel==='departure'){
       modal.innerHTML=header('BEYOND THE LAST LANTERN','The Hollow awaits')+`<p>Leave the safety of Emberfall and enter the monastery crypt. Defeat the Hollow Warden, rescue the missing archivist, and bring back what the dead have kept.</p><p>Press T to channel a return portal. Moving or taking damage interrupts it. Your current expedition remains while you visit town.</p>${this.wallet()}<div class="modal-footer">${btn('depart',this.game.expedition?'Return to expedition':'Enter the crypt',false,'primary-button')}<button class="text-button" data-action="close">Stay in Emberfall</button></div>`;return true;
     }
     if(panel==='guide'){
       const complete=p.quests.wardenDefeated;
-      modal.innerHTML=header('KEEPER OF THE LAST LIGHT','Sister Maelin')+`<div class="npc-dialog"><div class="npc-portrait portrait-guide"></div><div><p class="spoken">“${complete?'You have given the dead their peace—and brought a living soul home. Edrin has taken shelter by the old well. He will know what to make of your relics.':p.quests.guideMet?'Edrin was taken to Ruined Marchgate. Sir Aldren, once Alaric’s most trusted knight, keeps him there. Steel yourself, and remember: there is no shame in returning to the light.':'You wore the old king’s colours. Emberfall remembers, soldier. But we still have a fire, a roof, and a debt to those we lost. Will you walk beneath the monastery for us?'}”</p><div class="quest-card"><span class="eyebrow">A DEBT TO THE DEAD</span><h3>${complete?'The archivist returns':'Rescue the missing archivist'}</h3><p>Follow the Kingsroad to Ruined Marchgate. Free the first corrupted knight and rescue Edrin. The archivist will identify your relics freely.</p></div><div class="item-actions">${!p.quests.guideMet?btn('accept-quest','I will help · Accept quest'):''}${complete&&!p.quests.guideRewarded?btn('claim-reward','Claim reward · 120 gold + 3 embers'):''}${btn('heal','Restore life & spirit · Free')}${btn('guide-depart','Show me the crypt')}</div></div></div>${this.wallet()}`;return true;
+      modal.innerHTML=header('KEEPER OF THE LAST LIGHT','Sister Maelin')+`<div class="npc-dialog"><div class="npc-portrait portrait-guide"></div><div><p class="spoken">“${complete?'Edrin is home. You have done more than the last three patrols combined. Edrin has taken shelter by the old well. He will know what to make of your relics.':p.quests.guideMet?'Edrin was taken to Ruined Marchgate. Sir Aldren, once Alaric’s most trusted knight, keeps him there. Steel yourself, and remember: there is no shame in returning to the light.':'You wore the old king’s colours. Emberfall remembers, soldier. But we still have a fire, a roof, and a debt to those we lost. Will you follow the Kingsroad to Marchgate?'}”</p><div class="quest-card"><span class="eyebrow">A DEBT TO THE DEAD</span><h3>${complete?'The archivist returns':'Rescue the missing archivist'}</h3><p>Follow the Kingsroad to Ruined Marchgate. Defeat Aldren’s garrison and rescue Edrin. The archivist will identify your relics freely.</p></div><div class="item-actions">${!p.quests.guideMet?btn('accept-quest','I will help · Accept quest'):''}${complete&&!p.quests.guideRewarded?btn('claim-reward','Claim reward · 120 gold + 3 embers'):''}${btn('heal','Restore life & spirit · Free')}${btn('guide-depart','Show me the road')}</div></div></div>${this.wallet()}`;return true;
     }
     return false;
   }
@@ -97,7 +100,7 @@ export class TownUI {
       if(action!=='inventory'&&!this.isTown){this.toast('Visit Emberfall to use town services.');return true;}
       this.openPanel(action);return true;
     }
-    const inTown=['buy','sell','buyback','buy-flask','buy-scroll','repair','reforge','salvage','store','withdraw','identify-all','scholar-identify','heal','claim-reward','accept-quest','depart','guide-depart'];
+    const inTown=['buy','sell','buyback','buy-flask','buy-scroll','restock','repair','temper','deposit','withdraw-gold','reforge','salvage','store','withdraw','identify-all','scholar-identify','heal','claim-reward','accept-quest','depart','guide-depart'];
     if(inTown.includes(action)&&!this.isTown){this.toast('This service is only available in Emberfall.');return true;}
     if(action==='sort'){arrange(p.inventory,BAG,true);if(this.game.panel==='stash')arrange(p.stash,STASH,true);this.refresh();}
     else if(action==='equip')this.apply(equipItem(p,this.selection));
@@ -109,8 +112,12 @@ export class TownUI {
     else if(action==='sell')this.apply(sellItem(p,this.selection));
     else if(action==='buyback')this.apply(buyBack(p,p.buyback.findIndex(i=>i.id===this.selection)));
     else if(action==='buy-flask')this.apply(buySupply(p,'flask'));
+    else if(action==='restock'){this.selection=null;this.source='pack';this.shopTab='stock';this.apply(restockShop(p));}
     else if(action==='buy-scroll')this.apply(buySupply(p,'scroll'));
     else if(action==='salvage')this.apply(salvageItem(p,this.selection));
+    else if(action==='favorite'&&item){item.favorite=!item.favorite;this.refresh();}
+    else if(action==='temper')this.apply(temperItem(p,this.selection));
+    else if(['deposit','withdraw-gold'].includes(action))this.apply(bankTransfer(p,action==='deposit'?'deposit':'withdraw',document.getElementById('bank-amount')?.value));
     else if(action==='repair')this.apply(repairAll(p));
     else if(action==='reforge')this.apply(reforgeItem(p,this.selection,this.affix));
     else if(action==='identify-all')this.apply(identifyAll(p));
@@ -123,9 +130,10 @@ export class TownUI {
     else if(action==='depart'){this.closePanel();this.enterDungeon();}
     return true;
   }
+  quickAction(element,event){const {item,source}=this.hud.resolve(element);if(!item)return false;this.selection=item.id;this.source=source;if(event.altKey&&source==='pack')this.apply(identifyItem(this.player,item.id));else if(event.shiftKey&&source==='pack')this.apply(equipItem(this.player,item.id));else if(event.shiftKey&&source==='equipped')this.apply(unequipItem(this.player,Object.keys(this.player.equipment).find(s=>this.player.equipment[s]?.id===item.id)));else if(event.ctrlKey&&source==='stock')this.apply(buyItem(this.player,this.player.shopStock.findIndex(i=>i.id===item.id)));else if(event.ctrlKey&&source==='buyback')this.apply(buyBack(this.player,this.player.buyback.findIndex(i=>i.id===item.id)));else if(event.ctrlKey&&source==='pack'&&this.game.panel==='merchant')this.apply(sellItem(this.player,item.id));else if(event.ctrlKey&&['pack','stash'].includes(source)&&this.isTown)this.apply(moveItem(this.player,item.id,source==='pack'));else return false;return true;}
   handleChange(event){if(event.target.matches('[data-forge-affix]')){this.affix=event.target.value;return true;}return false;}
   drop(event){
-    const grid=event.target.closest('[data-bag-grid]'),slot=event.target.closest('[data-equip-slot]');if(!grid&&!slot)return;
+    const grid=event.target?.closest('[data-bag-grid]'),slot=event.target?.closest('[data-equip-slot]');if(!grid&&!slot)return;
     event.preventDefault();let data;try{data=JSON.parse(event.dataTransfer.getData('text/plain'));}catch{return;}
     if(data.source!=='pack'&&data.source!=='stash')return;
     const source=data.source==='pack'?this.player.inventory:this.player.stash,item=source.find(i=>i.id===data.id);if(!item)return;
