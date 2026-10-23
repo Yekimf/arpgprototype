@@ -1,3 +1,4 @@
+import {advanceRemains,paintStain,drawRemainsParticles} from './death-remains.js';
 import {dressDungeon} from './dungeon-architecture.js';
 import {paintDungeonWall,drawDungeonDressing,drawWallFixture} from './dungeon-wall-art.js';
 import {floorMaterial,makeFloorMaterial} from './act-one-materials.js';
@@ -23,7 +24,7 @@ export class Renderer {
     this.w=0;this.h=0;this.camera={x:0,y:0};this.time=0;this.zoom=1;
     this.enemySprites=new EnemySprites();this.columnArt=new Image();this.columnArt.src=STONE_COLUMN_ART;this.chickenArt=new Image();this.chickenArt.src=CHICKEN_ART;this.stashArt=new Image();this.stashArt.src=STASH_CHEST_ART;this.fountainArt=new Image();this.fountainArt.src=WAYPOINT_FOUNTAIN_ART;this.forestGroundArt=new Image();this.forestGroundArt.src=FOREST_GROUND_ART;this.forestArt=new Image();this.forestArt.src=FOREST_LIFE_ART;this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;this.farmArt=new Image();this.farmArt.src=FARM_ART;
     this.innerGateArt=new Image();this.innerGateArt.src=MARCHGATE_INNER_ART;this.gateArt=new Image();this.gateArt.src=MARCHGATE_ART;this.campaignArt=new Image();this.campaignArt.src=CAMPAIGN_ART;this.heroFrame={row:0,column:0,action:'idle'};
-    this.contactShadows=new Map();this.artKeys=new WeakMap();this.artSerial=0;this.guard=new GuardSprites();this.groundCache=new Map();this.glowCache=new Map();this.wallCache=new Map();this.spriteCache=new Map();this.tileCache=new Map();this.artLoaded=false;
+    this.remainsArt=new WeakMap();this.corpseArt=new Map();this.stainArt=new Map();this.contactShadows=new Map();this.artKeys=new WeakMap();this.artSerial=0;this.guard=new GuardSprites();this.groundCache=new Map();this.glowCache=new Map();this.wallCache=new Map();this.spriteCache=new Map();this.tileCache=new Map();this.artLoaded=false;
     for(const art of [...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons])art.addEventListener('load',()=>{this.artLoaded=[...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
     this.resize();window.addEventListener('resize',()=>this.resize());
   }
@@ -175,6 +176,8 @@ export class Renderer {
     c.save();c.translate(this.originX,this.h*.53);c.scale(this.zoom,this.zoom);c.translate(-this.camera.x,-this.camera.y);
     const viewW=this.w/this.zoom/2+120,viewH=this.h/this.zoom/2+140;
     this.drawGround(d,viewW,viewH);
+    if(!game.loading&&(!game.paused||game.panel==='death'))advanceRemains(d,dt);
+    this.drawRemainsGround(game,viewW,viewH);
     for(const [id,on]of Object.entries(game.auras||{}))if(on){const v=this.iso(p.x,p.y);c.save();c.translate(v.x,v.y);combatEffect(this,{type:'sigil',radius:id==='focus'?1.6:1.2,element:id==='focus'?'fire':'aether'},.2,game);c.restore();}
     if(game.pyre){const v=this.iso(p.x,p.y);this.fireField(v.x,v.y,pyreStats(p,game.stats).radius,11);}
     c.globalAlpha=1;
@@ -195,12 +198,14 @@ export class Renderer {
     if(d.supplies)objects.push({...d.supplies,type:'supplies'});
     if(d.bossDead)objects.push({...d.portal,type:'portal'});
     for(const enemy of d.enemies)if(!enemy.dead&&(d.outdoor||distance(enemy,p)<14)&&d.seen.has(Math.floor(enemy.y)*d.size+Math.floor(enemy.x)))objects.push({...enemy,type:'enemy',enemy});
-    objects.push({...p,type:'hero'});
+    for(const corpse of d.remains?.corpses||[])if(corpse.age<corpse.duration)objects.push({...corpse,type:'falling-body',corpse});
+    if(p.hp>0)objects.push({...p,type:'hero'});
     objects.sort((a,b)=>(a.x+a.y)-(b.x+b.y)||(a.type==='dungeon-wall'?-1:b.type==='dungeon-wall'?1:0));
     for(const o of objects){const v=this.iso(o.x,o.y);if(!o.type.startsWith('kingdom-gate')&&(Math.abs(v.x-this.camera.x)>viewW||Math.abs(v.y-this.camera.y)>viewH))continue;
       const near=distance(o,p);c.globalAlpha=d.town||d.outdoor&&o.type!=='enemy'||o.type==='hero'?1:clamp(1-(near-6)*.07,.25,1);
       c.save();c.translate(v.x,v.y);
-      if(o.type==='hero')this.hero(game);
+      if(o.type==='falling-body')this.drawCorpse(o.corpse,game);
+      else if(o.type==='hero')this.hero(game);
       else if(o.type==='enemy'){this.enemy(o.enemy,game);if(o.enemy.shock>0){this.line([[-8,-30],[-3,-37],[1,-28],[7,-33]],'#c3b897aa',1);}if(o.enemy.bleed>0)this.ellipse(3,1,7,3,'#622e2388');}
       else if(o.type==='waypoint')this.waypoint(o,game);
       else if(o.type==='chicken')this.chicken(o);
@@ -257,6 +262,7 @@ export class Renderer {
     }
     c.globalAlpha=1;
     this.effects(game);
+    for(const burst of d.remains?.bursts||[]){const at=this.iso(burst.x,burst.y);if(Math.abs(at.x-this.camera.x)>viewW||Math.abs(at.y-this.camera.y)>viewH)continue;c.save();c.translate(at.x,at.y);drawRemainsParticles(c,burst,this.settings?.reducedMotion);c.restore();}
     c.restore();
     // Cold, low ground fog and drifting ash.
     for(let i=0;i<26;i++){const x=((i*193.13+Math.sin(this.time*.13+i)*60)%this.w+this.w)%this.w,y=((i*137.77-this.time*(3+i%3))%this.h+this.h)%this.h;this.ellipse(x,y,i%4===0?1.4:.7,i%4===0?1.4:.7,i%4===0?'#b2bf8b4a':'#8aa89325');}
@@ -376,6 +382,30 @@ export class Renderer {
       if(v>1)this.poly([[6,2],[10,-2],[15,1],[11,4]],'#4e634677');
     }
   }
+  drawRemainsGround(game,viewW,viewH){
+    const c=this.ctx,d=game.dungeon,p=game.player,r=d.remains;if(!r)return;
+    const visible=o=>{const at=this.iso(o.x,o.y);return Math.abs(at.x-this.camera.x)<viewW+100&&Math.abs(at.y-this.camera.y)<viewH+100&&d.seen.has(Math.floor(o.y)*d.size+Math.floor(o.x));};
+    for(const stain of r.stains){if(!visible(stain))continue;const key=[stain.kind,stain.fatal,stain.scale,stain.seed%32,Math.round(Math.atan2(stain.aim.y,stain.aim.x)*8/Math.PI)].join(':');let art=this.stainArt.get(key);if(!art){art=document.createElement('canvas');art.width=160;art.height=96;paintStain(art.getContext('2d'),stain);this.stainArt.set(key,art);if(this.stainArt.size>128)this.stainArt.delete(this.stainArt.keys().next().value);}const at=this.iso(stain.x,stain.y);c.save();c.globalAlpha=(d.outdoor?1:clamp(1-(distance(stain,p)-6)*.07,.25,1))*(.68+Math.min(stain.age/.4,1)*.32);c.drawImage(art,at.x-80,at.y-48);c.restore();}
+    for(const corpse of r.corpses){if(corpse.age<corpse.duration||!visible(corpse))continue;const at=this.iso(corpse.x,corpse.y);c.save();c.translate(at.x,at.y);c.globalAlpha=d.outdoor?1:clamp(1-(distance(corpse,p)-6)*.07,.25,1);this.drawCorpse(corpse,game);c.restore();}
+  }
+  drawCorpse(corpse,game){
+    const c=this.ctx;if(corpse.player&&game.player.hp<=0)this.heroFrame={...this.heroFrame,action:'death',column:0};const body=corpse.body,key=corpse.player?null:[enemyFamily(body)?.id,body.type,body.bossId,body.elite,body.visual?.frame,body.visual?.flip,body.visual?.back].join(':');let art=corpse.player?this.remainsArt.get(corpse):this.corpseArt.get(key);
+    if(!art){
+      art=document.createElement('canvas');art.width=320;art.height=224;const context=art.getContext('2d');context.translate(160,184);
+      // Capture the actual painted body, including the player's equipped gear.
+      const previous=this.ctx;try{this.ctx=context;if(corpse.player)this.guard.draw(context,{...game,player:corpse.body,moving:false,attackAnim:0,dodgeTime:0});else this.enemy(corpse.body,game,true);}finally{this.ctx=previous;}
+      if(corpse.player)this.remainsArt.set(corpse,art);else{this.corpseArt.set(key,art);if(this.corpseArt.size>80)this.corpseArt.delete(this.corpseArt.keys().next().value);}
+    }
+    const t=this.settings?.reducedMotion?1:Math.min(1,corpse.age/corpse.duration),fall=Math.max(0,(t-.12)/.88),ease=fall*fall*(3-2*fall),side=corpse.aim.x>=0?1:-1;
+    c.save();
+    if(corpse.kind==='ash'){c.globalAlpha*=1-ease; c.translate(0,-ease*17);c.scale(1+ease*.2,1-ease*.3);}
+    else{
+      this.ellipse(side*ease*33,2,14+ease*30,5+ease*5,'#09080777');
+      c.translate(side*ease*8,3*ease);c.scale(1,1-ease*.64);c.rotate(side*(ease*1.48-Math.sin(t*Math.PI)*.08));
+      c.globalAlpha*=1-ease*.16;
+    }
+    c.drawImage(art,-160,-184);c.restore();
+  }
   hero(game){
     const c=this.ctx,{player:p}=game,t=this.time,bob=game.moving?Math.sin(t*12)*1.6:Math.sin(t*2)*.5;
     this.ellipse(0,2,15,7,'#020a07a0');
@@ -401,18 +431,19 @@ export class Renderer {
     this.line([[0,4],[14,-23]],'#9da89b',3);this.line([[1,3],[15,-24]],'#e1ddbb',1);this.line([[-4,0],[6,5]],'#b6a16a',2.8);this.line([[-1,3],[-4,9]],'#735c3c',3);c.restore();
     if(p.hp<=0)this.light(0,-20,50,'#b02d2522');
   }
-  enemy(e,game){
+  enemy(e,game,bodyOnly=false){
     const c=this.ctx,t=this.time,bob=Math.sin(t*6+e.phase)*(e.aggro?2:.6),boss=e.type==='warden',family=enemyFamily(e);
-    this.ellipse(0,2,boss?28:family?.shadow||13,boss?13:(family?.shadow||13)*.43,'#02090799');
+    if(!bodyOnly)this.ellipse(0,2,boss?28:family?.shadow||13,boss?13:(family?.shadow||13)*.43,'#02090799');
     if(e.windup>0){this.ellipse(0,0,boss?65:22,boss?32:11,'#ae51303d');this.ellipse(0,0,boss?63:20,boss?30:10,'#d56e1b19');}
-    if(e.elite&&!boss){this.ellipse(0,0,16,8,'#a7ac5144');}
+    if(!bodyOnly&&e.elite&&!boss){this.ellipse(0,0,16,8,'#a7ac5144');}
     if(this.artLoaded){
       c.save();if(e.hit>0)c.filter='brightness(1.3)';else if(e.slow>0)c.filter='sepia(.4) hue-rotate(135deg)';c.translate(0,boss?bob*.5:0);
       if(e.attackAnim>0&&(boss||!['archer','hexer','bomber','venom'].includes(e.role))){const v=this.iso(game.player.x-e.x,game.player.y-e.y),len=Math.hypot(v.x,v.y)||1,lunge=Math.sin((1-e.attackAnim/(e.attackDuration||.3))*Math.PI)*9;c.translate(v.x/len*lunge,v.y/len*lunge);c.rotate(v.x/len*lunge*.006);}
       if(e.bossId){const id=e.bossId==='king'?5:e.bossId==='wanderer'?6:Number(e.bossId.split('-')[1])-1;this.campaignSprite(id+(e.attackAnim>0?8:0),boss?114:80,boss?144:100);}
       else if(boss)this.sprite(6,114,144);
-      else this.enemySprites.draw(c,e,game.player,t);
+      else this.enemySprites.draw(c,e,game.player,t,bodyOnly);
       c.restore();
+      if(bodyOnly)return;
       if(e.hp<e.maxHp&&!boss){c.fillStyle='#120906';c.fillRect(-20,-88,40,3);c.fillStyle=e.elite?'#bd9b58':'#a35f41';c.fillRect(-20,-88,40*e.hp/e.maxHp,3);}
       if(e.burn>0||e.pyreGlow>0)this.light(0,-30,35,'#ea8c4233');if(boss)this.factionDetails(e);return;
     }

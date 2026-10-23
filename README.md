@@ -10,6 +10,13 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.35.1
+- Enemies and bosses collapse into grounded corpses using their existing painted sprites. Flesh enemies leave dark blood pools and directional droplets, skeletal soldiers scatter bone fragments, and spirits dissolve into ash.
+- Hits produce brief splashes; death produces a larger burst. Boss remains are larger. Fallen bodies and stains stay in their area when you return during the same session, and never block movement or item pickup.
+- Player deaths show the equipped character falling before the revive menu fades in. Combat stops immediately; returning to town and reviving still work normally.
+- Corpse counts, stain counts, particles and shared artwork caches have fixed limits. Terrain stays cached, distant remains are culled, and reduced motion removes particle sprays and animated falls. Remains are visual session state, not additional save data.
+- Fixed older non-campaign character saves attempting to resume an unavailable dungeon object after character selection.
+
 ## Version 0.35.0
 - Multiple independent character saves with automatic import of the previous single-character save. Creating a character preserves existing characters, their equipment, skills, quests, dungeon seeds and personal storage.
 - Added a gothic character selection screen: two columns, eight characters per page, equipment portraits, a live selected-character preview, keyboard navigation, and create/delete/play controls. Deletion requires the character’s exact name; shared storage survives deletion.
