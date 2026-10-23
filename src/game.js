@@ -1,3 +1,5 @@
+import {NEW_SKILLS} from './skill-system.js';
+import {ensurePassives,passiveEffects} from './passive-tree.js';
 import {createRelic} from './itemization.js';
 export const requiresIdentification=item=>!!item&&['magic','rare','legendary'].includes(item.rarity)&&item.identified===false;
 export const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -97,16 +99,16 @@ export const MASTERIES = {
   ember: {name:'Cinderweaver',subtitle:'FIRE · DEVOTION · IMMOLATION',description:'Bind the last embers of a fallen star. Every flame carries the promise of another.',color:'#d89a6d',nodes:[
     {id:'bolt',name:'Ember Bolt',icon:'♨',max:5,req:0,active:true,cost:12,cooldown:1.5,description:'Launch a piercing ember for {v}% damage. Burns for 3 seconds.',base:145,step:28},
     {id:'kindling',name:'Kindling',icon:'♢',max:5,req:0,description:'+{v}% fire damage, including burning damage.',base:8,step:8},
-    {id:'spirit',name:'Inner Furnace',icon:'☼',max:5,req:0,description:'+{v} maximum spirit and +0.6 spirit regeneration per rank.',base:12,step:12},
+    {id:'spirit',name:'Inner Furnace',icon:'☼',max:5,req:0,description:'+{v} maximum mana and +0.6 mana regeneration per rank.',base:12,step:12},
     {id:'meteor',name:'Consecrated Ground',icon:'☄',max:5,req:3,active:true,cost:30,cooldown:8,description:'Kindle the aimed ground for 5 seconds, dealing {v}% fire damage per second to enemies standing within it.',base:75,step:15},
     {id:'ash',name:'Ashen Veil',icon:'◈',max:3,req:3,description:'+{v}% damage resistance while your spirit is above 50%.',base:5,step:5},
-    {id:'inferno',name:'Martyr’s Pyre',icon:'✷',max:5,req:3,active:true,toggle:true,cost:0,cooldown:0,description:'Toggle a burning aura. Scorches nearby enemies using maximum life and spirit. Burns 9% of your maximum life each second before fire resistance; life regeneration and flasks sustain it. Stops at 5% life. Higher ranks deal {v}% base aura damage.',base:100,step:18},
+    {id:'inferno',name:'Martyr’s Pyre',icon:'✷',max:5,req:3,active:true,toggle:true,cost:0,cooldown:0,description:'Toggle a burning aura. Scorches nearby enemies using maximum life and mana. Burns 9% of your maximum life each second before fire resistance; life regeneration and flasks sustain it. Stops at 5% life. Higher ranks deal {v}% base aura damage.',base:100,step:18},
     {id:'phoenix',name:'Phoenix Heart',icon:'♧',max:3,req:7,description:'Kills restore {v} life and 3 spirit per rank.',base:6,step:6},
   ]},
   aether: {name:'Hollow Sage',subtitle:'FROST · AETHER · CONVERGENCE',description:'Listen to the silence between worlds. Shape its stillness into a weapon.',color:'#8dc2be',nodes:[
     {id:'nova',name:'Hoarfrost',icon:'❄',max:5,req:0,active:true,cost:22,cooldown:6,description:'A freezing wave deals {v}% damage and slows foes for 3 seconds.',base:130,step:25},
     {id:'resonance',name:'Resonance',icon:'✧',max:5,req:0,description:'+{v}% cold and aether damage.',base:8,step:8},
-    {id:'flow',name:'Temporal Flow',icon:'⌛',max:5,req:0,description:'Reduce all ability cooldowns by {v}%.',base:4,step:4},
+    {id:'flow',name:'Temporal Flow',icon:'⌛',max:5,req:0,description:'Reduce aura reactivation lockouts and evade recovery by {v}%.',base:4,step:4},
     {id:'chain',name:'Storm Thread',icon:'ϟ',max:5,req:3,active:true,cost:24,cooldown:4,description:'Lightning jumps between up to 5 targets for {v}% damage.',base:155,step:30},
     {id:'ward',name:'Aether Ward',icon:'⛊',max:3,req:3,description:'+{v} armor. Dodge restores 6 spirit per rank.',base:4,step:4},
     {id:'vortex',name:'Gravewind',icon:'◎',max:5,req:7,active:true,cost:35,cooldown:11,description:'Pull enemies into a vortex for 4 seconds, dealing {v}% damage per second.',base:65,step:15},
@@ -115,22 +117,38 @@ export const MASTERIES = {
 };
 export const INNATE_SKILL={id:'lance',name:'Spectral Shard',icon:'➹',max:5,req:0,active:true,cost:8,cooldown:2,base:110,step:20,description:'A focused aether projectile deals {v}% weapon damage, aimed at the cursor.'};
 MASTERIES.aether.nodes.push(INNATE_SKILL);
+for(const [key,nodes] of Object.entries(NEW_SKILLS))MASTERIES[key].nodes.push(...nodes);
+for(const mastery of Object.values(MASTERIES))for(const node of mastery.nodes)if(node.active&&!node.toggle)node.cooldown=0;
 export const ALL_SKILLS=Object.values(MASTERIES).flatMap(m=>m.nodes);
 export const getSkill=id=>ALL_SKILLS.find(n=>n.id===id);
 export const rankOf=(player,id)=>player.skills[id]||0;
 export const skillLevel=id=>{const s=getSkill(id);return !s?99:s.req>=7?8:s.req>=3?4:2;};
 export const masteryPoints=(player,key)=>MASTERIES[key].nodes.reduce((sum,n)=>sum+rankOf(player,n.id),0);
-export function canLearn(player,id) {
+export function canLearn(player,id,{testing=false}={}) {
   if(getSkill(id)?.innate)return false;
   const skill=getSkill(id), key=Object.keys(MASTERIES).find(k=>MASTERIES[k].nodes.includes(skill));
-  return !!skill && player.level>=skillLevel(id) && player.points>0 && rankOf(player,id)<skill.max && masteryPoints(player,key)>=skill.req;
+  return !!skill && (testing||player.level>=skillLevel(id)&&player.points>0&&masteryPoints(player,key)>=skill.req) && rankOf(player,id)<skill.max;
 }
-export function learnSkill(player,id) {if(!canLearn(player,id))return false;player.skills[id]=(player.skills[id]||0)+1;player.points--;if(getSkill(id).active&&!player.slots.includes(id)){const empty=player.slots.indexOf(null);if(empty>=0)player.slots[empty]=id;if(player.mouseSkill==='basic')player.mouseSkill=id;}return true;}
+export function learnSkill(player,id,options={}) {if(!canLearn(player,id,options))return false;player.skills[id]=(player.skills[id]||0)+1;if(!options.testing)player.points--;if(getSkill(id).active&&!player.slots.includes(id)){const empty=player.slots.indexOf(null);if(empty>=0)player.slots[empty]=id;if(player.mouseSkill==='basic')player.mouseSkill=id;}return true;}
 export function playerStats(player) {
   const items=Object.values(player.equipment).filter(Boolean);
   const total=key=>items.reduce((s,i)=>s+(requiresIdentification(i)?0:(i[key]||0)*(['damage','armor'].includes(key)&&i.durability<=0?.5:1)),0);
   const r=id=>rankOf(player,id), invested=Object.keys(MASTERIES).filter(k=>masteryPoints(player,k)>=3).length,a=player.attributes||{},might=a.might||0,vitality=a.vitality||0,will=a.will||0,dexterity=a.dexterity||0;
-  return {maxHp:120+(player.level-1)*12+r('vigor')*18+total('life')+vitality*6,maxMana:80+r('spirit')*12+total('spirit')+will*4,damage:6+(player.level-1)*.8+total('damage')+might,armor:3+r('vigor')*2+r('ward')*4+total('armor')+vitality*.25,crit:7+r('precision')*3+total('crit')+dexterity*.4,reach:player.equipment.weapon?(player.equipment.weapon.reach||1.85):1.15,attackSpeed:(player.equipment.weapon?.attackSpeed||(player.equipment.weapon?1:1.35))*(1+total('attackRate')/100),fireResist:clamp(total('fireResist'),0,75),coldResist:clamp(total('coldResist'),0,75),lightningResist:clamp(total('lightningResist'),0,75),lifeRegen:.8+total('lifeRegen'),flaskGain:total('flaskGain'),flaskRecovery:total('flaskRecovery'),block:clamp(total('block'),0,60),evasion:clamp(total('evasion'),0,50),speed:Math.max(2.4,3.8+total('speed')),regen:5+r('spirit')*.6+will*.08,bonus:1+(total('bonus')+r('convergence')*5*invested)/100,fire:1+r('kindling')*.08+total('fireDamage')/100,cold:1+r('resonance')*.08,cdr:1-r('flow')*.04};
+  const out={maxHp:120+(player.level-1)*12+r('vigor')*18+total('life')+vitality*6,maxMana:80+r('spirit')*12+total('spirit')+will*4,damage:6+(player.level-1)*.8+total('damage')+might,armor:3+r('vigor')*2+r('ward')*4+total('armor')+vitality*.25,crit:7+r('precision')*3+total('crit')+dexterity*.4,reach:player.equipment.weapon?(player.equipment.weapon.reach||1.85):1.15,attackSpeed:(player.equipment.weapon?.attackSpeed||(player.equipment.weapon?1:1.35))*(1+total('attackRate')/100),fireResist:clamp(total('fireResist'),0,75),coldResist:clamp(total('coldResist'),0,75),lightningResist:clamp(total('lightningResist'),0,75),lifeRegen:.8+total('lifeRegen'),flaskGain:total('flaskGain'),flaskRecovery:total('flaskRecovery'),block:clamp(total('block'),0,60),evasion:clamp(total('evasion'),0,50),speed:Math.max(2.4,3.8+total('speed')),regen:2.4+r('spirit')*.6+will*.08+total('manaRegen'),bonus:1+(total('bonus')+r('convergence')*5*invested)/100,fire:1+r('kindling')*.08+total('fireDamage')/100,cold:1+r('resonance')*.08,cdr:1-r('flow')*.04};
+  const t=passiveEffects(player),v=k=>(t[k]||0)+total(k),flag=k=>t.flags.has(k);
+  out.maxHp=Math.round(out.maxHp*(1+v('maxHpPercent')/100));out.maxMana=Math.round(out.maxMana*(1+v('maxManaPercent')/100));out.armor*=1+v('armorPercent')/100;
+  out.attackSpeed*=1+(t.attackRate||0)/100;out.crit=clamp(out.crit+(t.crit||0),0,85);out.critMultiplier=1.75+v('critDamage')/100;
+  out.spellPower=6+(player.level-1)*.8+total('spellPower')+will*.8+total('damage')*.25;
+  out.physical=1+v('physicalDamage')/100;out.spell=1+v('spellDamage')/100;out.fire+=(t.fireDamage||0)/100;out.cold+=v('coldDamage')/100;out.lightning=1+v('lightningDamage')/100;
+  out.regen*=1+v('manaRegenPercent')/100;out.lifeRegen+=(t.lifeRegen||0);out.lifeLeech=v('lifeLeech');out.manaLeech=v('manaLeech');out.manaOnHit=v('manaOnHit');out.lifeOnKill=v('lifeOnKill');out.bleed=v('bleed');out.burnDamage=v('burnDamage');out.area=v('area');out.meleeArea=v('meleeArea');out.duration=v('duration');out.chillEffect=v('chillEffect');out.chilledDamage=v('chilledDamage');out.shockEffect=v('shockEffect');out.manaCostReduction=clamp(v('manaCostReduction'),0,65);out.skillRanks=v('skillRanks');out.chainDamage=v('chainDamage');out.extraChains=flag('circuit')?2:0;out.pyreSelfMultiplier=flag('martyr')?.75:1;
+  for(const key of ['fireResist','coldResist','lightningResist'])out[key]=clamp(out[key]+(t[key]||0),0,75);out.block=clamp(out.block+(t.block||0),0,60);
+  if(flag('razor')){out.critMultiplier+=.45;out.physical+=.2;out.manaCostReduction-=15;}
+  if(flag('martyr')){out.lifeRegen++;out.physical*=.85;out.cold*=.85;out.lightning*=.85;}
+  if(flag('permafrost')){out.chilledDamage+=25;out.fire*=.75;}
+  if(flag('circuit')){out.lifeRegen*=.5;out.shockDuration=2;}
+  if(flag('covenant')){out.lifeLeech+=3;out.maxHp=Math.round(out.maxHp*1.2);out.regen*=.7;}
+  if(flag('reservoir')){out.maxMana=Math.round(out.maxMana*1.4);out.spell*=1.2;out.lifeLeech=0;}
+  return out;
 }
 export function mitigateDamage(amount,stats,element='physical',guard=0){
   const resistance=element==='fire'?stats.fireResist:element==='cold'?stats.coldResist:element==='aether'||element==='lightning'?stats.lightningResist:0;
@@ -140,16 +158,16 @@ export const xpNeeded=level=>Math.round(55+level*30+Math.pow(level,1.7)*10);
 export const ORIGINS={vanguard:{name:'Royal Vanguard',description:'You held the king’s shield wall. Strength and endurance are your inheritance.',attributes:{might:2,vitality:2,will:0,dexterity:0}},templar:{name:'Royal Chirurgeon',description:'You served the field hospitals. Steady hands and knowledge of herbs kept the wounded alive.',attributes:{might:0,vitality:1,will:3,dexterity:0}},outrider:{name:'King’s Outrider',description:'You carried the king’s word beyond the walls. Your blade is swift and certain.',attributes:{might:1,vitality:0,will:0,dexterity:3}}};
 export function createPlayer(options={}) {
   const origin=ORIGINS[options.origin]?options.origin:'vanguard',sex='male';
-  return {sex,name:String(options.name||'The Loyalist').trim().slice(0,24),origin,appearance:options.appearance==='iron'?'iron':'crimson',progressionVersion:2,attributes:{...ORIGINS[origin].attributes},attributePoints:0,x:0,y:0,level:1,xp:0,gold:0,points:0,skills:{},slots:[null,null,null,null],mouseSkill:'basic',equipment:{weapon:{name:'King’s Service Sword',slot:'weapon',rarity:'normal',damage:5,level:1,icon:'⚔',id:'starter-sword'},armor:null,charm:null,boots:null,helm:null,gloves:null,belt:null,ring:null,ring2:null,shield:{id:'starter-buckler',name:'Scarred Buckler',slot:'shield',rarity:'normal',level:1,armor:1,block:4,look:'round'}},inventory:[],stash:[],shards:0,scrollInventoryVersion:1,buyback:[],shopStock:null,quests:{guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false},hp:120,mana:80,potions:3,kills:0,deaths:0};
+  return {sex,name:String(options.name||'The Loyalist').trim().slice(0,24),origin,appearance:options.appearance==='iron'?'iron':'crimson',progressionVersion:2,passiveVersion:1,passives:[],passivePoints:0,skillMods:{},dungeonGeneration:0,attributes:{...ORIGINS[origin].attributes},attributePoints:0,x:0,y:0,level:1,xp:0,gold:0,points:0,skills:{},slots:[null,null,null,null],mouseSkill:'basic',equipment:{weapon:{name:'King’s Service Sword',slot:'weapon',rarity:'normal',damage:5,level:1,icon:'⚔',id:'starter-sword'},armor:null,charm:null,boots:null,helm:null,gloves:null,belt:null,ring:null,ring2:null,shield:{id:'starter-buckler',name:'Scarred Buckler',slot:'shield',rarity:'normal',level:1,armor:1,block:4,look:'round'}},inventory:[],stash:[],shards:0,scrollInventoryVersion:1,buyback:[],shopStock:null,quests:{guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false},hp:120,mana:80,potions:3,kills:0,deaths:0};
 }
 export function grantExperience(player,amount){
   if(!Number.isFinite(amount)||amount<=0)return 0;player.xp+=amount;let levels=0;
-  while(player.xp>=xpNeeded(player.level)&&player.level<60){player.xp-=xpNeeded(player.level);player.level++;player.points+=1;player.attributePoints=(player.attributePoints||0)+5;levels++;}
+  while(player.xp>=xpNeeded(player.level)&&player.level<60){player.xp-=xpNeeded(player.level);ensurePassives(player);player.level++;player.points+=1;player.passivePoints+=1;player.attributePoints=(player.attributePoints||0)+5;levels++;}
   if(levels){const s=playerStats(player);player.hp=s.maxHp;player.mana=s.maxMana;player.potions=Math.min(5,player.potions+levels);if(player.flask){player.flask.charges=Math.min(100,player.flask.charges+levels*20);player.potions=Math.floor(player.flask.charges/20);}}return levels;
 }
 export function spendAttribute(player,key){if(!['might','vitality','will','dexterity'].includes(key)||!(player.attributePoints>0))return false;player.attributes??={};player.attributes[key]=(player.attributes[key]||0)+1;player.attributePoints--;return true;}
 export const generateItem=createRelic;
 export function itemDescription(item) {
-  const lines=[['damage','Weapon damage'],['armor','Armor'],['life','Life'],['spirit','Spirit'],['crit','% critical chance'],['speed','Movement speed'],['bonus','% all damage'],['fireResist','% fire resistance'],['coldResist','% cold resistance'],['lightningResist','% storm resistance'],['lifeRegen','Life regenerated / sec'],['fireDamage','% fire damage'],['flaskGain','% flask charge recovery'],['attackRate','% attack speed'],['block','% block chance'],['evasion','% evasion']].filter(([key])=>item[key]).map(([key,name])=>`${item[key]<0?'':'+'}${item[key]} ${name}`);
-  if(item.reach)lines.push(`Reach ${item.reach.toFixed(2)}`);if(item.attackSpeed)lines.push(`Attack speed ×${item.attackSpeed.toFixed(2)}`);return lines;
+  const lines=[['damage','Weapon damage'],['armor','Armor'],['life','Life'],['spirit','Maximum mana'],['spellPower','Spell power'],['bleed','% physical hit damage as bleeding'],['crit','% critical chance'],['speed','Movement speed'],['bonus','% all damage'],['fireResist','% fire resistance'],['coldResist','% cold resistance'],['lightningResist','% storm resistance'],['lifeRegen','Life regenerated / sec'],['manaRegen','Mana regenerated / sec'],['manaRegenPercent','% mana regeneration'],['lifeLeech','% attack life leech'],['manaLeech','% mana leech'],['manaOnHit','Mana per hit'],['skillRanks','Ranks to learned active skills'],['physicalDamage','% physical damage'],['spellDamage','% spell damage'],['coldDamage','% cold damage'],['lightningDamage','% lightning damage'],['manaCostReduction','% reduced mana cost'],['critDamage','% critical damage'],['fireDamage','% fire damage'],['flaskGain','% flask charge recovery'],['attackRate','% attack speed'],['block','% block chance'],['evasion','% evasion']].filter(([key])=>item[key]).map(([key,name])=>`${item[key]<0?'':'+'}${item[key]} ${name}`);
+  if(item.lifeLeech)lines.push('Life leech recovers over time · cap 8% maximum life / sec');if(item.manaLeech)lines.push('Mana leech recovers over time · cap 10% maximum mana / sec');if(item.twoHanded)lines.push('Two-handed');if(item.reach)lines.push(`Reach ${item.reach.toFixed(2)}`);if(item.attackSpeed)lines.push(`Attack speed ×${item.attackSpeed.toFixed(2)}`);return lines;
 }

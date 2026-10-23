@@ -10,6 +10,20 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.20.0
+
+- Offensive skills have **no cooldown**. They spend mana and share an attack/cast cadence, so holding a key repeats the skill without firing every simulation tick. Basic attacks remain free. Inner Furnace, Will, regeneration affixes, mana leech, mana gained on hit and cost reduction support sustained casting.
+- There are **15 active skills**: 12 attacks and 3 sustained auras. Added Riven Strike (bleeding), Rime Lance (chill/shatter), Thunder Spear (shock/splash), Oathbound Guard and Ember Trance. Guard reserves 25% mana; Trance reserves 30%. Auras have a short two-second reactivation lockout after deactivation, reduced by Temporal Flow. Martyr’s Pyre retains life-based self-burning and safety extinction.
+- **13 skills have three specialization choices each**, unlocked at invested rank 2. Choices change actual projectile count, chain jumps, mana cost, area, damage, burning, self-burning, leech or mana return. The skill sheet shows effective rank and cost; gear does not unlock an unlearned skill.
+- Added the **187-node Atlas of Oaths**: six connected disciplines, travel nodes, notables and six keystones with tradeoffs. Search, drag to pan, wheel or buttons to zoom, inspect a node and allocate from a connected path. Refunds cost five gold and cannot disconnect another allocated node. Every level grants **one mastery point, one passive point and five attributes**. Existing characters receive their earned passive points once; existing skills and gear remain.
+- Passives support physical/elemental/spell damage, critical damage, bleeding, burning, chill, shock, area, duration, block, life, mana, regeneration, leech and skill ranks. Attack life leech and direct-hit mana leech recover over time, capped at 8% maximum life/sec and 10% maximum mana/sec. Damage over time does not repeatedly trigger leech or on-hit recovery.
+- **16 weapon bases** have distinct painted inventory art, including daggers, greatswords, mauls, flails, staffs, wands, bows, crossbows, battle axes and sceptres. Caster weapons grant spell power; ranged weapons fire aimed basic projectiles. Equipping two-handed gear returns incompatible equipment to the pack atomically, and fails without changing equipment if the pack is full.
+- Ordinary equipment rolls through early Act II are about **73% common, 26% magic, 0.8% rare and 0.02% legendary**. Rare equipment rolls rise to 3.5% in mid Act II, 8% later in that act and 11% in later acts. Legendary equipment rolls remain 0.02–0.08%; bosses double that small chance and guarantee at least magic equipment. These are chances per equipment roll, not per enemy kill.
+- Mana regeneration, life regeneration, leech, mana gained on hit, skill ranks and cost reduction are weighted magical affixes rather than common-item rolls. Skill-rank affixes start in mid Act II. New legendary weapon and accessory properties support caster, leech, critical and bleeding builds. Old items retain their rolls.
+- Added elemental projectile trails, cast motes, bleeding marks, frost fragments, sustained aura sigils and themed boss windups/impacts. Boss attack circles show a filling timing perimeter. Effects and damage text have bounded budgets; Performance quality reduces decorative particles.
+- Dungeon layouts use the character’s saved seed. Marchgate varies chamber dimensions and positions, corridor widths and routes, barracks connections and side loops while preserving the monumental south-facing entrance. **Options → Regenerate dungeon layouts** advances a saved layout revision, clears dungeon instances and loose loot, and rebuilds the current dungeon at its entrance. Equipment, character progression, completed quests and defeated bosses remain intact; the overworld stays in place.
+- Options also includes **God mode, Infinite mana, Free build allocation and 0.1×–10× outgoing damage** for testing. Testing toggles reset on reload. Build edits made while testing remain part of the saved character; passive connections still apply.
+
 ## Version 0.19.0
 
 - Replaced primitive fences, signposts, lanterns and sheep with weathered, semi-realistic painted art. Roadside arrows and lantern brackets face along their road segments.
@@ -200,14 +214,14 @@ Unit checks cover procedural connectivity, progression, equipment transactions, 
 
 Runtime assets are committed; ordinary builds do not generate artwork. `npm run art:pack` rebuilds compressed scenery, equipment layers, parchment prologue scenes, sprite foot offsets and menu illustrations. The game uses cached painted sprites, not a runtime 3D engine. `npm run profile` samples town and stronghold rendering at 1440×900 with Chromium CPU throttled 4×; run it separately from other browser work. UI resolution stays native while Options controls world resolution. Sprite caches use compact image identities instead of embedding entire data URLs in cache keys.
 
-The v0.19 portable HTML is about **12.4 MiB**. `npm run profile:offline` builds and samples the embedded HTML without network access, including a walk to the populated pasture. A controlled 1440×900 Chromium run with 4× CPU throttling measured:
+The v0.20 portable HTML is about **12.6 MiB**. `npm run profile:offline` builds and samples the embedded HTML without network access, including a walk to the populated pasture. A controlled 1440×900 Chromium run with 4× CPU throttling measured:
 
 | Area | Median frame | 95th percentile | Sampled JavaScript heap | Prepared terrain pixels |
 | --- | --- | --- | --- | --- |
-| Emberfall in the expanded forest | 46.7 ms | 64.8 ms | 37.9 MiB | 40.3 MiB |
-| Marchgate | 53.6 ms | 79.2 ms | 36.0 MiB | 66.6 MiB |
-| Pasture with grass and 22 sheep | 58.3 ms | 76.4 ms | 44.2 MiB | 40.3 MiB |
+| Emberfall in the expanded forest | 46.8 ms | 71.6 ms | 33.5 MiB | 40.3 MiB |
+| Marchgate | 52.9 ms | 72.2 ms | 35.0 MiB | 66.6 MiB |
+| Pasture with grass and 22 sheep | 56.8 ms | 75.9 ms | 46.8 MiB | 40.3 MiB |
 
-The sampled rates were 20.8 FPS in town, 17.9 FPS in Marchgate and 17.0 FPS in the populated pasture. These measurements include adaptive Balanced resolution, which reached 960×600 while keeping the interface native. They are constrained test-machine samples, not a sustained desktop performance guarantee. Balanced and High cache the new forest surface at native detail around the viewport; Performance uses the smaller prepared ground layer.
+The sampled rates were 20.1 FPS in town, 18.1 FPS in Marchgate and 17.2 FPS in the populated pasture. These measurements include adaptive Balanced resolution, which reached 960×600 while keeping the interface native. They are constrained test-machine samples, not a sustained desktop performance guarantee. Balanced and High cache the new forest surface at native detail around the viewport; Performance uses the smaller prepared ground layer.
 
 The entire opening region uses 784 prebuilt quarter-resolution chunks; Marchgate uses 324 half-resolution chunks. Neither terrain cache grows as the player walks. Automap discovery still follows exploration. Render quality and the frame ceiling remain adjustable in Options.

@@ -52,10 +52,10 @@ test('passives, equipment, and cross-mastery convergence affect actual combat st
   assert.equal(s.maxMana,base.maxMana+24);assert.equal(s.cdr,.8);assert.ok(s.bonus>1);
   p.equipment.charm={bonus:20,life:30,crit:5};const geared=playerStats(p);assert.equal(geared.maxHp,s.maxHp+30);assert.equal(geared.crit,s.crit+5);assert.ok(geared.bonus>s.bonus);
 });
-test('boss rewards are rare or legendary and item power scales with depth',()=>{
+test('boss rewards are enchanted and item power scales with depth',()=>{
   for(let seed=0;seed<100;seed++){
-    const item=generateItem(random(seed),1,true);assert.ok(['rare','legendary'].includes(item.rarity));assert.ok(item.life>0);
+    const item=generateItem(random(seed),1,true);assert.ok(['magic','rare','legendary'].includes(item.rarity));assert.ok(item.affixes.length>=2);
   }
   const shallow=generateItem(random(88),1,true),deep=generateItem(random(88),8,true);
-  assert.equal(shallow.slot,deep.slot);assert.ok(deep.life>shallow.life);assert.ok(xpNeeded(2)>xpNeeded(1));
+  assert.equal(shallow.slot,deep.slot);assert.ok(deep.armor>shallow.armor);assert.ok(xpNeeded(2)>xpNeeded(1));
 });

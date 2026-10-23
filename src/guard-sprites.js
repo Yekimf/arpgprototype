@@ -1,3 +1,5 @@
+import weaponBounds from './art/weapon-bounds.json';
+import {WEAPON_ART} from './assets.js';
 import {GUARD_ART,ITEM_ART,ORIGINAL_ART} from './assets.js';
 import {appearanceOf} from './itemization.js';
 import {facingPose,walkingLeg,WALK_FRAMES} from './locomotion.js';
@@ -9,8 +11,8 @@ const FACE={
 const W=128,H=144,S=320;
 const poly=(c,points)=>{c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x*S,y*S):c.moveTo(x*S,y*S));c.closePath();};
 export class GuardSprites{
- constructor(){this.art=new Image();this.art.src=GUARD_ART;this.items=new Image();this.items.src=ITEM_ART;this.original=new Image();this.original.src=ORIGINAL_ART;this.cache=new Map();}
- get ready(){return [this.art,this.items,this.original].every(a=>a.complete&&a.naturalWidth>0);}
+ constructor(){this.weapons=new Image();this.weapons.src=WEAPON_ART;this.art=new Image();this.art.src=GUARD_ART;this.items=new Image();this.items.src=ITEM_ART;this.original=new Image();this.original.src=ORIGINAL_ART;this.cache=new Map();}
+ get ready(){return [this.weapons,this.art,this.items,this.original].every(a=>a.complete&&a.naturalWidth>0);}
  tile(c,index){const s=this.art.naturalWidth/4;c.drawImage(this.art,index%4*s,Math.floor(index/4)*s,s,s,0,0,S,S);}
  clipTile(c,index,points,exclude=null){c.save();poly(c,points);c.clip();if(exclude){c.beginPath();c.rect(0,0,S,S);c.ellipse(exclude[0]*S,exclude[1]*S,50,72,0,0,Math.PI*2);c.clip('evenodd');}this.tile(c,index);c.restore();}
  frame(p,back,column,heading={x:.9,y:back?-.4:.4},direction=null){const look=appearanceOf(p),key=JSON.stringify(look)+'/'+back+'/'+column+'/'+Math.round(heading.x*10)+'/'+Math.round(heading.y*10)+'/'+(direction?.index??'legacy');if(this.cache.has(key))return this.cache.get(key);if(!this.ready)return null;
@@ -46,7 +48,7 @@ export class GuardSprites{
    if(jab){const goal={x:hand.x+jab.x,y:hand.y+jab.y},pose=joint(shoulder,goal,Math.hypot(elbow.x-shoulder.x,elbow.y-shoulder.y),Math.hypot(hand.x-elbow.x,hand.y-elbow.y),arm===0?(back?-1:1):(back?1:-1));posedHand=pose.end;this.bone(c,body+offset,face.arms[0],sourceShoulder,sourceElbow,shoulder,pose.knee,width);this.bone(c,body+offset,face.forearms[0],sourceElbow,sourceHand,pose.knee,pose.end,width);c.translate(posedHand.x-hand.x,posedHand.y-hand.y);}
    else{c.translate(shoulder.x,shoulder.y);c.rotate(swing);c.translate(-shoulder.x,-shoulder.y);if(arm===1){this.bone(c,body+offset,face.arms[0],sourceShoulder,sourceElbow,shoulder,elbow,-1);this.bone(c,body+offset,face.forearms[0],sourceElbow,sourceHand,elbow,hand,-1);}else{this.clipTile(c,body+offset,face.arms[0]);this.clipTile(c,body+offset,face.forearms[0]);}}
    this.hand(c,look.gloves,back,arm,face,punch&&(arm===0||look.shield==='none'));
-   if(arm===0&&look.weapon!=='none')this.weapon(c,look.weapon,back,face.hand);
+   if(arm===0&&look.weapon!=='none')this.weapon(c,look.weapon,back,face.hand,look.weaponIcon);
    // Equipment follows its hand. The offhand glove is correctly behind a shield.
    if(arm===1&&look.shield!=='none')this.shield(c,look.shield,back,face.shield);
    c.restore();
@@ -63,10 +65,11 @@ export class GuardSprites{
   if(gloves!=='none'){const px=x*S,py=y*S;c.save();c.strokeStyle=gloves==='steel'?'#b4ac9688':'#8b684888';c.lineWidth=1.3;c.beginPath();c.moveTo(px-9,py-10);c.lineTo(px+8,py-8);if(gloves==='steel')for(let i=0;i<3;i++){c.moveTo(px-5+i*4,py);c.lineTo(px-6+i*4,py+6);}c.stroke();c.restore();}
  }
  fist(c,gloves){const skin=gloves==='none',metal=gloves==='steel';const shade=c.createLinearGradient(-8,-9,10,8);shade.addColorStop(0,skin?'#a78767':metal?'#858577':'#705237');shade.addColorStop(.5,skin?'#87674d':metal?'#595d54':'#503b28');shade.addColorStop(1,skin?'#503a2b':metal?'#30372f':'#31291e');c.fillStyle=shade;c.strokeStyle=skin?'#503a2b':'#25231c';c.lineWidth=1.4;c.beginPath();c.moveTo(-9,-9);c.lineTo(5,-12);c.lineTo(12,-6);c.lineTo(14,4);c.lineTo(8,10);c.lineTo(-7,8);c.lineTo(-11,2);c.closePath();c.fill();c.stroke();c.strokeStyle=skin?'#bd967077':metal?'#bbb29a99':'#9e7b4b88';for(let i=0;i<3;i++){c.beginPath();c.moveTo(i*5-5,-5);c.lineTo(i*5-3,3);c.stroke();}}
- weapon(c,look,back,hand){const x=hand[0]*S,y=hand[1]*S;
+ weapon(c,look,back,hand,weaponIcon=0){const x=hand[0]*S,y=hand[1]*S;
   if(look==='sword'){const points=back?[[.77,.47],[.86,.50],[.999,.88],[.96,.90],[.80,.61],[.76,.56]]:[[.29,.48],[.38,.51],[.20,.77],[.06,.91],[.09,.81],[.27,.56]];this.clipTile(c,back?1:0,points);return;}
   c.save();c.translate(x,y);c.rotate(back?2.65:-2.58);
-  if(look==='spear'){c.strokeStyle='#282016';c.lineWidth=6;c.beginPath();c.moveTo(0,22);c.lineTo(0,-145);c.stroke();c.strokeStyle='#927452';c.lineWidth=2;c.stroke();c.fillStyle='#9a9c93';poly(c,[[0,-.53],[-.025,-.43],[0,-.38],[.025,-.43]]);c.fill();}
+  if((weaponIcon===14||!['sword','axe','mace','spear'].includes(look))&&this.weapons.complete&&this.weapons.naturalWidth){const b=weaponBounds[weaponIcon]||weaponBounds[0],h=look==='dagger'?75:look==='wand'?95:look==='staff'?175:look==='greatsword'?155:125,w=h*b[2]/b[3];c.drawImage(this.weapons,...b,-w/2,-h+20,w,h);}
+  else if(look==='spear'){c.strokeStyle='#282016';c.lineWidth=6;c.beginPath();c.moveTo(0,22);c.lineTo(0,-145);c.stroke();c.strokeStyle='#927452';c.lineWidth=2;c.stroke();c.fillStyle='#9a9c93';poly(c,[[0,-.53],[-.025,-.43],[0,-.38],[.025,-.43]]);c.fill();}
   else{const index=look==='mace'?15:5,s=this.items.naturalWidth/4;c.drawImage(this.items,index%4*s+3,Math.floor(index/4)*s+3,s-6,s-6,-42,-116,84,139);}c.restore();
  }
  shield(c,look,back,center){const x=center[0]*S,y=center[1]*S;c.save();c.beginPath();if(look==='kite'){c.moveTo(x-39,y-62);c.lineTo(x+43,y-56);c.lineTo(x+38,y+25);c.lineTo(x,y+80);c.lineTo(x-38,y+27);c.closePath();}else c.ellipse(x,y,49,71,back?-.12:.12,0,Math.PI*2);c.clip();if(look==='kite'){c.fillStyle='#3d3023';c.fillRect(x-55,y-80,110,165);}this.tile(c,back?1:0);c.restore();if(look==='kite'){c.strokeStyle='#8c7855';c.lineWidth=2;c.beginPath();c.moveTo(x-39,y-62);c.lineTo(x+43,y-56);c.lineTo(x+38,y+25);c.lineTo(x,y+80);c.lineTo(x-38,y+27);c.closePath();c.stroke();}}

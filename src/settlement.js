@@ -1,3 +1,5 @@
+import {isTwoHanded} from './itemization.js';
+import {ensurePassives} from './passive-tree.js';
 import {makeInsightScroll,migrateScrolls,isInsightScroll} from './scrolls.js';
 import {appraisal,transferGold} from './economy.js';
 import {ensureFlask,refillFlask} from './flasks.js';
@@ -5,7 +7,7 @@ import {generateItem, random, requiresIdentification} from './game.js';
 
 export const BAG={width:10,height:4}, STASH={width:10,height:8};
 export const EQUIPMENT={helm:'Head',charm:'Amulet',weapon:'Main hand',armor:'Body armor',shield:'Off hand',gloves:'Hands',belt:'Belt',ring:'Left ring',ring2:'Right ring',boots:'Feet'};
-export const AFFIXES={damage:'Weapon damage',armor:'Armour',life:'Life',crit:'Critical chance',bonus:'All damage',spirit:'Spirit',fireResist:'Fire resistance',coldResist:'Cold resistance',lightningResist:'Storm resistance',lifeRegen:'Life regeneration',fireDamage:'Fire damage',flaskGain:'Flask charge recovery',attackRate:'Attack speed',block:'Block chance'};
+export const AFFIXES={damage:'Weapon damage',armor:'Armour',life:'Life',crit:'Critical chance',bonus:'All damage',spirit:'Spirit',fireResist:'Fire resistance',coldResist:'Cold resistance',lightningResist:'Storm resistance',lifeRegen:'Life regeneration',fireDamage:'Fire damage',flaskGain:'Flask charge recovery',attackRate:'Attack speed',manaRegen:'Mana per second',manaRegenPercent:'Mana regeneration',lifeLeech:'Life leech',manaLeech:'Mana leech',manaOnHit:'Mana gained on hit',skillRanks:'Active skill ranks',spellPower:'Spell power',spellDamage:'Spell damage',coldDamage:'Cold damage',lightningDamage:'Lightning damage',manaCostReduction:'Reduced mana cost',critDamage:'Critical damage',physicalDamage:'Physical damage',block:'Block chance'};
 // Shared camp footprint; the campaign places this layout at (+16, +18).
 export const TOWN_BOUNDS={x1:16,y1:16,x2:50,y2:51};
 export const NPCS=[
@@ -50,6 +52,7 @@ export function arrange(items,dimensions=BAG,sort=false){
   return items.filter(i=>i.bagX<0).length;
 }
 export function migratePlayer(player){
+  ensurePassives(player);player.skillMods??={};player.dungeonGeneration??=0;
   player.sex='male';
   const legacy=player.progressionVersion!==2;
   player.slots=Array.from({length:4},(_,i)=>player.slots?.[i]??null);
@@ -74,11 +77,12 @@ export function equipItem(player,id,targetSlot=null){
   if(item.requiredLevel>player.level)return result(false,`Requires level ${item.requiredLevel}.`);
   const slot=targetSlot||((item.slot==='ring'&&player.equipment.ring&&!player.equipment.ring2)?'ring2':item.slot);
   if(slot!==item.slot&&!(item.slot==='ring'&&slot==='ring2'))return result(false,'That item belongs in a different slot.');
-  const old=player.equipment[slot],remaining=player.inventory.filter(i=>i.id!==id);
-  let spot=null;
-  if(old){spot=findSpace(remaining,old);if(!spot)return result(false,'Make space in your pack for the equipped item.');}
-  player.inventory.splice(index,1);player.equipment[slot]=item;
-  if(old){old.bagX=spot.x;old.bagY=spot.y;player.inventory.push(old);}
+  const conflicts=[];if(player.equipment[slot])conflicts.push({slot,item:player.equipment[slot]});
+  if(slot==='weapon'&&isTwoHanded(item)&&player.equipment.shield)conflicts.push({slot:'shield',item:player.equipment.shield});
+  if(slot==='shield'&&isTwoHanded(player.equipment.weapon))conflicts.push({slot:'weapon',item:player.equipment.weapon});
+  const remaining=player.inventory.filter(i=>i.id!==id),placements=[];
+  for(const conflict of conflicts){const spot=findSpace(remaining,conflict.item);if(!spot)return result(false,'Make space in your pack for equipment displaced by this item.');placements.push({...conflict,spot});remaining.push({...conflict.item,bagX:spot.x,bagY:spot.y});}
+  player.inventory.splice(index,1);for(const {slot:oldSlot,item:old,spot}of placements){player.equipment[oldSlot]=null;old.bagX=spot.x;old.bagY=spot.y;player.inventory.push(old);}player.equipment[slot]=item;
   return result(true,`${item.name} equipped.`);
 }
 export function unequipItem(player,slot){

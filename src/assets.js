@@ -59,3 +59,6 @@ export const FOREST_LIFE_ART=localAsset(forestLife);
 
 import forestGround from './art/runtime/forest-ground.webp?inline';
 export const FOREST_GROUND_ART=localAsset(forestGround);
+
+import weapons from './art/runtime/weapons.webp?inline';
+export const WEAPON_ART=localAsset(weapons);
