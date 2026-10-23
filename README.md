@@ -10,6 +10,11 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.33.2
+
+- Building, gate and farm structure shadows follow their painted foundations instead of detached oval blobs. Contact shadows are softly blended and cached, with no shadow work repeated for unchanged structures.
+- Reduced the stash chest to 64×48, reduced its ground patch, and matched its click target to the smaller chest.
+
 ## Version 0.33.1
 
 - Removed **F** interaction. Click characters, objects and item labels to talk, travel or pick up loot. The nearby interaction button remains clickable, and world prompts and the control guide now describe mouse actions.

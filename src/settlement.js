@@ -204,7 +204,7 @@ export function generateTown(player){
     {type:'building',sprite:10,x:21,y:34,width:215,height:210},
     {type:'building',sprite:11,x:43,y:43,width:225,height:220},
     {type:'building',sprite:12,x:38,y:28,width:100,height:115},
-    {type:'building',sprite:13,x:36.5,y:37.5,width:95,height:90,stash:true},
+    {type:'building',sprite:13,x:36.5,y:37.5,width:64,height:48,stash:true},
     {type:'building',sprite:15,x:32.5,y:16.5,width:170,height:160,exit:true},
   ];
   for(const [x,y]of[[17,23],[17,44],[25,50],[44,18],[49,30],[48,49],[19,18]])props.push({type:'building',sprite:7,x,y,width:160,height:190});
