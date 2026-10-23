@@ -35,7 +35,7 @@ export function leaveCorpse(area,victim,source,{player=false,time=0}={}){
  // A duplicate kill callback cannot leave a second corpse or spray.
  const r=remainsOf(area);if(!player&&r.corpses.some(c=>c.victim===victim))return null;
  const hit=scatterRemains(area,victim,source,{fatal:true,kind:player?'blood':remainsKind(victim),time});
- const corpse={...hit,x:victim.x,y:victim.y,age:0,duration:victim.type==='warden'?1.05:.72,player,victim,
+ const corpse={...hit,x:victim.x,y:victim.y,age:0,duration:victim.type==='warden'?1.2:.96,player,victim,
   body:{...victim,visual:victim.visual?{...victim.visual}:null,hit:0,slow:0,burn:0,pyreGlow:0,attackAnim:0,windup:0,rangedWindup:null,charge:null}};
  r.corpses.push(corpse);cap(r.corpses,REMAINS_LIMITS.corpses);return corpse;
 }

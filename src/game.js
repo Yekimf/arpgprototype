@@ -103,7 +103,7 @@ export const MASTERIES = {
     {id:'spirit',name:'Inner Furnace',icon:'☼',max:5,req:0,description:'+{v} maximum mana and +0.6 mana regeneration per rank.',base:12,step:12},
     {id:'meteor',name:'Consecrated Ground',icon:'☄',max:5,req:3,active:true,cost:30,cooldown:8,description:'Kindle the aimed ground for 5 seconds, dealing {v}% fire damage per second to enemies standing within it.',base:75,step:15},
     {id:'ash',name:'Ashen Veil',icon:'◈',max:3,req:3,description:'+{v}% damage resistance while your spirit is above 50%.',base:5,step:5},
-    {id:'inferno',name:'Martyr’s Pyre',icon:'✷',max:5,req:3,active:true,toggle:true,cost:0,cooldown:0,description:'Toggle a burning aura. Scorches nearby enemies using maximum life and mana. Burns 9% of your maximum life each second before fire resistance; life regeneration and flasks sustain it. Stops at 5% life. Higher ranks deal {v}% base aura damage.',base:100,step:18},
+    {id:'inferno',name:'Martyr’s Pyre',icon:'✷',max:5,req:3,active:true,toggle:true,cost:0,cooldown:0,description:'Toggle a burning aura. Scorches nearby enemies using maximum life and mana. Life regeneration and flasks sustain it. Deals 30% of your maximum life as fire damage to you each second, reduced by fire resistance. Can kill you. Higher ranks deal {v}% base aura damage.',base:100,step:18},
     {id:'phoenix',name:'Phoenix Heart',icon:'♧',max:3,req:7,description:'Kills restore {v} life and 3 spirit per rank.',base:6,step:6},
   ]},
   aether: {name:'Hollow Sage',subtitle:'FROST · AETHER · CONVERGENCE',description:'Listen to the silence between worlds. Shape its stillness into a weapon.',color:'#8dc2be',nodes:[

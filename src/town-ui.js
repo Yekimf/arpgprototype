@@ -1,3 +1,4 @@
+import {guideStory} from './npc-dialogue.js';
 import {setDefinition,equippedSetPieces} from './set-items.js';
 import {isInsightScroll,insightCount,scrollQuantity,SCROLL_STACK} from './scrolls.js';
 import {ensureFlask,refillFlask} from './flasks.js';
@@ -96,7 +97,7 @@ export class TownUI {
     }
     if(panel==='guide'){
       const complete=p.quests.wardenDefeated;
-      modal.innerHTML=header('KEEPER OF THE LAST LIGHT','Sister Maelin')+`<div class="npc-dialog"><div class="npc-portrait portrait-guide"></div><div><p class="spoken">“${complete?'Edrin is home. You have done more than the last three patrols combined. Edrin has taken shelter by the old well. He will know what to make of your relics.':p.quests.guideMet?'Edrin was taken through Ruined Marchgate and the Tithe Granary to Blackthorn Hollow. Sir Aldren holds him in the redoubt. Steel yourself, and remember: there is no shame in returning to the light.':'You wore the old king’s colours. Emberfall remembers, soldier. But we still have a fire, a roof, and a debt to those we lost. Will you follow the Kingsroad to Marchgate?'}”</p><div class="quest-card"><span class="eyebrow">A DEBT TO THE DEAD</span><h3>${complete?'The archivist returns':'Rescue the missing archivist'}</h3><p>Break Hadrin’s garrison at Marchgate, defeat the grain levy, then face Aldren in Blackthorn Hollow and rescue Edrin. The archivist will identify your relics freely.</p></div><div class="item-actions">${!p.quests.guideMet?btn('accept-quest','I will help · Accept quest'):''}${complete&&!p.quests.guideRewarded?btn('claim-reward','Claim reward · 120 gold + 3 embers'):''}${btn('heal','Restore life & spirit · Free')}${btn('guide-depart','Show me the road')}</div></div></div>${this.wallet()}`;return true;
+      modal.innerHTML=header('KEEPER OF THE LAST LIGHT','Sister Maelin')+`<div class="npc-dialog"><div class="npc-portrait portrait-guide"></div><div><p class="spoken">“${guideStory(p)}”</p><div class="quest-card"><span class="eyebrow">A DEBT TO THE DEAD</span><h3>${complete?'The archivist returns':p.campaign?.records?.includes('field-1-0')?'The road to Edrin':'The Last Herd'}</h3><p>Protect Elin’s sheep from the risen soldiers. Their orders lead to Hadrin at Marchgate, Oswen’s stolen grain, and the captives in Aldren’s redoubt.</p></div><div class="item-actions">${!p.quests.guideMet?btn('accept-quest','I will help · Accept quest'):''}${complete&&!p.quests.guideRewarded?btn('claim-reward','Claim reward · 120 gold + 3 embers'):''}${btn('heal','Restore life & spirit · Free')}${btn('guide-depart','Show me the road')}</div></div></div>${this.wallet()}`;return true;
     }
     return false;
   }

@@ -1,5 +1,5 @@
 /* Combat stops immediately; give the fallen body a moment before the revive sheet. */
-.modal-backdrop.death-arrival{animation:death-menu-arrive .2s .75s both}
+.modal-backdrop.death-arrival{animation:death-menu-arrive .2s 1s both}
 @keyframes death-menu-arrive{from{opacity:0;visibility:hidden}to{opacity:1;visibility:visible}}
 .reduced-motion .modal-backdrop.death-arrival{animation:none}
 @media(prefers-reduced-motion:reduce){.modal-backdrop.death-arrival{animation:none}}

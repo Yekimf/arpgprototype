@@ -115,3 +115,9 @@ import enemyFront from './art/runtime/enemies-front.webp?inline';
 import enemyBack from './art/runtime/enemies-back.webp?inline';
 export const ENEMY_FRONT_ART=localAsset(enemyFront);
 export const ENEMY_BACK_ART=localAsset(enemyBack);
+
+import enemyDeaths from './art/runtime/enemy-deaths.webp?inline';
+export const ENEMY_DEATH_ART=localAsset(enemyDeaths);
+
+import bossDeath from './art/runtime/boss-death.webp?inline';
+export const BOSS_DEATH_ART=localAsset(bossDeath);

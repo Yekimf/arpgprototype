@@ -10,6 +10,13 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.36.0
+- Restored **The Last Herd** as Act I’s first quest: save Elin’s sheep from six risen royal soldiers in the fenced pasture. The journal, opening objective, Maelin’s changing dialogue and prologue now explain why the usurper’s army is starving the refuge. Expanded all six quest stories to connect Hadrin, Oswen’s grain levy, the thorn rituals and Edrin’s capture. Completed quests and partial pasture kills migrate without losing progress; gates still allow exploration without an errand requirement.
+- Replaced enemy body rotation and compression with 42 separately painted death frames: six anatomical fall poses for each of the six enemy families and the thornbound boss. Skeletons leave exposed bone corpses and fallen equipment; flesh enemies leave prone bodies; chanters leave collapsed robes. Frames load during area preparation, share compact atlases and keep the existing bounded remains system.
+- Martyr’s Pyre (the Righteous Fire style skill) applies continuous fire damage to the player through the damage handler. It burns for 30% maximum life per second before fire resistance and self-burn modifiers, ignores dodge, and can kill an unsustained character. Fire resistance, regeneration and flasks matter. Tooltips show self fire damage after resistance; god mode prevents it.
+- Added curved glass reflections, edge refraction, liquid highlights and a self-burning rim to the life and mana globes. Replaced native stash number spinners with matching metal-and-brass arrow buttons; direct numeric entry and Shift-click increments remain available.
+- Aligned the granary’s field gate with its travel threshold, cleared its wagon-road approach, joined it to the fence, and corrected its ground anchor. Arrival walks through a matching gate into the fields; fountain and supplies sit away from the opening.
+
 ## Version 0.35.1
 - Enemies and bosses collapse into grounded corpses using their existing painted sprites. Flesh enemies leave dark blood pools and directional droplets, skeletal soldiers scatter bone fragments, and spirits dissolve into ash.
 - Hits produce brief splashes; death produces a larger burst. Boss remains are larger. Fallen bodies and stains stay in their area when you return during the same session, and never block movement or item pickup.

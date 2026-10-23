@@ -3,7 +3,7 @@ import {addToContainer} from './settlement.js';
 import {grantExperience} from './game.js';
 import {refillFlask} from './flasks.js';
 export const HERD_ATTACKERS=6;
-export function openingComplete(p){return !p.campaign||!!p.quests.herdRewarded&&!!p.quests.provisionsRewarded;}
+export function openingComplete(p){return !p.campaign||!!p.quests.herdRewarded||!!p.campaign.records?.includes('field-1-0');}
 export function openingStage(p){if(openingComplete(p))return 'done';if(!p.quests.guideMet)return 'meet';if(p.quests.provisionsRecovered&&!p.quests.provisionsRewarded)return 'report-provisions';if(!p.quests.herdRewarded)return (p.quests.herdKills?.length||0)>=HERD_ATTACKERS?'report-herd':'defend';return 'recover';}
 export function openingObjective(p){return ({meet:'Speak to Sister Maelin in Emberfall',defend:`Defend Elin’s forest pasture · ${p.quests.herdKills?.length||0} / ${HERD_ATTACKERS} risen soldiers`, 'report-herd':'Return to Maelin · the herd is safe',recover:'Recover the stolen provisions at the broken wagon','report-provisions':'Return the provisions to Maelin'})[openingStage(p)];}
 export function recordHerdKill(p,enemy){if(!p.campaign||!enemy.herdId)return false;p.quests.herdKills??=[];if(p.quests.herdKills.includes(enemy.herdId))return false;p.quests.herdKills.push(enemy.herdId);return true;}

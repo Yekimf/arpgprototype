@@ -1,5 +1,24 @@
 import {specialization} from './skill-system.js';
 import {clamp,rankOf} from './game.js';
-export function pyreStats(p,stats){const rank=rankOf(p,'inferno')+Math.min(4,stats.skillRanks||0),m=specialization(p,'inferno');return {radius:(2.65+Math.max(0,rank-1)*.12)*(m.area||1)*(1+(stats.area||0)/100),dps:(stats.maxHp*.14+stats.maxMana*.06)*(1+Math.max(0,rank-1)*.18)*stats.fire*stats.bonus*(stats.spell||1)*(m.damage||1),selfDps:stats.maxHp*.09*(1-clamp(stats.fireResist||0,0,75)/100)*(stats.pyreSelfMultiplier||1)*(m.selfBurn||1),threshold:Math.max(1,stats.maxHp*.05)};}
-export function togglePyre(game){if(!rankOf(game.player,'inferno')||game.zone==='town'||game.player.hp<=0)return false;if(game.pyre){game.pyre=null;return false;}const s=pyreStats(game.player,game.stats);if(game.player.hp<=s.threshold)return false;game.pyre={tick:0};return true;}
-export function tickPyre(game,dt,dealDamage){if(!game.pyre)return;const p=game.player,s=pyreStats(p,game.stats);if(game.zone==='town'||p.hp<=s.threshold||!rankOf(p,'inferno')){game.pyre=null;game.cooldowns??={};game.cooldowns.inferno=2*(game.stats.cdr||1);return;}if(!game.sandbox?.god)p.hp=Math.max(s.threshold,p.hp-s.selfDps*dt);game.pyre.tick-=dt;if(game.pyre.tick<=0){game.pyre.tick+=.25;for(const e of game.dungeon.enemies)if(!e.dead&&Math.hypot(e.x-p.x,e.y-p.y)<s.radius){dealDamage(e,s.dps*.25);e.pyreGlow=.4;}}if(p.hp<=s.threshold){game.pyre=null;game.cooldowns??={};game.cooldowns.inferno=2*(game.stats.cdr||1);}}
+export function pyreStats(p,stats){
+ const rank=rankOf(p,'inferno')+Math.min(4,stats.skillRanks||0),m=specialization(p,'inferno');
+ const selfFireDps=stats.maxHp*.30*(stats.pyreSelfMultiplier||1)*(m.selfBurn||1);
+ return {radius:(2.65+Math.max(0,rank-1)*.12)*(m.area||1)*(1+(stats.area||0)/100),dps:(stats.maxHp*.14+stats.maxMana*.06)*(1+Math.max(0,rank-1)*.18)*stats.fire*stats.bonus*(stats.spell||1)*(m.damage||1),selfFireDps,selfDps:selfFireDps*(1-clamp(stats.fireResist||0,0,75)/100),threshold:0};
+}
+export function togglePyre(game){
+ if(!rankOf(game.player,'inferno')||game.zone==='town'||game.player.hp<=0)return false;
+ if(game.pyre){game.pyre=null;return false;}
+ game.pyre={tick:0};return true;
+}
+export function tickPyre(game,dt,dealDamage,takeFireDamage){
+ if(!game.pyre)return;const p=game.player,s=pyreStats(p,game.stats);
+ const stop=()=>{game.pyre=null;game.cooldowns??={};game.cooldowns.inferno=2*(game.stats.cdr||1);};
+ if(game.zone==='town'||p.hp<=0||!rankOf(p,'inferno')){stop();return;}
+ if(!game.sandbox?.god){
+  if(takeFireDamage)takeFireDamage(s.selfFireDps*dt);
+  else p.hp=Math.max(0,p.hp-s.selfDps*dt);
+ }
+ if(p.hp<=0){stop();return;}
+ game.pyre.tick-=dt;
+ if(game.pyre.tick<=0){game.pyre.tick+=.25;for(const e of game.dungeon.enemies)if(!e.dead&&Math.hypot(e.x-p.x,e.y-p.y)<s.radius){dealDamage(e,s.dps*.25);e.pyreGlow=.4;}}
+}

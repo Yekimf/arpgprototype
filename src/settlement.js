@@ -191,7 +191,7 @@ export function repairAll(player){
   player.gold-=cost;Object.values(player.equipment).filter(Boolean).forEach(i=>i.durability=100);return result(true,'All equipped items repaired.');
 }
 export function acceptGuideQuest(player){
-  if(player.quests.guideMet)return result(false,'Break the Kingsroad patrols, breach Marchgate, and follow the grain levy’s road into Blackthorn Hollow.');
+  if(player.quests.guideMet)return result(false,'Protect Elin’s sheep along the southern pasture lane. Hadrin’s risen soldiers are trying to starve Emberfall. Then follow the road to Marchgate.');
   const gift={id:'maelin-talisman',name:'Hearthbound Talisman',slot:'charm',rarity:'magic',level:1,spirit:8,life:6,identified:false,durability:100,reforges:0,icon:'◈'};
   const trial=player.inventory.map(i=>({...i})),gifts=[gift,makeInsightScroll(2)];
   for(const item of gifts)if(!addToContainer(trial,item))return result(false,'Make room for the talisman and a stack of two scrolls.');

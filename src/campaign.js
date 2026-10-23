@@ -1,6 +1,6 @@
 import {generateRedoubt} from './redoubt.js';
 import {actOneLevel,balanceActOne,placeActOneVeterans} from './act-one-balance.js';
-import {migrateActOne,seedActOneEncounters} from './act-one.js';
+import {actOneObjective,migrateActOne,seedActOneEncounters} from './act-one.js';
 import {questRelic} from './quest-objects.js';
 import {generateOpeningForest} from './opening-forest.js';
 import {dressFarmland,generateGranary} from './farmland.js';
@@ -20,7 +20,7 @@ export const fieldKey=(act,chapter)=>`field-${act}-${chapter}`;
 export const captainId=(act,chapter)=>chapter<lastChapter(act)?`captain-${act}-${chapter}`:`knight-${act}`;
 export function completeField(p,act,chapter){const c=ensureCampaign(p),key=fieldKey(act,chapter);if(!c||act!==1||chapter<0||chapter>lastChapter(act)||c.records.includes(key))return false;c.records.push(key);return true;}
 export function nextChapter(p,act=p.campaign?.act){const c=ensureCampaign(p),chapter=chapterOf(p,act);if(!c||act!==1||chapter>=lastChapter(act)||!c.defeated.includes(captainId(act,chapter)))return false;c.chapters[act]=chapter+1;return true;}
-export function createCampaign(){return {actOneVersion:2,act:1,chapters:{},records:[],defeated:[],waypoints:['emberfall'],visited:['emberfall'],guidance:[],completed:false,introSeen:true};}
+export function createCampaign(){return {actOneVersion:3,act:1,chapters:{},records:[],defeated:[],waypoints:['emberfall'],visited:['emberfall'],guidance:[],completed:false,introSeen:true};}
 export function ensureCampaign(p){if(!p.campaign)return null;const c=p.campaign;c.act=Math.max(1,Math.min(ACTS.length,c.act||1));const legacy=!c.chapters;migrateActOne(p);c.chapters??={};for(const key of ['defeated','waypoints','visited','guidance','records'])if(!Array.isArray(c[key]))c[key]=[];for(let a=1;a<=5;a++)c.chapters[a]=Math.max(0,Math.min(lastChapter(a),Number(c.chapters[a])||0));if(legacy)for(let a=1;a<=5;a++)if(c.defeated.includes(`knight-${a}`)){c.chapters[a]=lastChapter(a);for(let ch=0;ch<=lastChapter(a);ch++)if(!c.records.includes(fieldKey(a,ch)))c.records.push(fieldKey(a,ch));}c.completed=c.defeated.includes('knight-1');if(!c.waypoints.includes('emberfall'))c.waypoints.unshift('emberfall');return c;}
 export function discoverLocation(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const c=ensureCampaign(p);if(!c)return false;const id=locationId(act,kind,chapter),fresh=!c.visited.includes(id);if(fresh)c.visited.push(id);return fresh;}
 export function attuneWaypoint(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const c=ensureCampaign(p);if(!c||act!==1||chapter<0||chapter>lastChapter(act))return false;const id=locationId(act,kind,chapter);discoverLocation(p,kind,act,chapter);if(c.waypoints.includes(id))return false;c.waypoints.push(id);return true;}
@@ -28,7 +28,7 @@ export function canTravel(p,id){const c=ensureCampaign(p);return !!c&&(id==='emb
 export function defeatCampaignBoss(p,bossId){const c=ensureCampaign(p);if(!c||!['captain-1-0','captain-1-1','knight-1'].includes(bossId)||c.defeated.includes(bossId))return false;c.defeated.push(bossId);if(bossId==='knight-1')c.completed=true;return true;}
 export function canAdvance(p,act=p.campaign?.act){return !!p.campaign?.defeated.includes(`knight-${act}`);}
 export function advanceCampaign(p){const c=ensureCampaign(p);if(!c||c.act>=ACTS.length||!canAdvance(p))return false;c.act++;return true;}
-export function campaignObjective(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const a=actFor(act),ch=chapterFor(act,chapter);if(p.campaign?.completed)return 'Act I complete · Edrin is safe in Emberfall';if(kind==='town')return p.quests.guideMet?'Prepare for the next road · J opens your journal':'Speak to Sister Maelin, then follow the Kingsroad';if(kind==='wilderness')return `Enter ${ch.stronghold} · ${ch.captain||a.knight}`;return p.campaign?.defeated.includes(captainId(act,chapter))?'The road is open. Continue from the stronghold exit':`Defeat ${ch.captain||a.knight}`;}
+export function campaignObjective(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const a=actFor(act),ch=chapterFor(act,chapter);if(p.campaign?.completed)return 'Act I complete · Edrin is safe in Emberfall';if(act===1&&chapter===0&&kind==='wilderness'&&!p.campaign.records.includes('field-1-0'))return actOneObjective(p,0);if(kind==='town'&&act===1&&!p.campaign.records.includes('field-1-0'))return p.quests.guideMet?'Protect Elin’s sheep · follow the southern pasture lane':'Speak to Sister Maelin about Elin’s pasture';if(kind==='town')return p.quests.guideMet?'Prepare for the next road · J opens your journal':'Speak to Sister Maelin, then follow the Kingsroad';if(kind==='wilderness')return `Enter ${ch.stronghold} · ${ch.captain||a.knight}`;return p.campaign?.defeated.includes(captainId(act,chapter))?'The road is open. Continue from the stronghold exit':`Defeat ${ch.captain||a.knight}`;}
 
 
 // The camp and its surrounding fields are one continuous, seeded area.
@@ -105,10 +105,10 @@ export function generateStronghold(seed,act=1,chapter=0){
  const level=actOneLevel(chapter,true),ch=chapterFor(act,chapter),d=act===1&&chapter===1?generateGranary(seed,level):act===1&&chapter===0?generateMarchgate(seed,level):generateRedoubt(seed,level),boss=d.enemies.find(e=>e.type==='warden'),rng=random(seed+41);
  for(const enemy of d.enemies)if(enemy!==boss)dressEnemy(enemy,act,rng);
  if(act===1&&chapter===2){d.biome='thornbound-redoubt';}
- d.act=act;d.chapter=chapter;d.kind='stronghold';d.returnGate=d.entryGate||{x:d.start.x,y:d.start.y-1};const serviceAt=d.fortress?{x:d.rooms[0].x+4.5,y:d.rooms[0].y+4.5}:d.start;d.waypoint={x:serviceAt.x+2,y:serviceAt.y+1};
+ d.act=act;d.chapter=chapter;d.kind='stronghold';d.returnGate=d.entryGate||{x:d.start.x,y:d.start.y-1};const serviceAt=d.fortress?{x:d.rooms[0].x+4.5,y:d.rooms[0].y+4.5}:d.farm?{x:d.start.x-5,y:d.start.y-8}:d.start;d.waypoint={x:serviceAt.x+2,y:serviceAt.y+1};
  Object.assign(boss,{name:ch.captain||actFor(act).knight,bossId:captainId(act,chapter),phaseType:['oath','harvest','thorns'][chapter],tint:actFor(act).color,chapter});
  d.tileset=['marchgate','granary','redoubt'][chapter];d.entranceStyle=['fortress','farm','crypt'][chapter];
- d.supplies={x:serviceAt.x-2,y:serviceAt.y+2};return placeActOneVeterans(balanceActOne(d,chapter,true),chapter);
+ d.supplies={x:serviceAt.x-2,y:serviceAt.y+2};if(d.farm){d.props=d.props.filter(p=>![d.waypoint,d.supplies].some(at=>distance(p,at)<3));for(const at of [d.waypoint,d.supplies])for(let y=Math.floor(at.y)-1;y<=at.y+1;y++)for(let x=Math.floor(at.x)-1;x<=at.x+1;x++)if(d.tiles[y]?.[x])d.roads.add(y*d.size+x);}return placeActOneVeterans(balanceActOne(d,chapter,true),chapter);
 }
 
 export const PROLOGUE=[
@@ -116,7 +116,7 @@ export const PROLOGUE=[
  {title:'A son’s hunger',text:'Prince Vaelor heard the bargain from the shadows. Blinded by greed, he conspired with the visitor. Before dawn, the king lay dead. His son wore the crown—and accepted the bargain.',image:1},
  {title:'The price of a crown',text:'The Wanderer’s magic flowed through the royal army. The knights of the Round Table became monstrous vessels for it. Harvests failed. Roads emptied. The kingdom sank into despair.',image:2},
  {title:'The soldier who returned',text:'You served in Alaric’s royal guard. By his leave, you had gone home to visit your family. You returned to a stolen throne and a country that no longer knew the light.',image:3},
- {title:'Those who remain',text:'At Emberfall, the survivors tend their wounded and count their missing. Maelin tells you of the royal patrols, and of an archivist taken to Marchgate. No army remains to help them. You take the north road.',image:4},
+ {title:'Those who remain',text:'At Emberfall, the survivors tend their wounded and count their missing. Maelin tells you that risen soldiers are slaughtering Elin’s sheep, the refuge’s last source of food. They wear the colours of men you once served beside. No army remains to help. You take the southern pasture lane.',image:4},
  {title:'The road to Crownfall',text:'Beyond Emberfall lie the Kingsroad wilds and the sealed gates of the kingdom. Each fallen knight holds a road forward. At the end waits the mad king—and the shadow that bought his soul.',image:5},
 ];
 

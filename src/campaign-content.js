@@ -2,7 +2,7 @@
 // Entries are [approach, stronghold, captain, field task, recovered account, aftermath].
 export const CHAPTERS=[
  [
-  ['Kingsroad Wilds','Ruined Marchgate','Captain Hadrin','Break the dead Kingsroad patrols','A sealed order names Alaric’s loyal guards as deserters. The signature is Vaelor’s, dated the night before his father died. Edrin has been moved beyond Marchgate.','Hadrin dies with a loyalist badge hidden beneath his breastplate. Fear made an accomplice of him. The prison convoy went east.'],
+  ['Kingsroad Wilds','Ruined Marchgate','Captain Hadrin','Save Elin’s sheep from the risen soldiers','A sealed order names Alaric’s loyal guards as deserters. The signature is Vaelor’s, dated the night before his father died. Edrin has been moved beyond Marchgate.','Hadrin dies with a loyalist badge hidden beneath his breastplate. Fear made an accomplice of him. The prison convoy went east.'],
   ['Widow’s Fields','The Tithe Granary','Reeve Oswen','Defeat the levy enforcers','The tithe ledger lists fields left unplanted, then fines their owners for empty wagons. A margin note diverts the seized grain to Aldren’s garrison.','The grain doors stand open. Families emerge from the drainage ditches to take back their winter stores. One points you toward the prison road.'],
   ['Blackthorn Hollow','Aldren’s Redoubt',null,'Silence the Thorn Choir','Aldren’s chanters bind dead soldiers to the hollow. End their armed circles, then break the knight’s hold on the redoubt. Edrin is still alive inside.','Aldren’s thorns loosen. You free Edrin. His testimony confirms who armed the usurper. Emberfall has its archivist back, and the first knight is at rest.'],
  ],
