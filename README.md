@@ -10,6 +10,11 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.24.0
+
+- Waypoints are now weathered gothic fountains with carved tiers and gargoyle spouts. Clicking a dormant fountain awakens its animated water and saves its travel attunement; click again or use G to travel. F remains an alternative when nearby. Walking past a fountain no longer activates it.
+- Activation persists across reloads, and previously attuned regional waypoints remain active. Emberfall stays available as the starting travel destination; its fountain starts dormant until first used. Chapter-specific fountains now display their own saved state correctly.
+
 ## Version 0.23.0
 
 - Original iron-and-bronze tracery frames skill slots, mastery icons, inventory/service folios, quest seals and pause/options menus. The two small vector borders scale with panels, remain transparent over content, and do not intercept input.

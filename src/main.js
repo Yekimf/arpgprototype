@@ -1,3 +1,4 @@
+import {activateFountain,fountainKey} from './waypoint-fountains.js';
 import {bossRelic,BOSS_ARMS} from './boss-relics.js';
 import {attackTiming} from './weapon-rig.js';
 import {testingMarkup} from './testing-ui.js';
@@ -359,7 +360,7 @@ function update(dt){
     if(game.moving){game.channel=null;toast('Portal interrupted by movement.',1300);}
     else{game.channel.remaining-=dt;if(game.channel.remaining<=0){enterTown();return;}}
   }
-  if(game.interactTarget&&distance(player,game.interactTarget)<1.5){const target=game.interactTarget;game.interactTarget=null;game.target=null;game.path=null;performInteraction(target.interaction);return;}
+  if(game.interactTarget&&distance(player,game.interactTarget)<(game.interactTarget.reach||1.5)){const target=game.interactTarget;game.interactTarget=null;game.target=null;game.path=null;performInteraction(target.interaction);return;}
   if(game.zone==='town'){game.pyre=null;game.whirl=null;player.hp=Math.min(game.stats.maxHp,player.hp+dt*6);}
   if(game.mouseDown||game.primaryHeld&&game.primaryMode==='force')basicAttack();
   if(game.zone!=='town'){
@@ -428,7 +429,7 @@ function update(dt){
   }
   game.effects=game.effects.filter(e=>e.life>0);for(const f of game.floaters)f.life-=dt;game.floaters=game.floaters.filter(f=>f.life>0);
   for(const loot of [...game.loot])if(loot.item&&!loot.manual&&distance(loot,player)<1.05)pickup(loot);
-  if(player.campaign&&game.dungeon.waypoint&&distance(player,game.dungeon.waypoint)<2.3&&attuneWaypoint(player,game.zone==='town'?'town':game.dungeon.kind,game.act,game.chapter)){toast('WAYPOINT ATTUNED · '+(game.zone==='wilderness'?chapterFor(game.act,game.chapter).wilds:chapterFor(game.act,game.chapter).stronghold)+' · G',3500);effect('ring',game.dungeon.waypoint.x,game.dungeon.waypoint.y,1.2,{radius:2,color:'#7bcad1'});save();}
+
   saveTimer+=dt;if(saveTimer>5){save();saveTimer=0;}
 }
 
@@ -672,9 +673,9 @@ function enterCampaignArea(kind,act=player.campaign.act,viaWaypoint=false,initia
 function campaignTargets(){
  if(!player.campaign)return [];const d=game.dungeon,targets=[];
  for(const sign of d.signs||[])targets.push({...sign,interaction:'sign:'+sign.id,label:'Read sign',height:100,width:43});
- if(d.townWaypoint)targets.push({...d.townWaypoint,interaction:'worldmap',label:'Emberfall waypoint',height:50,width:36});
+ if(d.townWaypoint)targets.push({...d.townWaypoint,interaction:'town-fountain',label:'Emberfall fountain',height:130,width:49,reach:2.5});
  if(d.returnGate)targets.push({...d.returnGate,interaction:'return-wilderness',label:'Return to the wilderness',height:70,width:40});
- if(d.waypoint)targets.push({...d.waypoint,interaction:'worldmap',label:'Open waypoint & world map',height:50,width:36});
+ if(d.waypoint)targets.push({...d.waypoint,interaction:'waypoint-fountain',label:'Awaken fountain / travel',height:130,width:49,reach:2.5});
  if(d.field)targets.push({...d.field,interaction:'field-record',height:65,width:35});
  if(d.provisions&&!player.quests.provisionsRecovered)targets.push({...d.provisions,interaction:'opening-provisions',height:65,width:35});
  if(d.supplies)targets.push({...d.supplies,interaction:'supplies',label:'Roadside provisions',height:65,width:30});
@@ -682,7 +683,7 @@ function campaignTargets(){
  else if(d.bossDead)targets.push({...d.portal,interaction:game.chapter<3?'chaptercomplete':game.act===5?'victory':'actcomplete',label:game.chapter<3?'Read the recovered account':game.act===5?'The bargain is broken':'Continue the king’s road',height:100,width:40});
  return targets;
 }
-function performInteraction(action){if(action.startsWith('sign:')){const sign=game.dungeon.signs?.find(s=>s.id===action.slice(5));if(sign)dialogue.openSign(sign);return;}const npc=game.dungeon.npcs?.find(n=>n.id===action);if(npc){dialogue.open(npc);return;}if(action==='return-wilderness'){enterCampaignArea('wilderness',game.act,false,false,game.chapter);const at=game.dungeon.portal;player.x=at.x;player.y=at.y+2;game.zone='wilderness';renderer.camera={...renderer.iso(player.x,player.y)};setZoneUI();return;}if(action==='opening-provisions'){const result=recoverProvisions(player);toast(result.message);if(result.ok){save();setZoneUI();}return;}if(action==='field-record'){if(!player.campaign.records.includes(fieldKey(game.act,game.chapter))&&!player.inventory.some(i=>i.id===questRelic(game.act,game.chapter).id)&&!addToContainer(player.inventory,questRelic(game.act,game.chapter))){toast('Make room in your pack for the recovered quest item.');return;}if(completeField(player,game.act,game.chapter)){grantExperience(player,120+game.depth*20);game.stats=playerStats(player);player.gold+=35+game.depth*8;toast('Field account recovered · J to read your journal',3000);save();setZoneUI();}game.questAct=game.act;game.questSelection=game.chapter+(game.act===1?4:2);openPanel('journal');return;}if(action==='campaign-exit'){enterCampaignArea('stronghold',game.act,false,false,game.chapter);}else openPanel(action);}
+function performInteraction(action){if(action==='town-fountain'||action==='waypoint-fountain'){const town=action==='town-fountain',at=town?game.dungeon.townWaypoint:game.dungeon.waypoint;if(!at)return;if(activateFountain(player,game.dungeon,town)){game.fountainWake={id:fountainKey(game.dungeon,town),started:game.time};effect('ring',at.x,at.y,1.1,{radius:1.5,color:'#8caeaf'});toast('FOUNTAIN AWAKENED · Click again or press G to travel.',3000);save();}else openPanel('worldmap');return;}if(action.startsWith('sign:')){const sign=game.dungeon.signs?.find(s=>s.id===action.slice(5));if(sign)dialogue.openSign(sign);return;}const npc=game.dungeon.npcs?.find(n=>n.id===action);if(npc){dialogue.open(npc);return;}if(action==='return-wilderness'){enterCampaignArea('wilderness',game.act,false,false,game.chapter);const at=game.dungeon.portal;player.x=at.x;player.y=at.y+2;game.zone='wilderness';renderer.camera={...renderer.iso(player.x,player.y)};setZoneUI();return;}if(action==='opening-provisions'){const result=recoverProvisions(player);toast(result.message);if(result.ok){save();setZoneUI();}return;}if(action==='field-record'){if(!player.campaign.records.includes(fieldKey(game.act,game.chapter))&&!player.inventory.some(i=>i.id===questRelic(game.act,game.chapter).id)&&!addToContainer(player.inventory,questRelic(game.act,game.chapter))){toast('Make room in your pack for the recovered quest item.');return;}if(completeField(player,game.act,game.chapter)){grantExperience(player,120+game.depth*20);game.stats=playerStats(player);player.gold+=35+game.depth*8;toast('Field account recovered · J to read your journal',3000);save();setZoneUI();}game.questAct=game.act;game.questSelection=game.chapter+(game.act===1?4:2);openPanel('journal');return;}if(action==='campaign-exit'){enterCampaignArea('stronghold',game.act,false,false,game.chapter);}else openPanel(action);}
 function handleCampaignClick(event){
  const map=event.target.closest('[data-map-act]');if(map){const act=Number(map.dataset.mapAct);if(player.campaign&&act<=player.campaign.act){game.mapAct=act;renderPanel();}return true;}
  const wp=event.target.closest('[data-waypoint]');if(wp){const id=wp.dataset.waypoint,near=game.zone==='town'||game.dungeon.waypoint&&distance(player,game.dungeon.waypoint)<3;

@@ -69,3 +69,5 @@ import folioFrame from './art/folio-frame.svg?inline';
 import skillFrame from './art/skill-frame.svg?inline';
 export const FOLIO_FRAME_ART=localAsset(folioFrame);
 export const SKILL_FRAME_ART=localAsset(skillFrame);
+import waypointFountain from './art/runtime/waypoint-fountain.webp?inline';
+export const WAYPOINT_FOUNTAIN_ART=localAsset(waypointFountain);
