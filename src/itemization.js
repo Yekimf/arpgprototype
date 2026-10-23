@@ -1,3 +1,4 @@
+import {ITEM_SETS} from './set-items.js';
 // Item families drive both combat statistics and visible equipment layers.
 export const BASES=[
  {id:'sword',name:'Falchion',slot:'weapon',look:'sword',art:4,damage:[5,9],reach:1.85,attackSpeed:1},
@@ -101,7 +102,7 @@ export function createRelic(rng,depth,guaranteedRare=false){
  return item;
 }
 export function itemLook(item,slot=item?.slot){if(!item)return 'none';if(item.look)return item.look;if(slot==='armor'&&(item.id==='starter-armor'||item.name==='Weathered Hauberk'))return 'original';const name=item.name?.toLowerCase()||'';return slot==='weapon'?/axe/.test(name)?'axe':/mace|hammer/.test(name)?'mace':/spear|pike/.test(name)?'spear':'sword':slot==='armor'?/vest|robe/.test(name)?'robe':/cuirass|plate|brigand/.test(name)?'plate':/leather|jerkin/.test(name)?'leather':'chain':slot==='helm'?/hood|cowl/.test(name)?'hood':/great|crown/.test(name)?'greathelm':'sallet':slot==='shield'?/kite|tower/.test(name)?'kite':'round':slot==='boots'||slot==='gloves'?/iron|steel|sabat|greave|gaunt/.test(name)?'steel':'leather':'leather';}
-export function appearanceOf(p){const out={sex:'male',surcoat:p.appearance||'crimson',twoHanded:isTwoHanded(p.equipment.weapon)};for(const slot of ['armor','helm','weapon','shield','boots','gloves','belt','charm','ring','ring2']){const item=p.equipment[slot];out[slot]=itemLook(item,slot);if(slot==='weapon'&&item)out.weaponIcon=weaponIconIndex(item);out[slot+'Rarity']=item?.rarity||'none';}return out;}
+export function appearanceOf(p){const out={sex:'male',surcoat:p.appearance||'crimson',twoHanded:isTwoHanded(p.equipment.weapon),setParts:Object.fromEntries(Object.entries(p.equipment).filter(([,i])=>i?.setId&&i.identified!==false).map(([slot,i])=>[slot,ITEM_SETS.findIndex(s=>s.id===i.setId)]))};for(const slot of ['armor','helm','weapon','shield','boots','gloves','belt','charm','ring','ring2']){const item=p.equipment[slot];out[slot]=itemLook(item,slot);if(slot==='weapon'&&item)out.weaponIcon=weaponIconIndex(item);out[slot+'Rarity']=item?.rarity||'none';}return out;}
 
 export function weaponIconIndex(item){return item.weaponIcon??({sword:0,greatsword:1,dagger:2,axe:3,warhammer:4,mace:5,flail:6,spear:7,staff:8,wand:10,bow:12,crossbow:13})[itemLook(item)]??0;}
 

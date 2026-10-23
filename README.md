@@ -10,6 +10,13 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.30.0
+
+- Press **N** for the Loyalist’s Chronicle: 27 achievements with progress tracking, one-time unlock notifications, cosmetic renown and selectable earned titles. Includes Minecraft-style milestones and playful references such as “Getting an Upgrade,” “Passive Aggressive,” and “Definitely Not the Cow Level.” Progress is stored per character; existing saves receive earned milestone credit.
+- Four original six-piece sets (24 new items): The Last Kingsguard, The Ashen Vigil, Gravebloom Covenant, and Vestments of the Stormwarden. Each has unique item paintings and separate front/back armor artwork, visible piece by piece on the animated hero.
+- Sets grant cumulative bonuses at 2, 4 and 6 distinct identified, working equipped pieces. Duplicate or broken pieces never inflate the count. Green set drops appear from area level 2 onward; later sets unlock at levels 4, 7 and 10, with better chances on elites and bosses. Scrolls and Edrin can identify them.
+- The collection remembers discovered pieces after trade or storage, shows which are currently owned/equipped, and previews every set’s appearance and bonuses. Tooltips include set membership and active tiers. Existing characters and ordinary loot remain compatible.
+
 ## Version 0.29.0
 
 - Click a visible ground-item label to approach and collect it. Gear uses label clicks or F; gold still collects automatically when walked over. Labels render above scenery, separate into rows when overlapping, and remain visible for the selected pickup. Full packs leave drops on the ground; manual movement cancels the approach.

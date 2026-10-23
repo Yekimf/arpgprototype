@@ -1,7 +1,7 @@
 import {armedPose,weaponPlacement,WEAPON_GRIPS,ATTACK_FRAMES} from './weapon-rig.js';
 import weaponBounds from './art/weapon-bounds.json';
 import {WEAPON_ART} from './assets.js';
-import {GUARD_ART,ITEM_ART,ORIGINAL_ART} from './assets.js';
+import {SET_MODELS_ART,GUARD_ART,ITEM_ART,ORIGINAL_ART} from './assets.js';
 import {appearanceOf} from './itemization.js';
 import {facingPose,walkingLeg,WALK_FRAMES} from './locomotion.js';
 import {joint,point,punchPose} from './animation-rig.js';
@@ -12,15 +12,17 @@ const FACE={
 const W=128,H=144,S=320;
 const poly=(c,points)=>{c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x*S,y*S):c.moveTo(x*S,y*S));c.closePath();};
 export class GuardSprites{
- constructor(){this.weapons=new Image();this.weapons.src=WEAPON_ART;this.art=new Image();this.art.src=GUARD_ART;this.items=new Image();this.items.src=ITEM_ART;this.original=new Image();this.original.src=ORIGINAL_ART;this.cache=new Map();}
- get ready(){return [this.weapons,this.art,this.items,this.original].every(a=>a.complete&&a.naturalWidth>0);}
- tile(c,index){const s=this.art.naturalWidth/4;c.drawImage(this.art,index%4*s,Math.floor(index/4)*s,s,s,0,0,S,S);}
+ constructor(){this.setArt=new Image();this.setArt.src=SET_MODELS_ART;this.weapons=new Image();this.weapons.src=WEAPON_ART;this.art=new Image();this.art.src=GUARD_ART;this.items=new Image();this.items.src=ITEM_ART;this.original=new Image();this.original.src=ORIGINAL_ART;this.cache=new Map();}
+ get ready(){return [this.setArt,this.weapons,this.art,this.items,this.original].every(a=>a.complete&&a.naturalWidth>0);}
+ tile(c,index){if(Number.isInteger(this.skin)&&this.skin>=0){const i=this.skin*2+index%2,s=this.setArt.naturalWidth/4;c.drawImage(this.setArt,i%4*s,Math.floor(i/4)*s,s,s,0,0,S,S);return;}const s=this.art.naturalWidth/4;c.drawImage(this.art,index%4*s,Math.floor(index/4)*s,s,s,0,0,S,S);}
  clipTile(c,index,points,exclude=null){c.save();poly(c,points);c.clip();if(exclude){c.beginPath();c.rect(0,0,S,S);c.ellipse(exclude[0]*S,exclude[1]*S,50,72,0,0,Math.PI*2);c.clip('evenodd');}this.tile(c,index);c.restore();}
  frame(p,back,column,heading={x:.9,y:back?-.4:.4},direction=null){const look=appearanceOf(p),key=JSON.stringify(look)+'/'+back+'/'+column+'/'+Math.round(heading.x*10)+'/'+Math.round(heading.y*10)+'/'+(direction?.index??'legacy');if(this.cache.has(key))return this.cache.get(key);if(!this.ready)return null;
+  this.skin=null;
   const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;const c=canvas.getContext('2d');c.scale(W/S,128/S);c.translate(0,10);
   const face=back?FACE.back:FACE.front,offset=back?1:0,body=({none:2,original:0,leather:4,chain:6,plate:8,robe:10})[look.armor]??0,walking=column>0&&column<=WALK_FRAMES,attack=column>WALK_FRAMES,phase=walking?(column-1)/WALK_FRAMES*2*Math.PI:0,progress=attack?(column-WALK_FRAMES-1)/(look.weapon==='none'?5:ATTACK_FRAMES-1):0;
   // Preserve the idle leg paintings: a rigid vertical step, no joint posing.
   const index=look.boots==='steel'?offset:look.boots==='leather'?4+offset:2+offset;
+  this.skin=look.setParts.boots;
   const poses=face.legs.map((part,leg)=>({part,leg,step:walking?walkingLeg(phase,leg,face):null}));
   poses.sort((a,b)=>(a.step?.heel.y??a.part.ankle[1]*S)-(b.step?.heel.y??b.part.ankle[1]*S));
   for(const {part,leg,step}of poses){
@@ -33,7 +35,7 @@ export class GuardSprites{
   const torsoX=(face.legs[0].hip[0]+face.legs[1].hip[0])*160;
   c.save();if(direction){c.translate(torsoX,0);c.transform(direction.profile,0,direction.turn,1,0,0);c.translate(-torsoX,0);}
   // The unarmoured underlayer is visible when equipment is removed.
-  this.clipTile(c,2+offset,face.body);this.clipTile(c,body+offset,face.body,look.shield==='none'?null:face.shield);
+  this.skin=null;this.clipTile(c,2+offset,face.body);this.skin=look.setParts.armor;this.clipTile(c,body+offset,face.body,look.shield==='none'?null:face.shield);
   if(look.armor==='plate'){c.save();c.globalCompositeOperation='source-atop';c.fillStyle='#abb7bd13';poly(c,face.body);c.fill();c.restore();}
   const armed=look.weapon!=='none',pose=armedPose(face,look,progress,attack,heading),posed=[];
   for(let arm=0;arm<2;arm++){
@@ -49,12 +51,13 @@ export class GuardSprites{
    const shoulder=point(arm===0?face.arm:face.offArm),hand=point(arm===0?face.hand:face.offHand),chain=posed[arm],sourceShoulder=point(face.arm),sourceElbow=point(face.elbow),sourceHand=point(face.hand),width=arm===1?-1:1;
    this.bone(c,body+offset,face.arms[0],sourceShoulder,sourceElbow,shoulder,chain.knee,width);
    this.bone(c,body+offset,face.forearms[0],sourceElbow,sourceHand,chain.knee,chain.end,width);
-   c.save();c.translate(chain.end.x-hand.x,chain.end.y-hand.y);this.hand(c,look.gloves,back,arm,face,armed&&(arm===0||look.twoHanded)||!armed&&attack&&(arm===0||look.shield==='none'));c.restore();
-   if(arm===1&&look.shield!=='none')this.shield(c,look.shield,back,face.shield);
+   c.save();c.translate(chain.end.x-hand.x,chain.end.y-hand.y);this.skin=look.setParts.gloves;this.hand(c,look.gloves,back,arm,face,armed&&(arm===0||look.twoHanded)||!armed&&attack&&(arm===0||look.shield==='none'));c.restore();this.skin=look.setParts.shield;
+   if(arm===1&&look.shield!=='none')this.shield(c,look.shield,back,face.shield);this.skin=look.setParts.armor;
   }
+  this.skin=look.setParts.helm;
   const head=look.helm==='none'?2:look.helm==='hood'?14:look.helm==='greathelm'?12:0,[hx,hy,hw,hh]=face.head;c.save();c.beginPath();c.rect(hx*S,hy*S,hw*S,hh*S);c.clip();this.tile(c,head+offset);c.restore();
   this.accessories(c,look,back);if(look.surcoat==='iron'){c.save();c.globalCompositeOperation='source-atop';c.fillStyle='#8d99951a';c.fillRect(0,0,S,S);c.restore();}
-  c.restore();this.cache.set(key,canvas);if(this.cache.size>256)this.cache.delete(this.cache.keys().next().value);return canvas;
+  c.restore();this.skin=null;this.cache.set(key,canvas);if(this.cache.size>256)this.cache.delete(this.cache.keys().next().value);return canvas;
  }
  bone(c,index,mask,fromA,fromB,toA,toB,width=1){const source=Math.atan2(fromB.y-fromA.y,fromB.x-fromA.x),target=Math.atan2(toB.y-toA.y,toB.x-toA.x),length=Math.hypot(toB.x-toA.x,toB.y-toA.y)/Math.hypot(fromB.x-fromA.x,fromB.y-fromA.y);c.save();c.translate(toA.x,toA.y);c.rotate(target);c.scale(length,width);c.rotate(-source);c.translate(-fromA.x,-fromA.y);this.clipTile(c,index,mask);c.restore();}
  hand(c,gloves,back,arm,face,closed=false){

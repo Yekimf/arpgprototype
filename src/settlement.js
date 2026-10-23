@@ -1,3 +1,5 @@
+import {recordFeat,ensureChronicle} from './achievements.js';
+import {discoverSetItems} from './set-items.js';
 import {isTwoHanded} from './itemization.js';
 import {ensurePassives} from './passive-tree.js';
 import {makeInsightScroll,migrateScrolls,isInsightScroll,scrollQuantity,SCROLL_STACK} from './scrolls.js';
@@ -59,7 +61,7 @@ export function arrange(items,dimensions=BAG,sort=false){
   return items.filter(i=>i.bagX<0).length;
 }
 export function migratePlayer(player){
-  ensurePassives(player);player.skillMods??={};player.dungeonGeneration??=0;
+  ensureChronicle(player);discoverSetItems(player);ensurePassives(player);player.skillMods??={};player.dungeonGeneration??=0;
   player.sex='male';
   const legacy=player.progressionVersion!==2;
   player.slots=Array.from({length:4},(_,i)=>player.slots?.[i]??null);
@@ -71,7 +73,7 @@ export function migratePlayer(player){
   for(const slot of Object.keys(EQUIPMENT))player.equipment[slot]??=null;
   for(const item of [...player.inventory,...player.stash,...Object.values(player.equipment).filter(Boolean)]){
     item.id??=`legacy-${Math.random().toString(36).slice(2)}`;
-    item.durability??=100;if(!['magic','rare','legendary'].includes(item.rarity))item.identified=true;item.identified??=true;item.reforges??=0;
+    item.durability??=100;if(!['magic','rare','legendary','set'].includes(item.rarity))item.identified=true;item.identified??=true;item.reforges??=0;
   }
   ensureFlask(player);arrange(player.inventory);arrange(player.stash,STASH);return player;
 }
@@ -109,12 +111,12 @@ export function identifyItem(player,id,scholar=false,scrollId=null){
   if(scholar&&!player.quests.scholarRescued)return result(false,'Edrin is still trapped beneath the monastery.');
   const scroll=player.inventory.find(i=>isInsightScroll(i)&&(!scrollId||i.id===scrollId));
   if(!scholar&&!scroll)return result(false,'You need a scroll of insight in your pack. Orrin sells them.');
-  if(!scholar){if(scrollQuantity(scroll)>1)scroll.quantity=scrollQuantity(scroll)-1;else player.inventory.splice(player.inventory.indexOf(scroll),1);}item.identified=true;return result(true,`${item.name} revealed.`);
+  if(!scholar){if(scrollQuantity(scroll)>1)scroll.quantity=scrollQuantity(scroll)-1;else player.inventory.splice(player.inventory.indexOf(scroll),1);}item.identified=true;recordFeat(player,'identified');return result(true,`${item.name} revealed.`);
 }
 export function identifyAll(player){
   if(!player.quests.scholarRescued)return result(false,'Rescue the archivist to unlock identification.');
   const items=player.inventory.filter(i=>requiresIdentification(i));if(!items.length)return result(false,'No unidentified relics in your pack.');
-  items.forEach(i=>i.identified=true);return result(true,`${items.length} relic${items.length===1?'':'s'} identified. No charge.`);
+  items.forEach(i=>i.identified=true);recordFeat(player,'identified',items.length);return result(true,`${items.length} relic${items.length===1?'':'s'} identified. No charge.`);
 }
 export function generateStock(level=1,seed=791){
   const rng=random(seed),stock=[];
@@ -170,7 +172,7 @@ export function reforgeItem(player,id,affix,rng=Math.random){
   const range=affix==='life'?[5,22]:affix==='crit'?[1,5]:affix==='bonus'?[2,9]:affix==='lifeRegen'?[.5,1.8]:affix==='attackRate'?[2,8]:[5,18];
   const precision=affix==='lifeRegen'?100:1,min=metadata?.min!==undefined?Math.round(metadata.min*precision):Math.max(1,Math.round(range[0]*scale*precision)),max=metadata?.max!==undefined?Math.round(metadata.max*precision):Math.round(range[1]*scale*precision);
   let next=Math.round(min+rng()*(max-min));if(next===Math.round((metadata?.value??old)*precision))next=next<max?next+1:Math.max(min,next-1);next/=precision;
-  player.gold-=cost.gold;player.shards-=cost.shards;item[affix]=Math.round((baseValue+next)*100)/100;const roll=item.affixes?.find(a=>a.stat===affix);if(roll)roll.value=next;item.reforges=(item.reforges||0)+1;item.durability=100;
+  player.gold-=cost.gold;player.shards-=cost.shards;item[affix]=Math.round((baseValue+next)*100)/100;const roll=item.affixes?.find(a=>a.stat===affix);if(roll)roll.value=next;item.reforges=(item.reforges||0)+1;item.durability=100;recordFeat(player,'reforges');
   return result(true,`${AFFIXES[affix]} reforged: ${old} → ${item[affix]}.`,{old,value:item[affix]});
 }
 export function repairCost(player){return Object.values(player.equipment).filter(i=>i&&i.durability<100).reduce((sum,i)=>sum+Math.ceil((100-i.durability)*.55)+2,0);}

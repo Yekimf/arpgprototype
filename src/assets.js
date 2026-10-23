@@ -87,3 +87,8 @@ export const EQUIPMENT_ETCHINGS_ART=localAsset(equipmentEtchings);
 
 import chickenArt from './art/runtime/chickens.webp?inline';
 export const CHICKEN_ART=localAsset(chickenArt);
+
+import setModels from './art/runtime/set-models.webp?inline';
+import setItems from './art/runtime/set-items.webp?inline';
+export const SET_MODELS_ART=localAsset(setModels);
+export const SET_ITEMS_ART=localAsset(setItems);
