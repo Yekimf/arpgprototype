@@ -2,7 +2,7 @@ import {GuardSprites} from './guard-sprites.js';
 import {createPlayer} from './game.js';
 import {WORLD_ART,ITEM_ART} from './assets.js';
 export class CharacterStage{
- constructor(canvas){this.canvas=canvas;this.guard=new GuardSprites();this.world=new Image();this.world.src=WORLD_ART;this.floor=new Image();this.floor.src=ITEM_ART;this.player=createPlayer();this.stopped=false;this.observer=new ResizeObserver(()=>this.background=null);this.observer.observe(canvas);this.start();}
+ constructor(canvas,player=createPlayer()){this.canvas=canvas;this.guard=new GuardSprites();this.world=new Image();this.world.src=WORLD_ART;this.floor=new Image();this.floor.src=ITEM_ART;this.player=player;this.stopped=false;this.observer=new ResizeObserver(()=>this.background=null);this.observer.observe(canvas);this.start();}
  async start(){await Promise.all([this.guard.art,this.guard.items,this.guard.original,this.world,this.floor].map(i=>i.decode()));if(this.stopped)return;this.draw(0);}
  sprite(c,index,x,y,w,h){const s=this.world.naturalWidth/4;c.drawImage(this.world,index%4*s,Math.floor(index/4)*s,s,s,x-w/2,y-h,w,h);}
  draw(now){if(this.stopped)return;const c=this.canvas.getContext('2d'),w=Math.max(1,Math.round(this.canvas.clientWidth)),h=Math.max(1,Math.round(this.canvas.clientHeight));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;this.background=null;}const x=w*.51,y=h*.68;

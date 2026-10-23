@@ -1,0 +1,27 @@
+#modal.hud-panel.dual-stash{display:flex!important;align-items:start;justify-content:space-between;gap:16px;padding:0!important;pointer-events:none;transform:none!important;translate:none!important;background:none!important;border:0!important;box-shadow:none!important;max-width:none!important;overflow:visible!important}
+#modal.dual-stash:before,#modal.dual-stash:after{display:none!important}
+#modal.dual-stash>.inventory-sheet{pointer-events:auto;flex:none;position:relative;box-shadow:0 8px 25px #000b}
+#modal.dual-stash>.stash-sheet{display:flex!important;flex-direction:column;gap:6px;padding:14px!important;overflow:hidden}
+#modal.dual-stash .stash-page-tabs{display:flex;gap:2px;flex:none;border-bottom:3px ridge #655b43;padding:0 0 5px}
+#modal.dual-stash .stash-page-tabs button{flex:1;min-width:0;min-height:29px;padding:5px 2px;border:2px ridge #605641;background:linear-gradient(#292619,#0f0e09);font:small-caps 12px Georgia;color:#a79a75;text-align:center}
+#modal.dual-stash .stash-page-tabs button.active{color:#e0cf9f;border-color:#9c8b62;background:linear-gradient(#49402c,#1a170f);box-shadow:inset 0 0 8px #b79e4b22}
+#modal.dual-stash .stash-sheet .hud-bag-section{height:auto!important;padding:0!important;display:block!important;flex:none!important;overflow:visible}
+#modal.dual-stash .stash-sheet .spatial-bag{margin:0 auto;flex:none;max-width:none!important}
+#modal.dual-stash .stash-page-description{font:11px/1.4 Georgia;color:#b4a581;text-align:center;margin:0;flex:none}
+#modal.dual-stash .stash-bank{border-top:2px ridge #5c533d;border-bottom:2px ridge #5c533d;padding:8px 0;display:grid;gap:7px;flex:none}
+#modal.dual-stash .stash-bank>span{display:flex;justify-content:space-between;font:12px Georgia;color:#bba67a}
+#modal.dual-stash .stash-bank>div{display:flex;gap:5px;align-items:center}
+#modal.dual-stash .stash-bank input{background:#0b0906;border:2px ridge #61563d;color:#cfbc8d;font:12px Georgia;width:70px;min-width:0;padding:5px}
+#modal.dual-stash .stash-bank button,#modal.dual-stash .stash-commands button{font:11px Georgia;padding:4px 7px;min-height:28px;flex:1}
+#modal.dual-stash .stash-commands{display:flex;gap:10px;align-items:center;flex:none}
+#modal.dual-stash .stash-commands button{flex:none}
+#modal.dual-stash .stash-commands span{font:10px/1.5 Georgia;color:#a99a79}
+#modal.dual-stash .stash-engraving{margin:auto;text-align:center;font:38px Georgia;color:#7c705044;text-shadow:0 1px #000;pointer-events:none;line-height:1}
+#modal.dual-stash .stash-section .bag-label>span:first-child{font-size:0}
+#modal.dual-stash .stash-section .bag-label>span:first-child:after{content:'STRONGBOX';font:9px Georgia;letter-spacing:2px}
+#modal.dual-stash .hud-heading{flex:none!important;min-height:38px!important}
+@media(max-height:780px){#modal.hud-panel.dual-stash>.stash-sheet{gap:6px;padding:10px!important}#modal.dual-stash .stash-page-tabs button{font-size:10px;min-height:25px;padding:3px 1px}#modal.dual-stash .stash-bank{padding:5px 0;gap:4px}#modal.dual-stash .stash-page-description{font-size:10px}#modal.dual-stash .stash-engraving{display:none}}
+
+#modal.dual-stash .stash-engraving{width:90px;height:45px;max-height:60px;min-height:0;flex:1;font-size:0;background:var(--menu-crest) center/contain no-repeat;opacity:.25}
+/* Earned distinctions stay in the open playfield, clear of both inventories. */
+body:has(#modal-backdrop:not(.hidden) #modal.dual-stash) .achievement-announcement{left:calc(50% - 32px);translate:-50% 0;max-width:280px;bottom:140px}

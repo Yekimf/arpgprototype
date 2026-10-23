@@ -1,9 +1,10 @@
+import {continueJourney} from './helpers.js';
 import {test,expect} from '@playwright/test';
 import {createPlayer} from '../../src/game.js';
 import {createCampaign} from '../../src/campaign.js';
 import {speak} from './helpers.js';
 const state=page=>page.evaluate(()=>window.__reliquary.snapshot());
-async function load(page){const p=createPlayer();p.campaign=createCampaign();p.inventory=[{id:'click-coat',name:'Leather Jerkin',slot:'armor',look:'leather',rarity:'normal',armor:4}];await page.addInitScript(p=>{if(!localStorage.getItem('ashen-reliquary-save-v1'))localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify({version:1,player:p,zone:'town',seed:42710,depth:1}));},p);await page.goto('/');await page.locator('[data-front=continue]').click();await expect(page.locator('#area-loading')).toBeHidden();}
+async function load(page){const p=createPlayer();p.campaign=createCampaign();p.inventory=[{id:'click-coat',name:'Leather Jerkin',slot:'armor',look:'leather',rarity:'normal',armor:4}];await page.addInitScript(p=>{if(!localStorage.getItem('ashen-reliquary-save-v1'))localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify({version:1,player:p,zone:'town',seed:42710,depth:1}));},p);await page.goto('/');await continueJourney(page);await expect(page.locator('#area-loading')).toBeHidden();}
 test('F has no interaction action; NPCs, fountains and ground item labels still accept clicks',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await load(page);await expect(page.locator('#interact-button kbd')).toHaveCount(0);await page.keyboard.press('f');let s=await state(page);expect(s.panel).toBeNull();expect(s.dialogue).toBeNull();expect(s.campaign.fountains||[]).not.toContain('emberfall');await page.locator('#interact-button').click();expect((await state(page)).campaign.fountains).toContain('emberfall');
  await speak(page,'guide');await expect(page.locator('#npc-dialogue')).toBeVisible();await page.locator('[data-talk=leave]').click();await page.keyboard.press('f');expect((await state(page)).dialogue).toBeNull();

@@ -7,7 +7,7 @@ import {appraisal,transferGold} from './economy.js';
 import {ensureFlask,refillFlask} from './flasks.js';
 import {getSkill,generateItem, random, requiresIdentification} from './game.js';
 
-export const BAG={width:12,height:6}, STASH={width:10,height:8};
+export const BAG={width:12,height:6}, STASH={width:10,height:10};
 export const EQUIPMENT={helm:'Head',charm:'Amulet',weapon:'Main hand',armor:'Body armor',shield:'Off hand',gloves:'Hands',belt:'Belt',ring:'Left ring',ring2:'Right ring',boots:'Feet'};
 export const AFFIXES={damage:'Weapon damage',armor:'Armour',life:'Life',crit:'Critical chance',bonus:'All damage',spirit:'Spirit',fireResist:'Fire resistance',coldResist:'Cold resistance',lightningResist:'Storm resistance',lifeRegen:'Life regeneration',fireDamage:'Fire damage',flaskGain:'Flask charge recovery',attackRate:'Attack speed',manaRegen:'Mana per second',manaRegenPercent:'Mana regeneration',lifeLeech:'Life leech',manaLeech:'Mana leech',manaOnHit:'Mana gained on hit',skillRanks:'Active skill ranks',spellPower:'Spell power',spellDamage:'Spell damage',coldDamage:'Cold damage',lightningDamage:'Lightning damage',manaCostReduction:'Reduced mana cost',critDamage:'Critical damage',physicalDamage:'Physical damage',block:'Block chance'};
 // Shared camp footprint; the campaign places this layout at (+16, +18).
@@ -101,10 +101,17 @@ export function unequipItem(player,slot){
   if(!addToContainer(player.inventory,item))return result(false,'No room in your pack.');
   player.equipment[slot]=null;return result(true,`${item.name} moved to your pack.`);
 }
-export function moveItem(player,id,toStash){
-  const source=toStash?player.inventory:player.stash,target=toStash?player.stash:player.inventory;
+// Starter and quest rewards in older characters can share fixed IDs. Give a
+// transferred copy its own identity when it meets another copy of that reward.
+export function transferIdentity(player,item,target){
+ if(target.includes(item))return item;
+ const collision=target.some(i=>i.id===item.id)||Object.values(player.equipment).some(i=>i&&i!==item&&i.id===item.id);
+ return collision?{...item,id:item.id+'-'+(globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2))}:item;
+}
+export function moveItem(player,id,toStash,stash=player.stash){
+  const source=toStash?player.inventory:stash,target=toStash?stash:player.inventory;
   const index=source.findIndex(i=>i.id===id),item=source[index];if(!item)return result(false,'Item not found.');
-  if(!addToContainer(target,item,toStash?STASH:BAG))return result(false,toStash?'Your stash is full.':'Your pack is full.');
+  if(!addToContainer(target,transferIdentity(player,item,target),toStash?STASH:BAG))return result(false,toStash?'Your stash is full.':'Your pack is full.');
   source.splice(index,1);return result(true,toStash?'Item stored safely.':'Item returned to your pack.');
 }
 export function identifyItem(player,id,scholar=false,scrollId=null){

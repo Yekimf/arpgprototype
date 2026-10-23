@@ -20,7 +20,7 @@ export async function followPath(page,dungeon,target=dungeon.portal){
 
 // Combat fixtures leave town through the same departure UI used by players.
 export async function continueFixture(page){
- await page.locator('[data-front="continue"]').click();
+ await continueJourney(page);
  await expect(page.locator('#area-loading')).toBeHidden();
  if(page.fixtureZone&&page.fixtureZone!=='town'){
   await page.keyboard.press('t');
@@ -28,3 +28,5 @@ export async function continueFixture(page){
   await expect(page.locator('#area-loading')).toBeHidden();
  }
 }
+
+export async function continueJourney(page){await page.locator('[data-front=continue]').click();await page.locator('[data-front=play]').click();}

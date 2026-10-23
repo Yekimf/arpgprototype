@@ -28,7 +28,7 @@ test('failed equipment swaps, stash transfers, and purchases are atomic',()=>{
   const old=JSON.stringify(p);assert.equal(buyItem(p,0).ok,false);assert.equal(JSON.stringify(p),old);
   const target=p.inventory[0];target.slot='weapon';target.width=1;target.height=1;
   const before=JSON.stringify(p);assert.equal(equipItem(p,target.id).ok,false);assert.equal(JSON.stringify(p),before);
-  for(let i=0;i<80;i++)assert.ok(addToContainer(p.stash,ring(`stash-${i}`),STASH));
+  for(let i=0;i<STASH.width*STASH.height;i++)assert.ok(addToContainer(p.stash,ring(`stash-${i}`),STASH));
   const packed=JSON.stringify(p);assert.equal(moveItem(p,target.id,true).ok,false);assert.equal(JSON.stringify(p),packed);
 });
 test('identification gates equipment, consumes one scroll, and scholar service unlocks with rescue',()=>{

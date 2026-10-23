@@ -1,3 +1,4 @@
+import {continueJourney} from './helpers.js';
 import {speak,closeConversationOrPanel} from './helpers.js';
 import {test,expect} from '@playwright/test';
 import {createEquippedPlayer} from '../fixtures.js';
@@ -13,7 +14,7 @@ const close=closeConversationOrPanel;
 
 test('town guide, identification scroll, merchant, buyback, repairs, and reforging work',async({page},info)=>{
   const equipment=createEquippedPlayer().equipment;equipment.armor.durability=45;
-  await seedTown(page,{gold:200,equipment});const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.locator('[data-front="continue"]').click();await expect(page.locator('#area-loading')).toBeHidden();
+  await seedTown(page,{gold:200,equipment});const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await continueJourney(page);await expect(page.locator('#area-loading')).toBeHidden();
   await expect.poll(()=>snapshot(page).then(s=>s.artLoaded)).toBe(true);
   expect((await snapshot(page)).zone).toBe('town');expect((await snapshot(page)).enemies).toBe(0);
   await expect(page.locator('[data-npc="scholar"]')).toBeDisabled();
@@ -54,7 +55,7 @@ test('town guide, identification scroll, merchant, buyback, repairs, and reforgi
 test('rescued archivist offers free identification and guide reward is saved once',async({page})=>{
   const quests={guideMet:true,scholarRescued:true,wardenDefeated:true,guideRewarded:false};
   const inventory=[{id:'hidden-ring',name:'Gilded Signet',slot:'ring',rarity:'rare',level:2,life:24,crit:4,identified:false,durability:100}];
-  await seedTown(page,{quests,inventory,identifyScrolls:0});await page.goto('/');await page.locator('[data-front="continue"]').click();await expect(page.locator('#area-loading')).toBeHidden();
+  await seedTown(page,{quests,inventory,identifyScrolls:0});await page.goto('/');await continueJourney(page);await expect(page.locator('#area-loading')).toBeHidden();
   await talk(page,'scholar','Edrin’s study');await page.locator('[data-talk="identify"]').click();
   expect((await save(page)).inventory[0].identified).toBe(true);expect((await snapshot(page)).gold).toBe(0);
   await close(page);await talk(page,'guide','Sister Maelin');await page.locator('[data-talk="reward"]').click();
@@ -64,7 +65,7 @@ test('rescued archivist offers free identification and guide reward is saved onc
 
 test('safe starting town, dungeon departure, town portal, and return preserve the expedition',async({page})=>{
   const equipment=createEquippedPlayer().equipment;equipment.weapon.damage=2000;equipment.armor.armor=10000;
-  await seedTown(page,{equipment});await page.goto('/');await page.locator('[data-front="continue"]').click();await expect(page.locator('#area-loading')).toBeHidden();
+  await seedTown(page,{equipment});await page.goto('/');await continueJourney(page);await expect(page.locator('#area-loading')).toBeHidden();
   await page.keyboard.press('t');await page.locator('[data-town-action="depart"]').click();
   expect((await snapshot(page)).zone).toBe('dungeon');const initial=(await snapshot(page)).enemies;
   await page.waitForTimeout(2200);await page.keyboard.press('e');await page.waitForTimeout(1800);

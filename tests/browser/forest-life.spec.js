@@ -1,3 +1,4 @@
+import {continueJourney} from './helpers.js';
 import {test,expect} from '@playwright/test';
 import {createPlayer} from '../../src/game.js';
 import {createCampaign,generateWilderness} from '../../src/campaign.js';
@@ -6,7 +7,7 @@ const snapshot=page=>page.evaluate(()=>window.__reliquary.snapshot());
 test('road signs open text-only readings, discovered paths are visible and a larger flock stays in its pen',async({page})=>{
  test.setTimeout(150000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const p=createPlayer();p.campaign=createCampaign();p.hp=10000;p.equipment.shield={...p.equipment.shield,armor:10000,life:10000,speed:6};p.quests.herdKills=Array.from({length:6},(_,i)=>'herd-'+i);
- await page.addInitScript(save=>localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify(save)),{version:1,player:p,zone:'town',seed:42710,depth:1});await page.goto('/');await page.locator('[data-front=continue]').click();await expect(page.locator('#area-loading')).toBeHidden();
+ await page.addInitScript(save=>localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify(save)),{version:1,player:p,zone:'town',seed:42710,depth:1});await page.goto('/');await continueJourney(page);await expect(page.locator('#area-loading')).toBeHidden();
  let s=await snapshot(page);const d=generateWilderness(s.areaSeed,1,p);expect(s.grassClumps).toBeGreaterThan(5000);expect(s.livestock).toHaveLength(22);
  const sign=d.signs[0];let route=await followPath(page,d,d.townExit);expect(route.i).toBe(route.length);await page.waitForTimeout(350);let at=await page.evaluate(({x,y})=>window.__reliquary.project(x,y),sign);await page.mouse.click(at.x,at.y-50);
  await expect(page.locator('#npc-dialogue')).toBeVisible();await expect(page.locator('#npc-dialogue')).toHaveText(sign.text);await expect(page.locator('#npc-dialogue button')).toHaveCount(0);expect((await snapshot(page)).dialogue).toBe('sign:'+sign.id);await page.screenshot({path:'test-results/forest-sign-reading.png'});

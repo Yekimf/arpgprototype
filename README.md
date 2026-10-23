@@ -10,6 +10,13 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.35.0
+- Multiple independent character saves with automatic import of the previous single-character save. Creating a character preserves existing characters, their equipment, skills, quests, dungeon seeds and personal storage.
+- Added a gothic character selection screen: two columns, eight characters per page, equipment portraits, a live selected-character preview, keyboard navigation, and create/delete/play controls. Deletion requires the character’s exact name; shared storage survives deletion.
+- Stash opens as a separate left-hand inventory sheet with equipped gear and the backpack on the right. One personal page and three shared pages each have a 10×10 grid. Shared pages transfer equipment between characters; stored gold remains personal.
+- Drag between grids, Shift/Ctrl-click to transfer, or right-click a stored item to withdraw it. Each page retains its own arrangement. The layout fits 1280×720 through larger desktop viewports.
+- Character archive writes preserve previous data on storage failure and reject stale writes from another tab. Restricted browsers can keep multiple characters for the current session, with an explicit storage status. Existing single-save data remains compatible through an active-character copy.
+
 ## Version 0.34.1
 - Rebuilt interior boundaries as connected, full-height stone walls attached to the exact floor edges on all four sides. Removed detached barricade blocks, giant oval wall shadows and exposed platform skirts. Foreground wall segments cut away near the player.
 - Added room dressing: weapon racks, stores, fallen arms, royal banners and sconces in Marchgate; ossuaries, urns, candles and recessed wall niches in the redoubt. Wall geometry and decorations are prepared during loading and cached.
@@ -276,7 +283,7 @@ The requested **two hours per act, with longer acts approaching four hours, rema
 
 ## Equipment, crafting and gold
 
-The pack has **12×6 square cells**, and the stash **10×8**. Item footprints, tall weapon/shield sockets and two ring slots preserve their proportions. Common items equip immediately. Enchanted dungeon loot needs identification; purchased equipment is identified. Edrin identifies carried items freely after his rescue.
+The pack has **12×6 square cells**, and each stash page **10×10**. Item footprints, tall weapon/shield sockets and two ring slots preserve their proportions. Common items equip immediately. Enchanted dungeon loot needs identification; purchased equipment is identified. Edrin identifies carried items freely after his rescue.
 
 Twenty equipment bases have distinct damage, reach, attack speed, armour, evasion, block or mana. Higher areas introduce exceptional and elite bases. Magic, rare and legendary items roll two, four and five properties, with prefix/suffix groups, displayed tiers and roll ranges. Fire, cold and storm resistance, regeneration, flask recovery and attack speed support different builds. Three legendary oath families remain available. The painted player changes by equipment family; individual named items share art within that family.
 
