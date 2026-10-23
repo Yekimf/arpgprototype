@@ -10,6 +10,11 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.23.0
+
+- Original iron-and-bronze tracery frames skill slots, mastery icons, inventory/service folios, quest seals and pause/options menus. The two small vector borders scale with panels, remain transparent over content, and do not intercept input.
+- Cursor capture now starts at the visible pointer position instead of a stale screen-center coordinate. Relative mouse movement is calibrated to CSS pixels before capture to account for browser/display scaling. Fractional coordinates are retained, screen-edge clamping has no accumulated overshoot, and dragging the passive atlas continues beyond its edge.
+
 ## Version 0.22.0
 
 - Measured grip/tip anchors for all 16 weapon paintings replace shared offsets. Weapons rotate around their handles; posed painted arms, gloves and fingers meet the grip. Two-handed weapons receive a supporting hand and empty weapon slots retain bare hands. Equipment and directional movement remain layered and cached.

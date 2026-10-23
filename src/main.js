@@ -39,7 +39,7 @@ import './quest-book.css';
 import './kingdom.css';
 import './presentation.css';
 import {NPCDialogue} from './npc-dialogue.js';
-import {STORY_ART,LEATHER_ART,MAP_ART,GUARD_ART,STONE_ART} from './assets.js';
+import {FOLIO_FRAME_ART,SKILL_FRAME_ART,STORY_ART,LEATHER_ART,MAP_ART,GUARD_ART,STONE_ART} from './assets.js';
 import {FrontEnd} from './front-end.js';
 import {ACTS,actFor,createCampaign,ensureCampaign,discoverLocation,attuneWaypoint,canTravel,locationId,defeatCampaignBoss,canAdvance,advanceCampaign,chapterOf,captainId,fieldKey,completeField,nextChapter,campaignObjective,generateWilderness,generateStronghold,inSanctuary} from './campaign.js';
 import {renderCampaignPanel} from './campaign-ui.js';
@@ -59,7 +59,7 @@ try{saved=JSON.parse(localStorage.getItem(SAVE_KEY));}catch{}
 const validSave=saved?.version===1&&saved.player?.skills&&Array.isArray(saved.player.inventory)&&saved.player.equipment;
 const player=migratePlayer(validSave?{...createPlayer(),...saved.player,progressionVersion:saved.player.progressionVersion??1,passiveVersion:saved.player.passiveVersion??0,attributes:saved.player.attributes??{might:0,vitality:0,will:0,dexterity:0},attributePoints:saved.player.attributePoints??Math.max(0,((saved.player.level||1)-1)*5)}:createPlayer());
 ensureCampaign(player);
-for(const [key,url] of Object.entries({'--guard-art':GUARD_ART,'--inventory-stone':STONE_ART,'--story-art':STORY_ART,'--leather-texture':LEATHER_ART,'--map-art':MAP_ART}))document.documentElement.style.setProperty(key,`url("${url}")`);
+for(const [key,url] of Object.entries({'--folio-frame':FOLIO_FRAME_ART,'--skill-frame':SKILL_FRAME_ART,'--guard-art':GUARD_ART,'--inventory-stone':STONE_ART,'--story-art':STORY_ART,'--leather-texture':LEATHER_ART,'--map-art':MAP_ART}))document.documentElement.style.setProperty(key,`url("${url}")`);
 const game={sandbox:sandboxDefaults(),auras:{},actionRecovery:0,castCounts:{},player,stats:playerStats(player),dungeon:null,loot:[],projectiles:[],effects:[],floaters:[],cooldowns:{},attackCooldown:0,attackAnim:0,dodgeCooldown:0,dodgeTime:0,hurtFlash:0,moving:false,paused:false,panel:null,time:0,showLoot:false,largeMap:false,depth:validSave?saved.depth:1,seed:validSave?saved.seed:Math.floor(Math.random()*1e9),flow:null,flowTimer:0,aim:{x:player.x+1,y:player.y},target:null,mouseDown:false,lastMove:{x:1,y:0},sound:false,selectedMastery:'iron',selectedItem:null};
 let keys=new Set(),toastTimer,saveTimer=0,audioCtx,mouseScreen=null;
 const cursor=new CursorCapture($('app'),{onMove:p=>{mouseScreen={x:p.x,y:p.y};game.pointerOverWorld=p.target?.id==='world';game.aim=aimPoint();},onRelease:()=>{keys.clear();clearAttackOrder();game.mouseDown=false;},notify:message=>toast(message,4000)});

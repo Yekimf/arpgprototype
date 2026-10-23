@@ -13,7 +13,9 @@ import scene6 from './art/runtime/chronicle-6.webp?inline';
 // retaining all image bytes inside the offline build.
 function localAsset(source){
   if(!source.startsWith('data:'))return source;
-  const binary=atob(source.slice(source.indexOf(',')+1)),bytes=new Uint8Array(binary.length);
+  const comma=source.indexOf(','),header=source.slice(5,comma);
+  if(!header.includes(';base64'))return URL.createObjectURL(new Blob([decodeURIComponent(source.slice(comma+1))],{type:header.split(';')[0]}));
+  const binary=atob(source.slice(comma+1)),bytes=new Uint8Array(binary.length);
   for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
   return URL.createObjectURL(new Blob([bytes],{type:source.slice(5,source.indexOf(';'))}));
 }
@@ -62,3 +64,8 @@ export const FOREST_GROUND_ART=localAsset(forestGround);
 
 import weapons from './art/runtime/weapons.webp?inline';
 export const WEAPON_ART=localAsset(weapons);
+
+import folioFrame from './art/folio-frame.svg?inline';
+import skillFrame from './art/skill-frame.svg?inline';
+export const FOLIO_FRAME_ART=localAsset(folioFrame);
+export const SKILL_FRAME_ART=localAsset(skillFrame);
