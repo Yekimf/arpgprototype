@@ -33,7 +33,7 @@ test('loot stays mostly common/magic through early Act II, with rare utility aff
 });
 test('dungeon geometry varies by character and revision, remains reproducible and connected',()=>{
  const seeds=[dungeonSeed(715,1,0),dungeonSeed(716,1,0),dungeonSeed(715,1,0,1)],areas=seeds.map(s=>generateStronghold(s,1,0)),signature=d=>JSON.stringify(d.rooms.map(r=>[r.x,r.y,r.w,r.h]));assert.equal(new Set(areas.map(signature)).size,3);assert.equal(signature(generateStronghold(seeds[0],1,0)),signature(areas[0]));
- for(const d of areas)for(const target of [d.portal,d.returnGate,d.waypoint,d.supplies,...d.rooms.map(r=>({x:r.x+r.w/2,y:r.y+r.h/2}))])assert.ok(findPath(d,d.start,target).length);for(let act=2;act<=5;act++){const d=generateStronghold(dungeonSeed(715,act,1,2),act,1);assert.ok(findPath(d,d.start,d.portal).length);}
+ for(const d of areas)for(const target of [d.portal,d.returnGate,d.waypoint,d.supplies,...d.rooms.map(r=>({x:r.x+r.w/2,y:r.y+r.h/2}))])assert.ok(findPath(d,d.start,target).length);for(let chapter=1;chapter<=2;chapter++){const d=generateStronghold(dungeonSeed(715,1,chapter,2),1,chapter);assert.ok(findPath(d,d.start,d.portal).length);}
 });
 
 test('two-handed weapons move conflicting equipment into the pack atomically',()=>{const p=migratePlayer(createPlayer()),bow={id:'bow',name:'Longbow',slot:'weapon',look:'bow',rarity:'normal',twoHanded:true,width:2,height:4};addToContainer(p.inventory,bow);assert.ok(equipItem(p,'bow').ok);assert.equal(p.equipment.shield,null);assert.ok(p.inventory.some(i=>i.id==='starter-buckler'));assert.ok(equipItem(p,'starter-buckler').ok);assert.equal(p.equipment.weapon,null);assert.ok(p.inventory.some(i=>i.id==='bow'));});

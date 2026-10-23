@@ -6,7 +6,7 @@ export const ACT_ONE_QUESTS=[
  {id:'tithe-enforcers',title:'Break the Levy',area:'Widow’s Fields',chapter:1,art:1,leaders:['The Famine Collector','The Empty Sickle','The Widowmaker'],story:'Three levy enforcers are burning the farms and driving families into the ditches. Hunt down their warbands before the fields become another graveyard.',after:'The enforcers are dead. Farmers leave their hiding places and turn toward the granary.'},
  {id:'tithe-granary',title:'The Tithe Granary',area:'The Tithe Granary',chapter:1,art:3,boss:'captain-1-1',story:'Reeve Oswen has turned the winter grain store into a killing yard. Cross the occupied wheat fields and defeat him. The prisoners need an open road, not another ledger.',after:'Oswen falls among the stolen grain. Freed captives reveal a trail into Blackthorn Hollow, where Aldren binds the prisoners to his garrison.'},
  {id:'hollow-chanters',title:'Silence the Thorn Choir',area:'Blackthorn Hollow',chapter:2,art:4,leaders:['Cantor of the Briar','The Hollow Confessor','The Rootbound Voice'],story:'Three chanters keep the hollow’s dead soldiers bound to Aldren. Break their armed circles and silence the ritual before another patrol rises.',after:'The voices die away. The hollow’s thorns slacken, and the captives can hear the road again.'},
- {id:'thornbound',title:'The First Fallen Knight',area:'Aldren’s Redoubt',chapter:2,art:5,boss:'knight-1',story:'Aldren guards the hollow in armour grown through with black thorns. Defeat the first corrupted knight and free Edrin from the redoubt. No stolen document can do this for you.',after:'Aldren finally releases his sword. Edrin is free, the first binding is broken, and the road toward the drowned province lies open.'},
+ {id:'thornbound',title:'The First Fallen Knight',area:'Aldren’s Redoubt',chapter:2,art:5,boss:'knight-1',story:'Aldren guards the hollow in armour grown through with black thorns. Defeat the first corrupted knight and free Edrin from the redoubt. No stolen document can do this for you.',after:'Aldren finally releases his sword. Edrin is free, the first binding is broken, and Emberfall can shelter its people again. This ends Act I.'},
 ];
 export function migrateActOne(p){
  const c=p.campaign;if(!c||c.actOneVersion===2)return;
@@ -20,13 +20,13 @@ export function seedActOneEncounters(d,p,chapter){
  d.field=null;d.provisions=null;
  d.enemies=d.enemies.filter(e=>!e.herdId);const c=p.campaign||{records:[],actOneKills:{}};const quest=ACT_ONE_QUESTS[chapter*2];if(!quest||c.records.includes(`field-1-${chapter}`))return d;
  for(const sign of d.signs||[]){if(/provision|wagon|orders/i.test(sign.name+' '+sign.text))sign.text='KINGSROAD — Marchgate to the north-east. The toll is currently payable in bruises. Complaints may be addressed to Captain Hadrin.';}
- const anchors=chapter===0?[d.paths[0][2],d.paths[0][4],d.paths[0][6]]:[{x:35.5,y:51.5},{x:48.5,y:30.5},{x:67.5,y:27.5}];
+ const anchors=[d.paths[0][2],d.paths[0][4],d.paths[0][6]];
  for(let i=0;i<3;i++){
   if(c.actOneKills?.[quest.id]?.includes(i))continue;
   const a=anchors[i];if(!a)continue;
   for(let j=0;j<3;j++){const at={x:a.x+(j-1)*1.1,y:a.y+(j%2)*1.2};if(!isWalkable(d,at.x,at.y,.23))continue;
    const e=makeEnemy(5000+chapter*100+i*3+j,at.x,at.y,j===1&&chapter>0?'wraith':'skeleton',1+chapter*2,j===1);
-   Object.assign(e,{name:j===1?quest.leaders[i]:chapter===2?'Thornbound Retainer':chapter===1?'Levy Butcher':'Dead Kingsroad Guard',faction:1,role:j===1&&chapter>0?'hexer':'guard',speed:2+chapter*.12});
+   Object.assign(e,{name:j===1?quest.leaders[i]:chapter===2?'Thornbound Retainer':chapter===1?'Levy Butcher':'Dead Kingsroad Guard',faction:1,role:j===1&&chapter>0?'hexer':'guard',speed:2+chapter*.12,level:1+chapter*4});
    if(j===1){e.questId=quest.id;e.questMark=i;e.hp=e.maxHp=110+chapter*130;e.damage=16+chapter*5;}d.enemies.push(e);
   }
  }

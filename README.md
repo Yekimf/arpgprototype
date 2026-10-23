@@ -10,6 +10,14 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.34.0
+- Focused the playable campaign on Act I: three regions and six combat quests, ending with Edrin’s rescue. Later acts are removed from travel, quests and the world map. Existing characters, items and old campaign history are preserved.
+- Marchgate alone uses the monumental kingdom gate. The granary uses a wooden field entrance; Aldren’s redoubt uses a chapel crypt entrance. The regional map now shows the seven Act I locations.
+- Distinct cached floor materials for Marchgate’s courts and slate halls, the granary’s stubble, muddy wagon lanes and barn boards, and the redoubt’s cracked burial slabs and inlaid sanctum. Blackthorn has a separate root-strewn forest floor.
+- Expanded both later approaches to 128 squares. The granary has seven work yards and divided fields; the new 152-square chapel crypt has six connected wings and optional burial chambers. Two named veterans occupy each stronghold.
+- Slower experience progression, diminishing experience from outleveled enemies, gentler equipment scaling, and separate enemy/loot tiers. Bosses no longer award bonus mastery points. Leveling still grants one mastery, one passive and five attributes; Might adds 0.4 weapon damage per point.
+- Regional enemy levels are 1/5/9 outdoors and 3/7/11 in strongholds. Boss health is roughly 1,900/3,800/6,100, with faster movement; Hadrin, Oswen and Aldren have different attack themes. Existing overleveled characters are preserved; a new character gives the intended progression curve.
+
 ## Version 0.33.2
 
 - Building, gate and farm structure shadows follow their painted foundations instead of detached oval blobs. Contact shadows are softly blended and cached, with no shadow work repeated for unchanged structures.
@@ -41,7 +49,7 @@ The root HTML embeds all code, styles and runtime art. It works offline. Use a d
 
 ## Version 0.30.0
 
-- Press **N** for the Loyalist’s Chronicle: 27 achievements with progress tracking, one-time unlock notifications, cosmetic renown and selectable earned titles. Includes Minecraft-style milestones and playful references such as “Getting an Upgrade,” “Passive Aggressive,” and “Definitely Not the Cow Level.” Progress is stored per character; existing saves receive earned milestone credit.
+- Press **N** for the Loyalist’s Chronicle: 25 achievements with progress tracking, one-time unlock notifications, cosmetic renown and selectable earned titles. Includes Minecraft-style milestones and playful references such as “Getting an Upgrade,” “Passive Aggressive,” and “Definitely Not the Cow Level.” Progress is stored per character; existing saves receive earned milestone credit.
 - Four original six-piece sets (24 new items): The Last Kingsguard, The Ashen Vigil, Gravebloom Covenant, and Vestments of the Stormwarden. Each has unique item paintings and separate front/back armor artwork, visible piece by piece on the animated hero.
 - Sets grant cumulative bonuses at 2, 4 and 6 distinct identified, working equipped pieces. Duplicate or broken pieces never inflate the count. Green set drops appear from area level 2 onward; later sets unlock at levels 4, 7 and 10, with better chances on elites and bosses. Scrolls and Edrin can identify them.
 - The collection remembers discovered pieces after trade or storage, shows which are currently owned/equipped, and previews every set’s appearance and bonuses. Tooltips include set membership and active tiers. Existing characters and ordinary loot remain compatible.
@@ -281,7 +289,7 @@ New characters begin at level 1 with a service sword, shield and basic attack. E
 
 Martyr’s Pyre, available at level 4 after three Cinderweaver points, burns nearby enemies using maximum life, mana and fire bonuses. It consumes 9% of maximum life per second before fire resistance and switches off at 5% life. Resistance, regeneration and flask recovery support it. Returning to town extinguishes it.
 
-Emberfall is inside the open Kingsroad Wilds. Walk through the camp gates into the wilderness; accepting a quest does not teleport you. Follow the north road to Marchgate. Nineteen seeded wilderness/stronghold pairs lead through five provinces. Act I has three regions and six combat quests, ending with Aldren in Blackthorn Hollow. Later acts retain four chapters and separate enemy rosters leading to Morcant, Gareth, Yseld or Brennan. Each fallen knight opens the next act; the final chapter then leads to King Vaelor and the Veiled Wanderer. Act starting area levels are 1, 10, 20, 30 and 40, rising by two per chapter. Item requirements now follow area level so later-act drops remain equipable within the level cap.
+Emberfall is inside the open Kingsroad Wilds. Walk through the camp gates into the wilderness; accepting a quest does not teleport you. Follow the north road to Marchgate. The playable campaign contains three seeded wilderness/stronghold pairs and six combat quests, ending with Edrin’s rescue from Aldren in Blackthorn Hollow. Regional enemy levels are 1/5/9 outdoors and 3/7/11 indoors; loot tiers rise more slowly. Later acts are unavailable in this build. Old save data and equipment are preserved.
 
 The kingdom map lists six regional waypoints for Act I and eight per later act, plus Emberfall. Click a gothic fountain to awaken it; travel from town or another fountain. Roadside provisions restore life, mana and flasks; clear another enemy before renewing the same cache. Act I records defeated warband leaders and bosses; its quest rewards cannot be repeated. Later provinces retain their field accounts and commander aftermaths.
 

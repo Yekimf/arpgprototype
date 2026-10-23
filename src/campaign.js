@@ -1,3 +1,5 @@
+import {generateRedoubt} from './redoubt.js';
+import {actOneLevel,balanceActOne,placeActOneVeterans} from './act-one-balance.js';
 import {migrateActOne,seedActOneEncounters} from './act-one.js';
 import {questRelic} from './quest-objects.js';
 import {generateOpeningForest} from './opening-forest.js';
@@ -6,49 +8,47 @@ import {generateMarchgate} from './marchgate.js';
 import {frontierEdges} from './wilderness-boundary.js';
 import {chapterFor,dressEnemy,lastChapter} from './campaign-content.js';
 import {generateTown,TOWN_BOUNDS} from './settlement.js';
-import {generateDungeon,makeEnemy,random,distance,isWalkable} from './game.js';
+import {makeEnemy,random,distance,isWalkable} from './game.js';
 
 export const ACTS=[
  {id:1,title:'The Broken Oath',wilds:'Kingsroad Wilds',stronghold:'Ruined Marchgate',knight:'Sir Aldren, the Thornbound',epithet:'FIRST SEAT OF THE ROUND TABLE',color:'#a1aa70',level:1,quote:'Marchgate controls the only road through the outer wall. Hadrin’s garrison holds the first clues to our missing archivist.'},
- {id:2,title:'The Drowned Covenant',wilds:'Mourning Fen',stronghold:'The Sunken Chapel',knight:'Sir Morcant, the Drowned',epithet:'KEEPER OF THE SECOND SEAT',color:'#76b1b0',level:10,quote:'Refugees report patrols in the fen. Morcant has turned the flooded chapel into a prison.'},
- {id:3,title:'Ashes of the Round',wilds:'Cinderfields',stronghold:'Red Watch Keep',knight:'Sir Gareth, the Iron Pyre',epithet:'THE KING’S ONCE-FAITHFUL BLADE',color:'#d69660',level:20,quote:'Gareth held the border for thirty winters. His men now burn the villages they once defended.'},
- {id:4,title:'The Silent Choir',wilds:'Frostwold',stronghold:'Cathedral of Thorns',knight:'Dame Yseld, the Hollow Saint',epithet:'VOICE OF THE ROUND TABLE',color:'#a5a8d7',level:30,quote:'The last messengers disappeared near Frostwold. Yseld has sealed the cathedral road.'},
- {id:5,title:'The Usurper’s Crown',wilds:'Crownfall Approach',stronghold:'Throne of Black Glass',knight:'Sir Brennan, the Last Oath',epithet:'LAST KNIGHT OF THE FALLEN TABLE',color:'#ceac65',level:40,quote:'Brennan guards the inner gate. Beyond him stand Vaelor and the stranger who armed his coup.'},
 ];
-export const actFor=n=>ACTS[Math.max(0,Math.min(4,Number(n||1)-1))];
+export const actFor=n=>ACTS[Math.max(0,Math.min(ACTS.length-1,Number(n||1)-1))];
 export const locationId=(act,kind,chapter=0)=>kind==='town'?'emberfall':`act-${act}-${kind}${chapter?`-${chapter+1}`:''}`;
 export const chapterOf=(p,act=p.campaign?.act||1)=>p.campaign?.chapters?.[act]||0;
 export const fieldKey=(act,chapter)=>`field-${act}-${chapter}`;
 export const captainId=(act,chapter)=>chapter<lastChapter(act)?`captain-${act}-${chapter}`:`knight-${act}`;
-export function completeField(p,act,chapter){const c=ensureCampaign(p),key=fieldKey(act,chapter);if(!c||c.records.includes(key))return false;c.records.push(key);return true;}
-export function nextChapter(p,act=p.campaign?.act){const c=ensureCampaign(p),chapter=chapterOf(p,act);if(!c||chapter>=lastChapter(act)||!c.defeated.includes(captainId(act,chapter)))return false;c.chapters[act]=chapter+1;return true;}
+export function completeField(p,act,chapter){const c=ensureCampaign(p),key=fieldKey(act,chapter);if(!c||act!==1||chapter<0||chapter>lastChapter(act)||c.records.includes(key))return false;c.records.push(key);return true;}
+export function nextChapter(p,act=p.campaign?.act){const c=ensureCampaign(p),chapter=chapterOf(p,act);if(!c||act!==1||chapter>=lastChapter(act)||!c.defeated.includes(captainId(act,chapter)))return false;c.chapters[act]=chapter+1;return true;}
 export function createCampaign(){return {actOneVersion:2,act:1,chapters:{},records:[],defeated:[],waypoints:['emberfall'],visited:['emberfall'],guidance:[],completed:false,introSeen:true};}
-export function ensureCampaign(p){if(!p.campaign)return null;const c=p.campaign;c.act=Math.max(1,Math.min(5,c.act||1));const legacy=!c.chapters;migrateActOne(p);c.chapters??={};for(const key of ['defeated','waypoints','visited','guidance','records'])if(!Array.isArray(c[key]))c[key]=[];for(let a=1;a<=5;a++)c.chapters[a]=Math.max(0,Math.min(lastChapter(a),Number(c.chapters[a])||0));if(legacy)for(let a=1;a<=5;a++)if(c.defeated.includes(`knight-${a}`)){c.chapters[a]=lastChapter(a);for(let ch=0;ch<=lastChapter(a);ch++)if(!c.records.includes(fieldKey(a,ch)))c.records.push(fieldKey(a,ch));}if(!c.waypoints.includes('emberfall'))c.waypoints.unshift('emberfall');return c;}
+export function ensureCampaign(p){if(!p.campaign)return null;const c=p.campaign;c.act=Math.max(1,Math.min(ACTS.length,c.act||1));const legacy=!c.chapters;migrateActOne(p);c.chapters??={};for(const key of ['defeated','waypoints','visited','guidance','records'])if(!Array.isArray(c[key]))c[key]=[];for(let a=1;a<=5;a++)c.chapters[a]=Math.max(0,Math.min(lastChapter(a),Number(c.chapters[a])||0));if(legacy)for(let a=1;a<=5;a++)if(c.defeated.includes(`knight-${a}`)){c.chapters[a]=lastChapter(a);for(let ch=0;ch<=lastChapter(a);ch++)if(!c.records.includes(fieldKey(a,ch)))c.records.push(fieldKey(a,ch));}c.completed=c.defeated.includes('knight-1');if(!c.waypoints.includes('emberfall'))c.waypoints.unshift('emberfall');return c;}
 export function discoverLocation(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const c=ensureCampaign(p);if(!c)return false;const id=locationId(act,kind,chapter),fresh=!c.visited.includes(id);if(fresh)c.visited.push(id);return fresh;}
-export function attuneWaypoint(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const c=ensureCampaign(p);if(!c)return false;const id=locationId(act,kind,chapter);discoverLocation(p,kind,act,chapter);if(c.waypoints.includes(id))return false;c.waypoints.push(id);return true;}
-export function canTravel(p,id){const c=ensureCampaign(p);return !!c&&c.waypoints.includes(id)&& (id==='emberfall'||Number(id.split('-')[1])<=c.act&&(!id.split('-')[3]||Number(id.split('-')[3])-1<=chapterOf(p,Number(id.split('-')[1]))));}
-export function defeatCampaignBoss(p,bossId){const c=ensureCampaign(p);if(!c||c.defeated.includes(bossId))return false;if(/^captain-[1-5]-[0-2]$/.test(bossId)){if(Number(bossId.split('-')[1])>c.act)return false;}else if(/^knight-[1-5]$/.test(bossId)){if(Number(bossId.split('-')[1])>c.act)return false;}else if(bossId==='king'){if(c.act!==5||!c.defeated.includes('knight-5'))return false;}else if(bossId==='wanderer'){if(c.act!==5||!c.defeated.includes('king'))return false;}else return false;c.defeated.push(bossId);if(bossId==='wanderer')c.completed=true;return true;}
+export function attuneWaypoint(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const c=ensureCampaign(p);if(!c||act!==1||chapter<0||chapter>lastChapter(act))return false;const id=locationId(act,kind,chapter);discoverLocation(p,kind,act,chapter);if(c.waypoints.includes(id))return false;c.waypoints.push(id);return true;}
+export function canTravel(p,id){const c=ensureCampaign(p);return !!c&&(id==='emberfall'||/^act-1-(wilderness|stronghold)(-[23])?$/.test(id))&&c.waypoints.includes(id)&& (id==='emberfall'||Number(id.split('-')[1])<=c.act&&(!id.split('-')[3]||Number(id.split('-')[3])-1<=chapterOf(p,Number(id.split('-')[1]))));}
+export function defeatCampaignBoss(p,bossId){const c=ensureCampaign(p);if(!c||!['captain-1-0','captain-1-1','knight-1'].includes(bossId)||c.defeated.includes(bossId))return false;c.defeated.push(bossId);if(bossId==='knight-1')c.completed=true;return true;}
 export function canAdvance(p,act=p.campaign?.act){return !!p.campaign?.defeated.includes(`knight-${act}`);}
-export function advanceCampaign(p){const c=ensureCampaign(p);if(!c||c.act>=5||!canAdvance(p))return false;c.act++;return true;}
-export function campaignObjective(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const a=actFor(act),ch=chapterFor(act,chapter);if(p.campaign?.completed)return 'The bargain is broken. The kingdom sees dawn.';if(kind==='town')return p.quests.guideMet?'Prepare for the next road · J opens your journal':'Speak to Sister Maelin, then follow the Kingsroad';if(kind==='wilderness')return `Enter ${ch.stronghold} · ${ch.captain||a.knight}`;if(act===5&&p.campaign?.defeated.includes('king'))return 'End the Veiled Wanderer’s bargain';if(act===5&&canAdvance(p,5))return 'Confront King Vaelor, the Usurper';return p.campaign?.defeated.includes(captainId(act,chapter))?'The road is open. Continue from the stronghold exit':`Defeat ${ch.captain||a.knight}`;}
+export function advanceCampaign(p){const c=ensureCampaign(p);if(!c||c.act>=ACTS.length||!canAdvance(p))return false;c.act++;return true;}
+export function campaignObjective(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const a=actFor(act),ch=chapterFor(act,chapter);if(p.campaign?.completed)return 'Act I complete · Edrin is safe in Emberfall';if(kind==='town')return p.quests.guideMet?'Prepare for the next road · J opens your journal':'Speak to Sister Maelin, then follow the Kingsroad';if(kind==='wilderness')return `Enter ${ch.stronghold} · ${ch.captain||a.knight}`;return p.campaign?.defeated.includes(captainId(act,chapter))?'The road is open. Continue from the stronghold exit':`Defeat ${ch.captain||a.knight}`;}
 
 
 // The camp and its surrounding fields are one continuous, seeded area.
 export const inSanctuary=(d,p)=>!!d.townBounds&&p.x>d.townBounds.x1&&p.x<d.townBounds.x2&&p.y>d.townBounds.y1&&p.y<d.townBounds.y2;
 export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
- if(act===1&&chapter===0){const d=generateOpeningForest(seed,player,chapterFor(act,chapter).task);return seedActOneEncounters(d,player,chapter);}
- const camp=act===1&&chapter===0,ch=chapterFor(act,chapter),rng=random(seed),size=camp?128:96,tiles=Array.from({length:size},()=>Array(size).fill(0)),start=camp?{x:48,y:50.5}:{x:17.5,y:77.5},portal=camp?{x:112.5,y:18.5}:{x:76.5,y:18.5},props=[],enemies=[],roads=new Set(),water=new Set();
+ if(act!==1)throw new RangeError('Only Act I is available.');
+ chapter=Math.max(0,Math.min(lastChapter(act),Math.floor(Number(chapter)||0)));
+ if(act===1&&chapter===0){const d=generateOpeningForest(seed,player,chapterFor(act,chapter).task);d.tileset='kingsroad';return balanceActOne(seedActOneEncounters(d,player,chapter),chapter);}
+ const camp=act===1&&chapter===0,ch=chapterFor(act,chapter),rng=random(seed),size=128,tiles=Array.from({length:size},()=>Array(size).fill(0)),start=camp?{x:48,y:50.5}:{x:17.5,y:109.5},portal=camp?{x:112.5,y:18.5}:{x:108.5,y:18.5},props=[],enemies=[],roads=new Set(),water=new Set();
  const townBounds=camp?{x1:TOWN_BOUNDS.x1+16,y1:TOWN_BOUNDS.y1+18,x2:TOWN_BOUNDS.x2+16,y2:TOWN_BOUNDS.y2+18}:null;
  // A broad, irregular landmass. Ponds, groves and ruins interrupt the field rather
  // than reducing it to a single corridor; roads are always guaranteed walkable.
  for(let y=3;y<size-3;y++)for(let x=3;x<size-3;x++){
-   const edge=camp?Math.hypot((x-64)/62,(y-60)/58):Math.hypot((x-48)/47,(y-48)/46),ripples=Math.sin(x*.22)*.028+Math.cos(y*.29)*.026;
+   const edge=camp?Math.hypot((x-64)/62,(y-60)/58):Math.hypot((x-64)/63,(y-64)/62),ripples=Math.sin(x*.22)*.028+Math.cos(y*.29)*.026;
    if(edge<.99+ripples)tiles[y][x]=1;
  }
  const carve=(x,y,r,road=false)=>{for(let yy=Math.max(2,Math.floor(y-r));yy<Math.min(size-2,y+r);yy++)for(let xx=Math.max(2,Math.floor(x-r));xx<Math.min(size-2,x+r);xx++)if(Math.hypot(xx+.5-x,yy+.5-y)<r){tiles[yy][xx]=1;if(road&&Math.hypot(xx+.5-x,yy+.5-y)<1.4)roads.add(yy*size+xx);}};
  const lakes=[{x:23,y:24,rx:7,ry:4},{x:73,y:64,rx:5,ry:8},{x:28,y:64,rx:4,ry:5}];
  for(const lake of lakes)for(let y=3;y<size-3;y++)for(let x=3;x<size-3;x++)if(((x-lake.x)/lake.rx)**2+((y-lake.y)/lake.ry)**2<1+Math.sin(x*2+y)*.12){tiles[y][x]=0;water.add(y*size+x);}
- const route=camp?[start,{x:64.5,y:51.5},{x:74.5,y:48.5},{x:85.5,y:40.5},{x:97.5,y:31.5},{x:112.5,y:28.5},portal]:[start,{x:48.5,y:30.5},{x:56.5,y:30.5},{x:67.5,y:27.5},portal];
+ const route=camp?[start,{x:64.5,y:51.5},{x:74.5,y:48.5},{x:85.5,y:40.5},{x:97.5,y:31.5},{x:112.5,y:28.5},portal]:[start,{x:32.5,y:94.5},{x:73.5,y:91.5},{x:91.5,y:65.5},{x:55.5,y:50.5},{x:76.5,y:31.5},portal];
  const paths=[route,[start,{x:35.5,y:51.5},{x:18.5,y:45.5}],[start,{x:48.5,y:68.5},{x:57.5,y:80.5}],[start,{x:64.5,y:51.5},{x:80.5,y:42.5}]];
  for(const path of paths)for(let i=1;i<path.length;i++){const a=path[i-1],b=path[i],steps=Math.ceil(distance(a,b)*2);for(let j=0;j<=steps;j++){const t=j/steps;carve(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,2.8,true);}}
  const rooms=route.map(p=>({x:p.x-3,y:p.y-3,w:6,h:6}));
@@ -62,7 +62,7 @@ export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
  }
  const sealNorth=()=>{for(let y=0;y<18;y++)for(let x=0;x<size;x++){tiles[y][x]=0;roads.delete(y*size+x);}};sealNorth();
  let id=1;
- for(let y=8;y<size-7;y+=5)for(let x=8;x<size-7;x+=5){const at={x:x+rng()*3,y:y+rng()*3};if(!isWalkable({tiles},at.x,at.y)||townBounds&&at.x>townBounds.x1-1.2&&at.x<townBounds.x2+1.2&&at.y>townBounds.y1-1.2&&at.y<townBounds.y2+1.2||distance(at,start)<9||distance(at,portal)<4)continue;if(rng()<.5)enemies.push(dressEnemy(makeEnemy(id++,at.x,at.y,'skeleton',actFor(act).level+chapter*2,rng()<.075),act,rng));}
+ for(let y=8;y<size-7;y+=5)for(let x=8;x<size-7;x+=5){const at={x:x+rng()*3,y:y+rng()*3};if(!isWalkable({tiles},at.x,at.y)||townBounds&&at.x>townBounds.x1-1.2&&at.x<townBounds.x2+1.2&&at.y>townBounds.y1-1.2&&at.y<townBounds.y2+1.2||distance(at,start)<9||distance(at,portal)<4)continue;if(rng()<.5)enemies.push(dressEnemy(makeEnemy(id++,at.x,at.y,'skeleton',actOneLevel(chapter),rng()<.075),act,rng));}
  // Preserve several routes through each grove. Decorative trees never block a road.
  for(let y=4;y<size-4;y++)for(let x=4;x<size-4;x++)if(tiles[y][x]&&!roads.has(y*size+x)&&!(townBounds&&x>townBounds.x1-3&&x<townBounds.x2+3&&y>townBounds.y1-3&&y<townBounds.y2+3)){
    const n=rng();if(n<.018)props.push({x:x+.5,y:y+.5,type:'building',sprite:7,width:110+rng()*55,height:135+rng()*45});else if(n<.027)props.push({x:x+.5,y:y+.5,type:'bones',variant:1});
@@ -84,7 +84,7 @@ export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
  // The monumental gate owns this apron. No decorative trees, fence segments
  // or debris may be painted across the portcullis or its approach.
  if(camp)for(let i=props.length-1;i>=0;i--){const p=props[i];if(p.type!=='kingdom-gate'&&p.x>=96&&p.x<=128&&p.y>=17&&p.y<=38)props.splice(i,1);}
- const d={seed,size,tiles,rooms,start,portal,enemies,props,roads,water,depth:act,seen:new Set(),bossDead:false,outdoor:true,act,kind:'wilderness',chapter,field:camp?{x:85.5,y:40.5,label:ch.task}:{x:37.5,y:29.5,label:ch.task},waypoint,supplies,exitReady:true,townBounds,npcs:[]};
+ const d={seed,size,tiles,rooms,paths,start,portal,enemies,props,roads,water,depth:actOneLevel(chapter),seen:new Set(),bossDead:false,outdoor:true,act,kind:'wilderness',chapter,field:camp?{x:85.5,y:40.5,label:ch.task}:{x:37.5,y:29.5,label:ch.task},waypoint,supplies,exitReady:true,townBounds,npcs:[]};
  if(camp){
   d.provisions={x:77.5,y:49.5,label:'Stolen winter provisions'};carve(d.provisions.x,d.provisions.y,3,true);carve(d.field.x,d.field.y,3,true);
   const herd=d.herd={x:70.5,y:51.5};carve(herd.x,herd.y,5,true);
@@ -96,16 +96,19 @@ export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
  if(camp){d.npcs=generateTown(player).npcs.map(n=>({...n,x:n.x+16,y:n.y+18}));d.townWaypoint={x:49,y:52};for(let y=townBounds.y1-2;y<=townBounds.y2+2;y++)for(let x=townBounds.x1-2;x<=townBounds.x2+2;x++)d.seen.add(y*size+x);}
  d.field.kind=questRelic(act,chapter).kind;
  if(act===1&&chapter===1)dressFarmland(d);
- if(act===1){if(chapter===2)dressBlackthorn(d);seedActOneEncounters(d,player,chapter);}
+ if(act===1){if(chapter===2)dressBlackthorn(d);seedActOneEncounters(d,player,chapter);balanceActOne(d,chapter);}
  return d;
 }
 export function generateStronghold(seed,act=1,chapter=0){
- const level=actFor(act).level+chapter*2,ch=chapterFor(act,chapter),d=act===1&&chapter===1?generateGranary(seed,level):act===1&&chapter===0?generateMarchgate(seed,level):generateDungeon(seed,level,{roomCount:22,size:80}),boss=d.enemies.find(e=>e.type==='warden'),rng=random(seed+41);
+ if(act!==1)throw new RangeError('Only Act I is available.');
+ chapter=Math.max(0,Math.min(lastChapter(act),Math.floor(Number(chapter)||0)));
+ const level=actOneLevel(chapter,true),ch=chapterFor(act,chapter),d=act===1&&chapter===1?generateGranary(seed,level):act===1&&chapter===0?generateMarchgate(seed,level):generateRedoubt(seed,level),boss=d.enemies.find(e=>e.type==='warden'),rng=random(seed+41);
  for(const enemy of d.enemies)if(enemy!==boss)dressEnemy(enemy,act,rng);
- if(act===1&&chapter===2){d.biome='thornbound-redoubt';d.rooms.forEach((r,i)=>r.name=['The Chain Hall','The Briar Nave','The Penitents’ Watch'][i%3]);}
+ if(act===1&&chapter===2){d.biome='thornbound-redoubt';}
  d.act=act;d.chapter=chapter;d.kind='stronghold';d.returnGate=d.entryGate||{x:d.start.x,y:d.start.y-1};d.waypoint={x:d.start.x+2,y:d.start.y+1};
- Object.assign(boss,{name:ch.captain||actFor(act).knight,bossId:captainId(act,chapter),phaseType:act===1&&chapter===1?'harvest':['thorns','flood','fire','frost','oath'][act-1],tint:actFor(act).color,chapter});
- d.supplies={x:d.start.x-2,y:d.start.y+2};return d;
+ Object.assign(boss,{name:ch.captain||actFor(act).knight,bossId:captainId(act,chapter),phaseType:['oath','harvest','thorns'][chapter],tint:actFor(act).color,chapter});
+ d.tileset=['marchgate','granary','redoubt'][chapter];d.entranceStyle=['fortress','farm','crypt'][chapter];
+ d.supplies={x:d.start.x-2,y:d.start.y+2};return placeActOneVeterans(balanceActOne(d,chapter,true),chapter);
 }
 
 export const PROLOGUE=[
@@ -118,7 +121,8 @@ export const PROLOGUE=[
 ];
 
 function dressBlackthorn(d){
- d.biome='blackthorn-hollow';const rng=random(d.seed+872);d.props=d.props.map(p=>p.type==='building'&&p.sprite===7?{...p,type:'farm-prop',farmSprite:9+(Math.floor(p.x)%2),width:125,height:175}:p);
+ d.biome='blackthorn-hollow';d.tileset='blackthorn';d.props=d.props.filter(p=>!(['frontier','palisade','road-gate'].includes(p.type)&&distance(p,d.portal)<8)).map(p=>p.exit?{...p,type:'crypt-entrance',width:230,height:245}:p);
+ const rng=random(d.seed+872);d.props=d.props.map(p=>p.type==='building'&&p.sprite===7?{...p,type:'farm-prop',farmSprite:9+(Math.floor(p.x)%2),width:125,height:175}:p);
  for(const point of d.rooms){const at={x:point.x+point.w/2+3,y:point.y+point.h/2+3};if(isWalkable(d,at.x,at.y))d.props.push({...at,type:'pillar',variant:1},{x:at.x+1,y:at.y-1,type:'bones',variant:1});}
  for(const e of d.enemies){e.name=e.role==='hexer'?'Hollow Cantor':e.role==='archer'?'Briar Crossbowman':'Thornbound Retainer';e.tint='#78746a';}
  d.critters=Array.from({length:7},()=>({x:25+rng()*40,y:30+rng()*40,species:'crow',phase:rng()*6}));

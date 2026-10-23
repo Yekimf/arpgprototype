@@ -57,7 +57,7 @@ export function generateDungeon(seed, depth = 1, options = {}) {
 
 export function makeEnemy(id,x,y,type,depth,elite=false) {
   const hp=({skeleton:46,crawler:34,wraith:36,warden:560}[type])*(1+(depth-1)*.25)*(elite&&type!=='warden'?2:1);
-  return {id,x,y,type,elite,hp,maxHp:hp,speed:({skeleton:1.95,crawler:2.5,wraith:1.75,warden:2.45}[type]),damage:({skeleton:16,crawler:12,wraith:17,warden:29}[type])*(1+(depth-1)*.22),cooldown:1,hit:0,slow:0,burn:0,aggro:false,phase:Math.random()*6,dead:false,windup:0};
+  return {id,x,y,type,elite,level:depth,hp,maxHp:hp,speed:({skeleton:1.95,crawler:2.5,wraith:1.75,warden:2.45}[type]),damage:({skeleton:16,crawler:12,wraith:17,warden:29}[type])*(1+(depth-1)*.22),cooldown:1,hit:0,slow:0,burn:0,aggro:false,phase:Math.random()*6,dead:false,windup:0};
 }
 
 export function isWalkable(dungeon,x,y,radius=.21) {
@@ -136,7 +136,7 @@ export function playerStats(player) {
   const setStats=setBonuses(player);
   const total=key=>(setStats[key]||0)+items.reduce((s,i)=>s+(requiresIdentification(i)?0:(i[key]||0)*(['damage','armor'].includes(key)&&i.durability<=0?.5:1)),0);
   const r=id=>rankOf(player,id), invested=Object.keys(MASTERIES).filter(k=>masteryPoints(player,k)>=3).length,a=player.attributes||{},might=a.might||0,vitality=a.vitality||0,will=a.will||0,dexterity=a.dexterity||0;
-  const out={maxHp:120+(player.level-1)*12+r('vigor')*18+total('life')+vitality*6,maxMana:80+r('spirit')*12+total('spirit')+will*4,damage:6+(player.level-1)*.8+total('damage')+might,armor:3+r('vigor')*2+r('ward')*4+total('armor')+vitality*.25,crit:7+r('precision')*3+total('crit')+dexterity*.4,reach:player.equipment.weapon?(player.equipment.weapon.reach||1.85):1.15,attackSpeed:(player.equipment.weapon?.attackSpeed||(player.equipment.weapon?1:1.35))*(1+total('attackRate')/100),fireResist:clamp(total('fireResist'),0,75),coldResist:clamp(total('coldResist'),0,75),lightningResist:clamp(total('lightningResist'),0,75),lifeRegen:.8+total('lifeRegen'),flaskGain:total('flaskGain'),flaskRecovery:total('flaskRecovery'),block:clamp(total('block'),0,60),evasion:clamp(total('evasion'),0,50),speed:Math.max(2.4,3.8+total('speed')),regen:2.4+r('spirit')*.6+will*.08+total('manaRegen'),bonus:1+(total('bonus')+r('convergence')*5*invested)/100,fire:1+r('kindling')*.08+total('fireDamage')/100,cold:1+r('resonance')*.08,cdr:1-r('flow')*.04};
+  const out={maxHp:120+(player.level-1)*12+r('vigor')*18+total('life')+vitality*6,maxMana:80+r('spirit')*12+total('spirit')+will*4,damage:6+(player.level-1)*.8+total('damage')+might*.4,armor:3+r('vigor')*2+r('ward')*4+total('armor')+vitality*.25,crit:7+r('precision')*3+total('crit')+dexterity*.4,reach:player.equipment.weapon?(player.equipment.weapon.reach||1.85):1.15,attackSpeed:(player.equipment.weapon?.attackSpeed||(player.equipment.weapon?1:1.35))*(1+total('attackRate')/100),fireResist:clamp(total('fireResist'),0,75),coldResist:clamp(total('coldResist'),0,75),lightningResist:clamp(total('lightningResist'),0,75),lifeRegen:.8+total('lifeRegen'),flaskGain:total('flaskGain'),flaskRecovery:total('flaskRecovery'),block:clamp(total('block'),0,60),evasion:clamp(total('evasion'),0,50),speed:Math.max(2.4,3.8+total('speed')),regen:2.4+r('spirit')*.6+will*.08+total('manaRegen'),bonus:1+(total('bonus')+r('convergence')*5*invested)/100,fire:1+r('kindling')*.08+total('fireDamage')/100,cold:1+r('resonance')*.08,cdr:1-r('flow')*.04};
   const t=passiveEffects(player),v=k=>(t[k]||0)+total(k),flag=k=>t.flags.has(k);
   out.maxHp=Math.round(out.maxHp*(1+v('maxHpPercent')/100));out.maxMana=Math.round(out.maxMana*(1+v('maxManaPercent')/100));out.armor*=1+v('armorPercent')/100;
   out.attackSpeed*=1+(t.attackRate||0)/100;out.crit=clamp(out.crit+(t.crit||0),0,85);out.critMultiplier=1.75+v('critDamage')/100;
@@ -160,7 +160,7 @@ export function mitigateDamage(amount,stats,element='physical',guard=0){
   const resistance=element==='fire'?stats.fireResist:element==='cold'?stats.coldResist:element==='aether'||element==='lightning'?stats.lightningResist:0;
   return Math.max(1,Math.round(amount*(element==='physical'?100/(100+stats.armor*1.8):1)*(1-guard)*(1-(resistance||0)/100)));
 }
-export const xpNeeded=level=>Math.round(55+level*30+Math.pow(level,1.7)*10);
+export const xpNeeded=level=>Math.round(90+level*45+Math.pow(level,1.8)*16);
 export const ORIGINS={vanguard:{name:'Royal Vanguard',description:'You held the king’s shield wall. Strength and endurance are your inheritance.',attributes:{might:2,vitality:2,will:0,dexterity:0}},templar:{name:'Royal Chirurgeon',description:'You served the field hospitals. Steady hands and knowledge of herbs kept the wounded alive.',attributes:{might:0,vitality:1,will:3,dexterity:0}},outrider:{name:'King’s Outrider',description:'You carried the king’s word beyond the walls. Your blade is swift and certain.',attributes:{might:1,vitality:0,will:0,dexterity:3}}};
 export function createPlayer(options={}) {
   const origin=ORIGINS[options.origin]?options.origin:'vanguard',sex='male';

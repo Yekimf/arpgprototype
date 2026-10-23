@@ -4,9 +4,9 @@ import {createPlayer} from '../../src/game.js';
 import {createCampaign,generateWilderness,generateStronghold} from '../../src/campaign.js';
 import {followPath} from './helpers.js';
 const snapshot=page=>page.evaluate(()=>window.__reliquary.snapshot());
-async function seed(page,zone='wilderness',unarmed=false){page.fixtureZone=zone;const p=createPlayer();p.quests.herdRewarded=true;p.quests.provisionsRewarded=true;p.campaign=createCampaign();p.equipment.weapon=unarmed?null:{...p.equipment.weapon,damage:5000};p.equipment.armor={...p.equipment.armor,armor:10000,life:10000};p.equipment.boots={...p.equipment.boots,speed:12};p.hp=10000;await page.addInitScript(save=>{if(!localStorage.getItem('ashen-reliquary-save-v1'))localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify(save));},{version:1,player:p,zone,act:1,chapter:0,depth:1,seed:42710});await page.goto('/');await continueFixture(page);await expect.poll(()=>snapshot(page).then(s=>s.loading)).toBe(false);}
-test('three Act I strongholds lead to the new region, free Edrin and open Act II without pickups',async({page})=>{
- test.setTimeout(150000);const errors=[];page.on('pageerror',e=>errors.push(e.message));await seed(page);
+async function seed(page,zone='wilderness',unarmed=false){page.fixtureZone=zone;const p=createPlayer();p.quests.herdRewarded=true;p.quests.provisionsRewarded=true;p.campaign=createCampaign();p.equipment.weapon=unarmed?null:{...p.equipment.weapon,damage:50000};p.equipment.armor={...p.equipment.armor,armor:10000,life:10000};p.equipment.boots={...p.equipment.boots,speed:12};p.hp=10000;await page.addInitScript(save=>{if(!localStorage.getItem('ashen-reliquary-save-v1'))localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify(save));},{version:1,player:p,zone,act:1,chapter:0,depth:1,seed:42710});await page.goto('/');await continueFixture(page);await expect.poll(()=>snapshot(page).then(s=>s.loading)).toBe(false);}
+test('three Act I strongholds lead to the new region, free Edrin and end the available campaign without pickups',async({page})=>{
+ test.setTimeout(240000);const errors=[];page.on('pageerror',e=>errors.push(e.message));await seed(page);
  for(let chapter=0;chapter<3;chapter++){
   let current=await snapshot(page);expect(current.chapter).toBe(chapter);expect(current.field).toBeNull();expect(current.provisions).toBeNull();
   const wild=generateWilderness(current.areaSeed,1,{quests:{}},chapter);const road=await followPath(page,wild,wild.portal);expect(road.i).toBe(road.length);await page.locator('#interact-button').click();await expect.poll(()=>snapshot(page).then(s=>s.zone)).toBe('dungeon');await expect(page.locator('#area-loading')).toBeHidden();
@@ -14,7 +14,7 @@ test('three Act I strongholds lead to the new region, free Edrin and open Act II
   if(chapter===0)await page.screenshot({path:'test-results/v32-marchgate-stone.png'});
   await page.locator('#interact-button').click();await page.locator('#interact-button').click();
   if(chapter<2){await expect(page.locator('[data-campaign-action="next-chapter"]')).toBeVisible();await page.locator('[data-campaign-action="next-chapter"]').click();await expect(page.locator('#area-loading')).toBeHidden();}
-  else{expect((await snapshot(page)).quests.scholarRescued).toBe(true);await expect(page.locator('[data-campaign-action="advance"]')).toBeVisible();await page.locator('[data-campaign-action="advance"]').click();await expect(page.locator('#area-loading')).toBeHidden();expect((await snapshot(page)).act).toBe(2);}
+  else{expect((await snapshot(page)).quests.scholarRescued).toBe(true);await expect(page.locator('[data-campaign-action="advance"]')).toHaveCount(0);await expect(page.locator('#modal')).toContainText('Act I is complete');expect((await snapshot(page)).act).toBe(1);expect((await snapshot(page)).campaign.completed).toBe(true);}
  }
  expect(errors).toEqual([]);
 });
