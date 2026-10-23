@@ -110,3 +110,8 @@ import passivestorm from './art/runtime/passive-storm.webp?inline';
 import passiveblood from './art/runtime/passive-blood.webp?inline';
 import passivewell from './art/runtime/passive-well.webp?inline';
 export const PASSIVE_SIGIL_ART={basic:localAsset(passivebasic),steel:localAsset(passivesteel),cinder:localAsset(passivecinder),rime:localAsset(passiverime),storm:localAsset(passivestorm),blood:localAsset(passiveblood),well:localAsset(passivewell)};
+
+import enemyFront from './art/runtime/enemies-front.webp?inline';
+import enemyBack from './art/runtime/enemies-back.webp?inline';
+export const ENEMY_FRONT_ART=localAsset(enemyFront);
+export const ENEMY_BACK_ART=localAsset(enemyBack);

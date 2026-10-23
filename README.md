@@ -10,6 +10,12 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.33.0
+
+- Six distinct common-enemy sprite families: skeletal spearmen, wolfhide axe raiders, undead crossbowmen, heavy levy butchers, robed thorn chanters and powder bombardiers. Combat roles and Act I quest enemies select matching bodies and weapons.
+- 48 new painted frames cover front/rear views, alternating walking strides and attacks. Left/right reflection supplies four facing directions. Movement drives gait by distance travelled, with measured foot anchors and bounded frame caching. Weapons are painted into their wielders rather than added as floating line overlays.
+- New sprites are embedded in both offline HTML files. Existing characters and boss artwork remain compatible.
+
 ## Version 0.32.0
 
 - **2** drinks a mana flask. It uses 20 of 100 charges, restores mana over three seconds, gains charges in combat and regenerates slowly. Click its blue HUD bottle as an alternative. Recovery respects mana reserved by auras.
@@ -270,7 +276,7 @@ Emberfall is inside the open Kingsroad Wilds. Walk through the camp gates into t
 
 The kingdom map lists six regional waypoints for Act I and eight per later act, plus Emberfall. Click a gothic fountain to awaken it; travel from town or another fountain. Roadside provisions restore life, mana and flasks; clear another enemy before renewing the same cache. Act I records defeated warband leaders and bosses; its quest rewards cannot be repeated. Later provinces retain their field accounts and commander aftermaths.
 
-This remains a campaign prototype. Areas share a painted scenery kit and procedural layouts. Enemy variants reuse three painted body archetypes. Strongholds have up to 22 rooms. Automated route tests use powerful fixtures to verify progression; they do not establish final combat balance or hours of gameplay.
+This remains a campaign prototype. Areas share a painted scenery kit and procedural layouts. Common enemies use six painted body families with directional walking and attack frames. Later provinces share those role-based families. Strongholds have up to 22 rooms. Automated route tests use powerful fixtures to verify progression; they do not establish final combat balance or hours of gameplay.
 
 ## Saves
 
