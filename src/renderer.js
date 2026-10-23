@@ -381,7 +381,7 @@ export class Renderer {
     this.ellipse(0,2,boss?28:13,boss?13:6,'#02090799');
     if(e.windup>0){this.ellipse(0,0,boss?65:22,boss?32:11,'#ae51303d');this.ellipse(0,0,boss?63:20,boss?30:10,'#d56e1b19');}
     if(e.elite&&!boss){this.ellipse(0,0,16,8,'#a7ac5144');}
-    if(this.artLoaded&&e.type!=='crawler'){
+    if(this.artLoaded){
       c.save();if(e.hit>0)c.filter='brightness(1.7)';else if(e.slow>0)c.filter='sepia(.4) hue-rotate(135deg)';c.translate(0,bob*.5);
       if(e.attackAnim>0){const v=this.iso(game.player.x-e.x,game.player.y-e.y),len=Math.hypot(v.x,v.y)||1,lunge=Math.sin((1-e.attackAnim/.3)*Math.PI)*9;c.translate(v.x/len*lunge,v.y/len*lunge);c.rotate(v.x/len*lunge*.006);}
       if(e.bossId){const id=e.bossId==='king'?5:e.bossId==='wanderer'?6:Number(e.bossId.split('-')[1])-1;this.campaignSprite(id+(e.attackAnim>0?8:0),boss?114:80,boss?144:100);}else this.sprite(boss?6:e.type==='wraith'?5:4,boss?114:e.type==='wraith'?75:e.role==='brute'?73:64,boss?144:e.type==='wraith'?89:e.role==='brute'?90:80,0,e.tint);c.restore();
@@ -403,10 +403,6 @@ export class Renderer {
       this.poly([[0,-46],[-8,-35],[-12,-19],[-16,2],[-5,-4],[0,1],[5,-5],[13,-1],[9,-25],[7,-38]],e.hit>0?'#bdcfb2':'#426c5f','#6e958033');
       this.poly([[0,-39],[-4,-32],[-3,-24],[4,-26],[4,-34]],'#172e27');this.line([[-2,-31],[3,-31]],'#d3db95',2);
       this.line([[-9,-26],[-18,-19],[-21,-23]],'#7ba08b',2);this.line([[9,-26],[19,-20],[21,-25]],'#7ba08b',2);
-    }else if(e.type==='crawler'){
-      const color=e.hit>0?'#d5c7a0':'#69704b';
-      for(let i=0;i<3;i++){this.line([[-5,-4-i*3],[-15,-5-i*4],[-18,1-i*2]],'#7e8053',2);this.line([[5,-4-i*3],[15,-5-i*4],[18,1-i*2]],'#7e8053',2);}
-      this.ellipse(0,-8,9,12,color);this.poly([[0,-20],[-6,-8],[0,-3],[6,-8]],'#8b8b50','#344c30');this.ellipse(0,-1,5,4,'#3e4930');this.ellipse(-3,-2,1.2,1.2,'#d5ba77');this.ellipse(3,-2,1.2,1.2,'#d5ba77');
     }else{
       this.light(0,-35,90,'#c7bc5f12');
       this.poly([[-15,-50],[-27,-6],[-11,-10],[0,0],[18,-4],[23,-51]],'#3a4939','#1a2b1e');

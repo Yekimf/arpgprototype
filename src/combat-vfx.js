@@ -2,6 +2,19 @@ const COLORS={physical:['#b3a48b','#6c5b43'],fire:['#dab07b','#b06439'],cold:['#
 const THEMES={harvest:'physical',thorns:'physical',flood:'cold',fire:'fire',frost:'cold',oath:'physical',king:'fire',wanderer:'aether'};
 export function combatEffect(r,e,progress,game){
  const c=r.ctx,element=e.element||THEMES[e.theme]||'physical',[light,dark]=COLORS[element]||COLORS.physical,budget=game.settings?.quality==='performance'?8:game.settings?.reducedMotion?10:18,t=r.time,rad=(e.radius||2)*34;
+ if(e.type==='blade-procession'){
+  for(let i=0;i<4;i++){const a=t*3+i*Math.PI/2,x=Math.cos(a)*rad,y=Math.sin(a)*rad*.5;c.save();c.translate(x,y-16);c.rotate(a+.8);r.line([[0,12],[0,-24]],light,3);r.line([[-1,-21],[-1,7]],'#e3dac5',1);r.line([[-7,6],[7,6]],dark,3);r.line([[0,12],[0,19]],dark,3);c.restore();}return true;
+ }
+ if(e.type==='ruin-mark'){
+  c.strokeStyle=dark;c.lineWidth=1.5;c.beginPath();c.ellipse(0,0,rad,rad*.5,0,0,Math.PI*2);c.stroke();c.strokeStyle=light;c.lineWidth=2;c.beginPath();c.ellipse(0,0,rad,rad*.5,0,-Math.PI/2,-Math.PI/2+progress*Math.PI*2);c.stroke();
+  for(let i=0;i<6;i++){const a=i*Math.PI/3;r.line([[Math.cos(a)*rad*.8,Math.sin(a)*rad*.4],[Math.cos(a)*rad,Math.sin(a)*rad*.5]],dark,2);}return true;
+ }
+ if(e.type==='ruin-impact'){
+  const fade=1-progress;r.light(0,-15,rad*(.6+progress),dark+'33');
+  if(element==='fire'){const drop=Math.min(1,progress*5);r.line([[45*(1-drop),-260*(1-drop)-24],[0,-12]],light,12*fade);for(let i=0;i<budget;i++){const a=i*2.399,d=rad*Math.sqrt(progress);r.line([[Math.cos(a)*d*.6,Math.sin(a)*d*.3],[Math.cos(a)*d,Math.sin(a)*d*.5-45*fade]],i%3?dark:light,2*fade+1);}}
+  else{r.line([[6,-240],[-9,-177],[11,-136],[-4,-84],[0,0]],dark,9*fade);r.line([[6,-240],[-9,-177],[11,-136],[-4,-84],[0,0]],light,3*fade);for(let i=0;i<6;i++){const a=i*Math.PI/3;r.line([[0,-4],[Math.cos(a)*rad*progress,Math.sin(a)*rad*.5*progress]],light,fade*2);}}
+  c.strokeStyle=light;c.lineWidth=2*fade;c.beginPath();c.ellipse(0,0,rad*progress,rad*.5*progress,0,0,Math.PI*2);c.stroke();return true;
+ }
  if(e.type==='cast-motes'){
   const v=r.iso(e.dx||1,e.dy||0),angle=Math.atan2(v.y,v.x);c.save();c.translate(0,-35);c.rotate(angle);
   for(let i=0;i<budget;i++){const a=i*2.399,d=6+progress*(14+i%5*4),x=Math.cos(a)*d,y=Math.sin(a)*d*.6;c.globalAlpha=(1-progress)*(.4+i%3*.2);r.line([[x,y],[x-6*(1-progress),y+2]],i%3?dark:light,1+i%2);}

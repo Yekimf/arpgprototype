@@ -122,7 +122,7 @@ for(const mastery of Object.values(MASTERIES))for(const node of mastery.nodes)if
 export const ALL_SKILLS=Object.values(MASTERIES).flatMap(m=>m.nodes);
 export const getSkill=id=>ALL_SKILLS.find(n=>n.id===id);
 export const rankOf=(player,id)=>player.skills[id]||0;
-export const skillLevel=id=>{const s=getSkill(id);return !s?99:s.req>=7?8:s.req>=3?4:2;};
+export const skillLevel=id=>{const s=getSkill(id);return !s?99:s.req>=12?12:s.req>=7?8:s.req>=3?4:2;};
 export const masteryPoints=(player,key)=>MASTERIES[key].nodes.reduce((sum,n)=>sum+rankOf(player,n.id),0);
 export function canLearn(player,id,{testing=false}={}) {
   if(getSkill(id)?.innate)return false;
@@ -148,6 +148,10 @@ export function playerStats(player) {
   if(flag('circuit')){out.lifeRegen*=.5;out.shockDuration=2;}
   if(flag('covenant')){out.lifeLeech+=3;out.maxHp=Math.round(out.maxHp*1.2);out.regen*=.7;}
   if(flag('reservoir')){out.maxMana=Math.round(out.maxMana*1.4);out.spell*=1.2;out.lifeLeech=0;}
+  out.apexOaths=[...t.flags];
+  if(flag('undying')){out.maxHp=Math.round(out.maxHp*1.2);out.lifeRegen++;out.maxMana=Math.round(out.maxMana*.85);}
+  if(flag('archivist')){out.skillRanks++;out.spell*=1.3;}
+  if(flag('ruin-choir'))out.extraChains+=2;
   return out;
 }
 export function mitigateDamage(amount,stats,element='physical',guard=0){

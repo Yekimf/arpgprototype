@@ -4,8 +4,8 @@ import {createPlayer,random,findPath,distance,isWalkable} from '../src/game.js';
 import {createCampaign,generateWilderness} from '../src/campaign.js';
 import {openingStage,openingComplete,recordHerdKill,claimHerdReward,recoverProvisions,claimProvisionsReward} from '../src/opening-quests.js';
 import {createRelic} from '../src/itemization.js';
-test('the opening errands reward once, survive reload, and lead into the gate quest',()=>{
- const p=createPlayer();p.campaign=createCampaign();assert.equal(openingStage(p),'meet');assert.equal(recoverProvisions(p).ok,false);assert.equal(claimHerdReward(p).ok,false);p.quests.guideMet=true;
+test('the opening errands reward once, survive reload, and remain optional',()=>{
+ const p=createPlayer();p.campaign=createCampaign();assert.equal(openingStage(p),'meet');const independent=createPlayer();independent.campaign=createCampaign();assert.equal(recoverProvisions(independent).ok,true);assert.equal(claimProvisionsReward(independent).ok,true);assert.equal(independent.quests.herdRewarded,undefined);assert.equal(claimHerdReward(p).ok,false);p.quests.guideMet=true;
  for(let i=0;i<6;i++){assert.equal(recordHerdKill(p,{herdId:'herd-'+i}),true);assert.equal(recordHerdKill(p,{herdId:'herd-'+i}),false);}assert.equal(openingStage(p),'report-herd');assert.equal(claimHerdReward(p).ok,true);assert.equal(p.inventory[0].look,'leather');const gold=p.gold;assert.equal(claimHerdReward(p).ok,false);assert.equal(p.gold,gold);assert.equal(openingComplete(p),false);assert.equal(recoverProvisions(p).ok,true);
  const restored=JSON.parse(JSON.stringify(p));assert.equal(openingStage(restored),'report-provisions');assert.equal(claimProvisionsReward(restored).ok,true);assert.equal(openingComplete(restored),true);assert.equal(claimProvisionsReward(restored).ok,false);
 });

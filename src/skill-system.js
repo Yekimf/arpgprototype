@@ -5,6 +5,9 @@ export const NEW_SKILLS={iron:[
  {id:'rime',name:'Rime Lance',max:5,req:0,active:true,cost:18,cooldown:0,base:145,step:26,element:'cold',description:'A piercing lance deals {v}% cold damage, chills, and shatters chilled enemies in a small frost burst.'},
  {id:'tempest',name:'Thunder Spear',max:5,req:7,active:true,cost:32,cooldown:0,base:205,step:34,element:'lightning',description:'A fast charged spear deals {v}% lightning damage and shocks enemies, increasing damage they take.'}
 ]};
+NEW_SKILLS.iron.push({id:'procession',name:'Procession of Blades',max:5,req:12,active:true,cost:54,cooldown:0,base:240,step:48,element:'physical',description:'Four spectral swords orbit you for 4 seconds, dealing {v}% weapon damage per second within their reach. Recasting replaces the procession.'});
+NEW_SKILLS.ember.push({id:'cataclysm',name:'The Falling Sun',max:5,req:12,active:true,cost:68,cooldown:0,base:950,step:150,element:'fire',description:'Mark the aimed ground. After one second a falling sun strikes a wide area for {v}% fire damage. Immense damage, heavy mana cost and a deliberate cast cadence.'});
+NEW_SKILLS.aether.push({id:'judgment',name:'Choir of Ruin',max:5,req:12,active:true,cost:60,cooldown:0,base:520,step:90,element:'lightning',description:'Call down eight staggered thunderbolts around the aimed ground, each dealing {v}% lightning damage in a small area. Overlapping strikes can hit the same enemy.'});
 const rune=(id,name,description,mods)=>({id,name,description,...mods});
 export const SPECIALIZATIONS={
  cleave:[rune('reaping','Reaping Arc','Wider arc; +25% area, 15% more mana.',{area:1.25,cost:1.15}),rune('duelist','Duelist','35% more damage; 25% less area.',{damage:1.35,area:.75}),rune('siphon','Blood Price','Gain 2% attack life leech; costs 20% more mana.',{leech:2,cost:1.2})],
@@ -14,9 +17,17 @@ export const SPECIALIZATIONS={
  inferno:[rune('wide','Procession','30% larger radius; 15% less damage.',{area:1.3,damage:.85}),rune('penitent','Penitent Flame','25% less self-burning; 15% less aura damage.',{selfBurn:.75,damage:.85}),rune('zeal','Zealot','35% more aura damage; 25% more self-burning.',{damage:1.35,selfBurn:1.25})]
 };
 for(const id of ['quake','nova','meteor','whirl','vortex','rend','rime','tempest'])SPECIALIZATIONS[id]??=[rune('expanse','Expanse','25% more area; 15% more mana.',{area:1.25,cost:1.15}),rune('force','Concentrated Force','30% more damage; 20% less area.',{damage:1.3,area:.8}),rune('economy','Discipline','25% less mana cost; 12% less damage.',{cost:.75,damage:.88})];
+SPECIALIZATIONS.procession=[rune('pilgrimage','Long Pilgrimage','50% longer duration; 20% more mana.',{duration:1.5,cost:1.2}),rune('razor','Razor Halo','45% more damage; 30% less area.',{damage:1.45,area:.7}),rune('tithe','Blood Tithe','Larger reach and 2% attack life leech; 25% more mana.',{area:1.2,leech:2,cost:1.25})];
+SPECIALIZATIONS.cataclysm=[rune('extinction','Extinction','60% more damage; 35% more mana.',{damage:1.6,cost:1.35}),rune('firmament','Broken Firmament','Three smaller suns at 50% damage each; 25% more mana.',{projectiles:3,damage:.5,cost:1.25,area:.75}),rune('dusk','Long Dusk','35% more area; 20% less damage.',{area:1.35,damage:.8})];
+SPECIALIZATIONS.judgment=[rune('choir','Full Choir','Twelve bolts instead of eight; 35% more mana.',{projectiles:12,cost:1.35}),rune('verdict','Final Verdict','60% more damage; 30% smaller impact areas.',{damage:1.6,area:.7}),rune('mercy','Measured Ruin','30% less mana; 20% less damage.',{cost:.7,damage:.8})];
 export function specialization(p,id){return SPECIALIZATIONS[id]?.find(r=>r.id===p.skillMods?.[id])||{};}
 export function skillProfile(p,skill,stats){
- const id=skill.id,r=Number(p.skills[id]||0)+(p.skills[id]?Math.min(4,stats.skillRanks||0):0),m=specialization(p,id);
- return {rank:r,cost:Math.max(0,Math.ceil(skill.cost*(m.cost||1)*Math.max(.35,1-(stats.manaCostReduction||0)/100)*(1+Math.max(0,r-1)*.045))),power:(skill.base+Math.max(0,r-1)*skill.step)/100*(m.damage||1),area:(m.area||1)*(1+(stats.area||0)/100),duration:1+(stats.duration||0)/100,projectiles:m.projectiles||1,chains:5+(m.chains||0)+(stats.extraChains||0),burn:m.burn||1,travel:m.travel||1,leech:m.leech||0,manaOnHit:m.manaOnHit||0,cadence:Math.max(.18,(id==='whirl'?1.2:id==='meteor'?.7:.44)/(stats.attackSpeed||1))};
+ const id=skill.id,r=Number(p.skills[id]||0)+(p.skills[id]?Math.min(4,stats.skillRanks||0):0),m={...specialization(p,id)},flags=new Set(stats.apexOaths||[]);
+ if(flags.has('archivist'))m.cost=(m.cost||1)*1.2;
+ if(id==='procession'&&flags.has('procession-lord')){m.duration=(m.duration||1)*1.5;m.damage=(m.damage||1)*1.25;m.cost=(m.cost||1)*1.2;}
+ if(id==='cataclysm'&&flags.has('twin-suns')){m.projectiles=(m.projectiles||1)+1;m.damage=(m.damage||1)*.75;m.cost=(m.cost||1)*1.3;}
+ if(['nova','rime'].includes(id)&&flags.has('winter-heart')){if(id==='rime')m.projectiles=(m.projectiles||1)+2;else m.area=(m.area||1)*1.5;m.damage=(m.damage||1)*.8;m.cost=(m.cost||1)*1.25;}
+ if(id==='judgment'&&flags.has('ruin-choir')){m.projectiles=(m.projectiles||8)+4;m.damage=(m.damage||1)*.8;}
+ return {rank:r,cost:Math.max(0,Math.ceil(skill.cost*(m.cost||1)*Math.max(.35,1-(stats.manaCostReduction||0)/100)*(1+Math.max(0,r-1)*.045))),power:(skill.base+Math.max(0,r-1)*skill.step)/100*(m.damage||1),area:(m.area||1)*(1+(stats.area||0)/100),duration:(m.duration||1)*(1+(stats.duration||0)/100),projectiles:m.projectiles||1,chains:5+(m.chains||0)+(stats.extraChains||0),burn:m.burn||1,travel:m.travel||1,leech:m.leech||0,manaOnHit:m.manaOnHit||0,cadence:Math.max(.18,(['cataclysm','judgment'].includes(id)?1.1:id==='procession'?1:id==='whirl'?1.2:id==='meteor'?.7:.44)/(stats.attackSpeed||1))};
 }
 export function chooseSpecialization(p,id,runeId){const option=SPECIALIZATIONS[id]?.find(r=>r.id===runeId);if(!option||(p.skills[id]||0)<2)return false;p.skillMods??={};p.skillMods[id]=runeId;return true;}

@@ -34,10 +34,10 @@ export const CHAPTERS=[
 ];
 export const chapterFor=(act=1,chapter=0)=>{const entry=CHAPTERS[Math.max(0,Math.min(4,act-1))][Math.max(0,Math.min(3,chapter))];return {wilds:entry[0],stronghold:entry[1],captain:entry[2],task:entry[3],account:entry[4],aftermath:entry[5],number:chapter+1};};
 export const ENEMY_ROSTERS=[
- [{name:'Deserter Spearman',type:'skeleton',role:'guard',tint:'#817452'},{name:'Briar Hound',type:'crawler',role:'lunge',tint:'#737b49'},{name:'Marchgate Arbalist',type:'wraith',role:'archer',tint:'#9a8060'}],
- [{name:'Drowned Levy',type:'skeleton',role:'brute',tint:'#617976'},{name:'Mire Leech',type:'crawler',role:'venom',tint:'#62754a'},{name:'Reed Witch',type:'wraith',role:'hexer',tint:'#7c9790'}],
- [{name:'Furnace Legionary',type:'skeleton',role:'brute',tint:'#a16b4c'},{name:'Cinder Hound',type:'crawler',role:'lunge',tint:'#a36d42'},{name:'Ash Bombardier',type:'wraith',role:'bomber',tint:'#c28a56'}],
- [{name:'Rimebound Penitent',type:'skeleton',role:'guard',tint:'#909a9c'},{name:'Grave Stalker',type:'crawler',role:'lunge',tint:'#7e8a93'},{name:'Hollow Cantor',type:'wraith',role:'hexer',tint:'#a6a5b5'}],
- [{name:'Blackglass Praetorian',type:'skeleton',role:'guard',tint:'#8f7967'},{name:'Crown’s Bloodhound',type:'crawler',role:'venom',tint:'#85564c'},{name:'Royal Executioner',type:'wraith',role:'archer',tint:'#aa8b6d'}],
+ [{name:'Deserter Spearman',type:'skeleton',role:'guard',tint:'#817452'},{name:'Briar Ravager',type:'crawler',role:'lunge',tint:'#737b49'},{name:'Marchgate Arbalist',type:'wraith',role:'archer',tint:'#9a8060'}],
+ [{name:'Drowned Levy',type:'skeleton',role:'brute',tint:'#617976'},{name:'Mirebound Raider',type:'crawler',role:'venom',tint:'#62754a'},{name:'Reed Witch',type:'wraith',role:'hexer',tint:'#7c9790'}],
+ [{name:'Furnace Legionary',type:'skeleton',role:'brute',tint:'#a16b4c'},{name:'Cinder Ravager',type:'crawler',role:'lunge',tint:'#a36d42'},{name:'Ash Bombardier',type:'wraith',role:'bomber',tint:'#c28a56'}],
+ [{name:'Rimebound Penitent',type:'skeleton',role:'guard',tint:'#909a9c'},{name:'Gravebound Raider',type:'crawler',role:'lunge',tint:'#7e8a93'},{name:'Hollow Cantor',type:'wraith',role:'hexer',tint:'#a6a5b5'}],
+ [{name:'Blackglass Praetorian',type:'skeleton',role:'guard',tint:'#8f7967'},{name:'Crown’s Pursuer',type:'crawler',role:'venom',tint:'#85564c'},{name:'Royal Executioner',type:'wraith',role:'archer',tint:'#aa8b6d'}],
 ];
 export function dressEnemy(enemy,act,rng=Math.random){const roster=ENEMY_ROSTERS[act-1],profile=roster[Math.floor(rng()*roster.length)];Object.assign(enemy,profile);enemy.faction=act;enemy.speed=profile.role==='brute'?1.55:profile.role==='lunge'?2.65:profile.role==='archer'?1.8:2.05;enemy.damage*=profile.role==='brute'?1.35:1;return enemy;}

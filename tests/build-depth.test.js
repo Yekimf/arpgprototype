@@ -12,8 +12,8 @@ test('levels award five attributes, one mastery and one passive; old passive bud
  const p=createPlayer();grantExperience(p,xpNeeded(1));assert.equal(p.level,2);assert.equal(p.points,1);assert.equal(p.passivePoints,1);assert.equal(p.attributePoints,5);
  const legacy={...createPlayer(),level:19,passiveVersion:0};delete legacy.passivePoints;ensurePassives(legacy);assert.equal(legacy.passivePoints,18);legacy.passivePoints=4;ensurePassives(legacy);assert.equal(legacy.passivePoints,4);assert.equal(migratePlayer(JSON.parse(JSON.stringify(legacy))).passivePoints,4);
 });
-test('the 187-node graph enforces connections and preserves reachable paths during refunds',()=>{
- assert.equal(PASSIVE_NODES.length,187);assert.equal(new Set(PASSIVE_NODES.map(n=>n.id)).size,187);const p=createPlayer();p.passivePoints=50;p.gold=100;
+test('the 469-node graph enforces connections and preserves reachable paths during refunds',()=>{
+ assert.equal(PASSIVE_NODES.length,469);assert.equal(new Set(PASSIVE_NODES.map(n=>n.id)).size,469);const p=createPlayer();p.passivePoints=50;p.gold=100;
  assert.equal(allocatePassive(p,'steel-oath'),false);assert.equal(allocatePassive(p,'steel-2-1'),false);assert.ok(allocatePassive(p,'steel-1-1'));assert.ok(allocatePassive(p,'steel-2-1'));const before=JSON.stringify(p);assert.equal(refundPassive(p,'steel-1-1'),false);assert.equal(JSON.stringify(p),before);assert.ok(refundPassive(p,'steel-2-1'));assert.ok(refundPassive(p,'steel-1-1'));assert.equal(p.passivePoints,50);assert.equal(p.gold,90);
  for(const d of ['steel','cinder','rime','storm','blood','well']){const build=createPlayer();build.passivePoints=20;for(let depth=1;depth<=10;depth++)assert.ok(allocatePassive(build,`${d}-${depth}-1`));assert.ok(allocatePassive(build,d+'-oath'));const s=playerStats(build);assert.ok(Number.isFinite(s.regen)&&Number.isFinite(s.damage));}
 });
@@ -39,3 +39,10 @@ test('dungeon geometry varies by character and revision, remains reproducible an
 test('two-handed weapons move conflicting equipment into the pack atomically',()=>{const p=migratePlayer(createPlayer()),bow={id:'bow',name:'Longbow',slot:'weapon',look:'bow',rarity:'normal',twoHanded:true,width:2,height:4};addToContainer(p.inventory,bow);assert.ok(equipItem(p,'bow').ok);assert.equal(p.equipment.shield,null);assert.ok(p.inventory.some(i=>i.id==='starter-buckler'));assert.ok(equipItem(p,'starter-buckler').ok);assert.equal(p.equipment.weapon,null);assert.ok(p.inventory.some(i=>i.id==='bow'));});
 
 test('particle budgets preserve marked attacks and damaging fields under heavy decoration',()=>{const g={effects:[]},warning={type:'meteor-warning',pending:true,damage:20},field={type:'ground-fire',damage:5};queueEffect(g,warning);queueEffect(g,field);for(let i=0;i<500;i++)queueEffect(g,{type:'cast-motes'});assert.equal(g.effects.length,180);assert.ok(g.effects.includes(warning)&&g.effects.includes(field));const crowded={effects:Array.from({length:180},()=>({pending:true,damage:1}))};assert.equal(queueEffect(crowded,{type:'impact'}),false);assert.ok(queueEffect(crowded,warning));assert.ok(crowded.effects.includes(warning));});
+
+test('outer constellations are connected, preserve old nodes and apply skill-changing crown tradeoffs',()=>{
+ const reached=new Set(['root']);let changed=true;while(changed){changed=false;for(const n of PASSIVE_NODES)for(const link of n.links)if(reached.has(n.id)||reached.has(link)){if(!reached.has(n.id)||!reached.has(link))changed=true;reached.add(n.id);reached.add(link);}}assert.equal(reached.size,PASSIVE_NODES.length);
+ const p=createPlayer();p.skills={cataclysm:2,procession:2,rime:2,judgment:2};const base=playerStats(p),sun=skillProfile(p,getSkill('cataclysm'),base);assert.equal(sun.projectiles,1);assert.ok(sun.power>9);assert.ok(sun.cost>60);
+ p.passives=['cinder-crown','steel-crown','rime-crown','storm-crown'];const s=playerStats(p),twin=skillProfile(p,getSkill('cataclysm'),s);assert.equal(twin.projectiles,2);assert.ok(twin.power<sun.power);assert.ok(twin.cost>sun.cost);assert.equal(skillProfile(p,getSkill('procession'),s).duration,1.5);assert.equal(skillProfile(p,getSkill('rime'),s).projectiles,3);assert.equal(skillProfile(p,getSkill('judgment'),s).projectiles,12);
+ p.skills.judgment=2;assert.ok(chooseSpecialization(p,'judgment','choir'));assert.equal(skillProfile(p,getSkill('judgment'),s).projectiles,16);
+});

@@ -1,7 +1,6 @@
 import {questRelic} from './quest-objects.js';
 import {generateOpeningForest} from './opening-forest.js';
 import {dressFarmland,generateGranary} from './farmland.js';
-import {openingObjective,openingComplete} from './opening-quests.js';
 import {generateMarchgate} from './marchgate.js';
 import {frontierEdges} from './wilderness-boundary.js';
 import {chapterFor,dressEnemy} from './campaign-content.js';
@@ -30,7 +29,7 @@ export function canTravel(p,id){const c=ensureCampaign(p);return !!c&&c.waypoint
 export function defeatCampaignBoss(p,bossId){const c=ensureCampaign(p);if(!c||c.defeated.includes(bossId))return false;if(/^captain-[1-5]-[0-2]$/.test(bossId)){if(Number(bossId.split('-')[1])>c.act)return false;}else if(/^knight-[1-5]$/.test(bossId)){if(Number(bossId.split('-')[1])>c.act)return false;}else if(bossId==='king'){if(c.act!==5||!c.defeated.includes('knight-5'))return false;}else if(bossId==='wanderer'){if(c.act!==5||!c.defeated.includes('king'))return false;}else return false;c.defeated.push(bossId);if(bossId==='wanderer')c.completed=true;return true;}
 export function canAdvance(p,act=p.campaign?.act){return !!p.campaign?.defeated.includes(`knight-${act}`);}
 export function advanceCampaign(p){const c=ensureCampaign(p);if(!c||c.act>=5||!canAdvance(p))return false;c.act++;return true;}
-export function campaignObjective(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const a=actFor(act),ch=chapterFor(act,chapter);if(p.campaign?.completed)return 'The bargain is broken. The kingdom sees dawn.';if(act===1&&chapter===0&&!openingComplete(p))return openingObjective(p);if(kind==='town')return p.quests.guideMet?'Prepare for the next road · J opens your journal':'Speak to Sister Maelin, then follow the Kingsroad';if(kind==='wilderness')return p.campaign?.records?.includes(fieldKey(act,chapter))?`Enter ${ch.stronghold}`:ch.task;if(act===5&&p.campaign?.defeated.includes('king'))return 'End the Veiled Wanderer’s bargain';if(act===5&&canAdvance(p,5))return 'Confront King Vaelor, the Usurper';return p.campaign?.defeated.includes(captainId(act,chapter))?'The road is open. Read the recovered account':`Defeat ${ch.captain||a.knight}`;}
+export function campaignObjective(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const a=actFor(act),ch=chapterFor(act,chapter);if(p.campaign?.completed)return 'The bargain is broken. The kingdom sees dawn.';if(kind==='town')return p.quests.guideMet?'Prepare for the next road · J opens your journal':'Speak to Sister Maelin, then follow the Kingsroad';if(kind==='wilderness')return `Enter ${ch.stronghold} · ${ch.captain||a.knight}`;if(act===5&&p.campaign?.defeated.includes('king'))return 'End the Veiled Wanderer’s bargain';if(act===5&&canAdvance(p,5))return 'Confront King Vaelor, the Usurper';return p.campaign?.defeated.includes(captainId(act,chapter))?'The road is open. Read the recovered account':`Defeat ${ch.captain||a.knight}`;}
 
 
 // The camp and its surrounding fields are one continuous, seeded area.

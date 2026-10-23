@@ -10,6 +10,14 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.21.0
+
+- Strongholds admit you without livestock, wagon provisions or field-account errands. Those quests are optional rewards and lore; their order is flexible. Main objectives and journal text point toward the garrison and its commander. Boss victories still advance chapters.
+- Replaced the old procedural spider-like crawler with the painted undead soldier body and matching hitbox. Regional pursuers retain their lunge/venom behaviour and receive fitting names.
+- The Atlas of Oaths now has **469 connected nodes**, 18 outer constellations, six cross-discipline passages and **12 keystones**. Engraved discipline symbols, constellation rings, jump controls and an overview make the atlas easier to explore. Old node IDs, allocations and point balances remain intact.
+- Six new crown keystones alter skills or resources: longer blade processions, additional suns, frost projectile fans, extra thunderbolts, life for mana and spell ranks for higher costs. Each has a stated tradeoff.
+- Added three level-12 arts, each requiring 12 points in its mastery: **Procession of Blades**, **The Falling Sun** and **Choir of Ruin**. Spectral orbiting swords, a delayed 950%-base fire strike and eight staggered thunderbolts have distinct effects and three specializations each. These attacks use substantial mana and cast cadence, with no cooldown. Recasting blades refreshes the single procession. Crown passives combine with specializations.
+
 ## Version 0.20.1
 
 - Town ground now uses gritty earth, moss and worn dirt paths instead of the old blurry stone tiles. Native-detail viewport caching covers both the campaign town and older saves without increasing the whole forest terrain cache.
@@ -62,7 +70,7 @@ The root HTML embeds all code, styles and runtime art. It works offline. Use a d
 
 ## Version 0.15.0
 
-- Marchgate now stands across a longer forest road in a 128×128 opening wilderness. Town exits lead directly into nearby encounters. Save Elin’s livestock from six risen soldiers, report to Maelin, retrieve the stolen winter provisions and return them before following the patrol orders to the gate. Quest progress and rewards persist.
+- Marchgate now stands across a longer forest road in a 128×128 opening wilderness. Town exits lead directly into nearby encounters. Optional errands reward saving Elin’s livestock and recovering the stolen winter provisions; they no longer block the gate. Quest progress and rewards persist.
 - Inventory inspection has no equip/keep action bar. Right-click to equip or unequip, drag onto the equipment figure to equip, drag onto the playfield to drop, or drag into the trader’s sheet to sell. Shift-click sells at the merchant; Alt-click identifies. Dropped equipment stays on the ground until picked up with F.
 - Early loot is mostly common gear; early body armour strongly favours leather and excludes plate. Rings and amulets are much rarer than chest armour. Later drops introduce heavier armour and stronger tiers.
 - Masteries use an engraved tiered folio with selectable skill details and bindings. The character folio shares the inventory’s stone-and-iron frame, with an equipped portrait, attributes and grouped combat statistics.
