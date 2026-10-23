@@ -20,11 +20,11 @@ test('migration preserves overflowing legacy inventory and adds equipment and se
   const p=createPlayer();p.inventory=Array.from({length:24},(_,i)=>({...ring(`legacy-${i}`),slot:'armor'}));
   migratePlayer(p);assert.equal(p.inventory.length,24);assert.ok(p.inventory.some(i=>i.bagX<0));
   assert.equal(Object.keys(p.equipment).length,10);assert.deepEqual(p.stash,[]);assert.equal(p.shards,0);
-  assert.equal(arrange(p.inventory),19);assert.equal(p.inventory.length,24);
+  assert.equal(arrange(p.inventory),12);assert.equal(p.inventory.length,24);
 });
 test('failed equipment swaps, stash transfers, and purchases are atomic',()=>{
   const p=character();p.gold=1000;p.shopStock=generateStock(1,21);
-  for(let i=0;i<40;i++)assert.ok(addToContainer(p.inventory,ring(`full-${i}`)));
+  for(let i=0;i<BAG.width*BAG.height;i++)assert.ok(addToContainer(p.inventory,ring(`full-${i}`)));
   const old=JSON.stringify(p);assert.equal(buyItem(p,0).ok,false);assert.equal(JSON.stringify(p),old);
   const target=p.inventory[0];target.slot='weapon';target.width=1;target.height=1;
   const before=JSON.stringify(p);assert.equal(equipItem(p,target.id).ok,false);assert.equal(JSON.stringify(p),before);
@@ -90,4 +90,11 @@ test('common gear equips immediately, including old saves carrying a false ident
  assert.ok(addToContainer(p.inventory,common));const scrolls=insightCount(p);assert.equal(identifyItem(p,common.id).ok,false);assert.equal(equipItem(p,common.id).ok,true);assert.equal(insightCount(p),scrolls);assert.equal(p.equipment.weapon.damage,17);
  const magic={...ring('still-hidden'),identified:false};assert.ok(addToContainer(p.inventory,magic));assert.equal(equipItem(p,magic.id).ok,false);
  p.stash=[{...common,id:'old-common'}];migratePlayer(p);assert.equal(p.stash[0].identified,true);assert.equal(p.equipment.weapon.identified,true);
+});
+
+test('expanded backpack holds 72 one-cell items and restores old overflow without changing placed items',()=>{
+  assert.deepEqual(BAG,{width:12,height:6});const p=character();
+  for(let i=0;i<72;i++)assert.ok(addToContainer(p.inventory,ring('expanded-'+i)));
+  const before=JSON.stringify(p.inventory);assert.equal(addToContainer(p.inventory,ring('too-many')),false);assert.equal(JSON.stringify(p.inventory),before);
+  const old=createPlayer();old.inventory=[ring('old-place',{bagX:9,bagY:3}),ring('old-overflow',{bagX:-1,bagY:-1})];migratePlayer(old);assert.deepEqual([old.inventory[0].bagX,old.inventory[0].bagY],[9,3]);assert.ok(old.inventory[1].bagX>=0);assert.equal(arrange(old.inventory),0);
 });

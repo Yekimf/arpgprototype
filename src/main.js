@@ -43,6 +43,7 @@ import './kingdom.css';
 import './presentation.css';
 import './interface-refinements.css';
 import './painted-menus.css';
+import './inventory-polish.css';
 import {SKILL_PAINTINGS_ART,EQUIPMENT_RELIEF_ART,MENU_CREST_ART} from './assets.js';
 import {NPCDialogue} from './npc-dialogue.js';
 import {FOLIO_FRAME_ART,SKILL_FRAME_ART,STORY_ART,LEATHER_ART,MAP_ART,GUARD_ART,STONE_ART} from './assets.js';
@@ -306,7 +307,7 @@ function pickup(loot){
   if(!game.loot.includes(loot))return;
   if(loot.item){if(!addToContainer(player.inventory,loot.item)){if(!loot.warned){toast('Your pack is full · Return to town to trade or store gear.');loot.warned=true;}return;}toast(`Acquired ${itemName(loot.item)}`,1800);sound(760,.15,'sine');}
   else{player.gold+=loot.gold;player.goldEarned=(player.goldEarned||0)+loot.gold;floater(`+${loot.gold} gold`,loot.x,loot.y,'#c8b477');sound(840,.07,'sine',.015);}
-  game.loot.splice(game.loot.indexOf(loot),1);save();
+  game.loot.splice(game.loot.indexOf(loot),1);if(loot.item&&HUD_PANELS.includes(game.panel)){townUI.hud.hideTooltip();townUI.render(game.panel);}save();
 }
 function reveal(){const d=game.dungeon,r=12.5;for(let y=Math.floor(player.y-r);y<=player.y+r;y++)for(let x=Math.floor(player.x-r);x<=player.x+r;x++)if(x>=0&&y>=0&&x<d.size&&y<d.size&&Math.hypot(x-player.x,y-player.y)<r)d.seen.add(y*d.size+x);}
 function buildFlow(){

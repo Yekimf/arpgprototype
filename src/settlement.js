@@ -5,7 +5,7 @@ import {appraisal,transferGold} from './economy.js';
 import {ensureFlask,refillFlask} from './flasks.js';
 import {generateItem, random, requiresIdentification} from './game.js';
 
-export const BAG={width:10,height:4}, STASH={width:10,height:8};
+export const BAG={width:12,height:6}, STASH={width:10,height:8};
 export const EQUIPMENT={helm:'Head',charm:'Amulet',weapon:'Main hand',armor:'Body armor',shield:'Off hand',gloves:'Hands',belt:'Belt',ring:'Left ring',ring2:'Right ring',boots:'Feet'};
 export const AFFIXES={damage:'Weapon damage',armor:'Armour',life:'Life',crit:'Critical chance',bonus:'All damage',spirit:'Spirit',fireResist:'Fire resistance',coldResist:'Cold resistance',lightningResist:'Storm resistance',lifeRegen:'Life regeneration',fireDamage:'Fire damage',flaskGain:'Flask charge recovery',attackRate:'Attack speed',manaRegen:'Mana per second',manaRegenPercent:'Mana regeneration',lifeLeech:'Life leech',manaLeech:'Mana leech',manaOnHit:'Mana gained on hit',skillRanks:'Active skill ranks',spellPower:'Spell power',spellDamage:'Spell damage',coldDamage:'Cold damage',lightningDamage:'Lightning damage',manaCostReduction:'Reduced mana cost',critDamage:'Critical damage',physicalDamage:'Physical damage',block:'Block chance'};
 // Shared camp footprint; the campaign places this layout at (+16, +18).

@@ -1,6 +1,6 @@
 import {itemArt} from './item-art.js';
 import {playerStats,requiresIdentification} from './game.js';
-import {restockCost,EQUIPMENT,itemName,buyPrice,repairCost,SLOT_ART} from './settlement.js';
+import {BAG,restockCost,EQUIPMENT,itemName,buyPrice,repairCost,SLOT_ART} from './settlement.js';
 
 export const HUD_PANELS=['inventory','stash','merchant','smith','scholar'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -80,14 +80,15 @@ export class InventoryHUD {
     if(!this.modal.classList.contains('hud-panel')||this.modal.offsetWidth===0)return;
     const sheet=this.modal.querySelector('.inventory-sheet');if(!sheet)return;
     if(this.modal.classList.contains('dual-service'))return this.fitService();
-    const service=this.game.panel!=='inventory',mobile=innerWidth<=700,wide=innerHeight<580&&innerWidth>700,availableWidth=innerWidth-16,availableHeight=innerHeight-(wide?100:118);
-    let cell,width,height;const fixed=wide?120:166;if(!service){cell=Math.max(12,Math.min(42,Math.floor((availableWidth-(wide?50:26))/(wide?20:10)),Math.floor((availableHeight-fixed)/(wide?7.5:11.5))));width=cell*(wide?20:10)+(wide?50:26);height=Math.round(cell*(wide?7.5:11.5)+fixed);}else{width=Math.min(availableWidth,wide?820:840);height=Math.min(650,availableHeight);}
-    sheet.classList.toggle('wide-inventory',wide);sheet.classList.toggle('narrow-service',service&&mobile);sheet.style.setProperty('--gear-cell',cell||32);
+    const service=this.game.panel!=='inventory',availableWidth=innerWidth-16,availableHeight=innerHeight-108;
+    let cell,width,height;
+    if(!service){cell=Math.max(12,Math.min(46,Math.floor((availableWidth-32)/BAG.width),Math.floor((availableHeight-162)/12.4)));width=cell*BAG.width+32;height=Math.round(cell*12.4+162);}else{width=Math.min(availableWidth,900);height=Math.min(700,availableHeight);}
+    sheet.classList.remove('wide-inventory');sheet.classList.toggle('narrow-service',service&&innerWidth<=700);sheet.style.setProperty('--gear-cell',cell||32);
     sheet.style.width='100%';sheet.style.height='100%';sheet.style.transform='none';
     this.modal.style.width=width+'px';this.modal.style.height=height+'px';this.modal.style.setProperty('--panel-w',width+'px');this.modal.style.setProperty('--panel-h',height+'px');this.modal.style.top='8px';
     for(const section of this.modal.querySelectorAll('.hud-bag-section')){
       const grid=section.querySelector('.spatial-bag');if(!grid)continue;
-      const cols=Number(grid.style.getPropertyValue('--cols'))||10,rows=Number(grid.style.getPropertyValue('--rows'))||4;
+      const cols=Number(grid.style.getPropertyValue('--cols'))||BAG.width,rows=Number(grid.style.getPropertyValue('--rows'))||BAG.height;
       const label=section.querySelector('.bag-label')?.offsetHeight||18,overflow=section.querySelector('.overflow-items')?.offsetHeight||0;
       const gridCell=!service?cell:Math.max(12,Math.floor(Math.min((section.clientWidth-4)/cols,(section.clientHeight-label-overflow-6)/rows)));
       const w=gridCell*cols+'px',h=gridCell*rows+'px';if(grid.style.width!==w)grid.style.width=w;if(grid.style.height!==h)grid.style.height=h;
@@ -97,11 +98,11 @@ export class InventoryHUD {
 
   fitService(){
     // Both sheets share the exact same square equipment / backpack cell size.
-    const height=Math.min(700,innerHeight-118),cell=Math.max(16,Math.min(42,Math.floor((height-166)/11.5),Math.floor((innerWidth-64)/20))),sheetWidth=cell*10+26,width=sheetWidth*2+20;
+    const cell=Math.max(12,Math.min(46,Math.floor((Math.min(750,innerHeight-108)-162)/12.4),Math.floor((innerWidth-96)/(BAG.width*2)))),height=Math.round(cell*12.4+162),sheetWidth=cell*BAG.width+32,width=sheetWidth*2+20;
     Object.assign(this.modal.style,{width:width+'px',height:height+'px',top:'8px'});
     this.modal.style.setProperty('--panel-w',width+'px');this.modal.style.setProperty('--panel-h',height+'px');this.modal.style.setProperty('--gear-cell',cell);
     for(const sheet of this.modal.querySelectorAll('.inventory-sheet')){sheet.style.setProperty('--gear-cell',cell);sheet.style.width=sheetWidth+'px';sheet.style.height='100%';}
-    const grid=this.modal.querySelector('[data-bag-grid="pack"]');if(grid){grid.style.width=cell*10+'px';grid.style.height=cell*4+'px';}
+    const grid=this.modal.querySelector('[data-bag-grid="pack"]');if(grid){grid.style.width=cell*BAG.width+'px';grid.style.height=cell*BAG.height+'px';}
     this.game.hudWidth=innerWidth-width>380?width+16:0;
   }
   pagedGallery(items,key,renderItem){
@@ -141,7 +142,7 @@ export class InventoryHUD {
       toolbar=button('identify-all','Identify all · Free',!p.quests.scholarRescued||!p.inventory.some(i=>requiresIdentification(i)));
       contents=`<div class="hud-content hud-service-content"><section class="hud-section hud-scholar"><div class="service-portrait portrait-scholar"></div><h3>Every relic remembers.</h3><p>${p.quests.scholarRescued?'In gratitude for his rescue, Edrin reveals your relics freely.':'Defeat the Hollow Warden to rescue Edrin.'}</p></section>${pack}</div>`;
     }
-    m.innerHTML='<div class="inventory-sheet"><i class="corner-rivet tl"></i><i class="corner-rivet tr"></i><i class="corner-rivet bl"></i><i class="corner-rivet br"></i>'+heading+`<div class="hud-toolbar">${toolbar}</div>`+contents+o.wallet()+`${panel==='inventory'?'<div class="inventory-controls">Drag onto the figure · Equip<br>Drag outside · Drop &nbsp; Right click · Equip<br><span>Shift + click at trader · Sell &nbsp; Alt + click · Identify</span></div>':`<footer id="hud-item-actions" class="hud-item-actions">${this.actionDock()}</footer>`}<div class="hud-key-hint">I · INVENTORY <span>ESC · CLOSE</span></div></div>`;
+    m.innerHTML='<div class="inventory-sheet"><i class="corner-rivet tl"></i><i class="corner-rivet tr"></i><i class="corner-rivet bl"></i><i class="corner-rivet br"></i>'+heading+`<div class="hud-toolbar">${toolbar}</div>`+contents+o.wallet()+`${panel==='inventory'?'<div class="inventory-controls">Right click · Equip &nbsp; Drag to figure · Equip<br><span>Drag outside · Drop &nbsp; Shift at trader · Sell &nbsp; S · Arrange</span></div>':`<footer id="hud-item-actions" class="hud-item-actions">${this.actionDock()}</footer>`}<div class="hud-key-hint">I · INVENTORY <span>ESC · CLOSE</span></div></div>`;
     for(const el of m.querySelectorAll('[data-pack-id],[data-equip-slot],[data-stock-id]'))el.removeAttribute('title');
     m.scrollTop=0;requestAnimationFrame(()=>{this.fit();const anchor=[...m.querySelectorAll('[data-pack-id],[data-equip-slot],[data-stock-id],[data-smith-equipped]')].find(el=>this.resolve(el).item?.id===o.selection);if(anchor)this.showTooltip(anchor,matchMedia('(pointer:coarse)').matches);else this.hideTooltip();});
     return true;

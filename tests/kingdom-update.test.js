@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPlayer,findPath,distance} from '../src/game.js';
 import {createCampaign,generateWilderness} from '../src/campaign.js';
-import {migratePlayer,addToContainer,identifyItem,buySupply,sellItem,salvageItem,itemSize,acceptGuideQuest} from '../src/settlement.js';
+import {BAG,migratePlayer,addToContainer,identifyItem,buySupply,sellItem,salvageItem,itemSize,acceptGuideQuest} from '../src/settlement.js';
 import {makeInsightScroll,insightCount} from '../src/scrolls.js';
 import {questRelic} from '../src/quest-objects.js';
 import {recoverProvisions,claimProvisionsReward} from '../src/opening-quests.js';
@@ -20,7 +20,7 @@ test('identification consumes the selected scroll only after revealing a valid i
  const p=createPlayer(),a=makeInsightScroll(),b=makeInsightScroll(),relic={id:'unknown',slot:'ring',rarity:'magic',identified:false,name:'Hidden Signet'};for(const i of [a,b,relic])assert.ok(addToContainer(p.inventory,i));assert.equal(identifyItem(p,a.id,false,a.id).ok,false);assert.equal(insightCount(p),2);assert.ok(identifyItem(p,relic.id,false,a.id).ok);assert.equal(relic.identified,true);assert.ok(p.inventory.includes(a));assert.equal(p.inventory.includes(b),false);assert.equal(identifyItem(p,relic.id,false,a.id).ok,false);assert.equal(insightCount(p),1);
 });
 test('scroll purchases and guide gifts require real pack space and fail atomically',()=>{
- const p=createPlayer();p.gold=500;p.inventory=Array.from({length:40},(_,i)=>({id:'filler'+i,slot:'ring',name:'Ring',rarity:'normal',bagX:i%10,bagY:Math.floor(i/10)}));const before=JSON.stringify(p);assert.equal(buySupply(p,'scroll').ok,false);assert.equal(JSON.stringify(p),before);assert.equal(acceptGuideQuest(p).ok,false);assert.equal(JSON.stringify(p),before);p.inventory=[];assert.ok(buySupply(p,'scroll').ok);assert.equal(insightCount(p),1);assert.equal(p.gold,488);assert.ok(acceptGuideQuest(p).ok);assert.equal(insightCount(p),3);
+ const p=createPlayer();p.gold=500;p.inventory=Array.from({length:BAG.width*BAG.height},(_,i)=>({id:'filler'+i,slot:'ring',name:'Ring',rarity:'normal',bagX:i%BAG.width,bagY:Math.floor(i/BAG.width)}));const before=JSON.stringify(p);assert.equal(buySupply(p,'scroll').ok,false);assert.equal(JSON.stringify(p),before);assert.equal(acceptGuideQuest(p).ok,false);assert.equal(JSON.stringify(p),before);p.inventory=[];assert.ok(buySupply(p,'scroll').ok);assert.equal(insightCount(p),1);assert.equal(p.gold,488);assert.ok(acceptGuideQuest(p).ok);assert.equal(insightCount(p),3);
 });
 test('quest objects match their tasks, take pack space, resist sale, and turn in correctly',()=>{
  const names=new Set();for(let act=1;act<=5;act++)for(let chapter=0;chapter<4;chapter++){const relic=questRelic(act,chapter);names.add(relic.name);const p=createPlayer();addToContainer(p.inventory,relic);assert.equal(sellItem(p,relic.id).ok,false);assert.equal(salvageItem(p,relic.id).ok,false);}assert.equal(names.size,20);assert.equal(questRelic(4,2).kind,'key');assert.equal(questRelic(5,2).kind,'signet');

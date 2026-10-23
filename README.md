@@ -10,6 +10,12 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.27.0
+
+- Backpack expanded from 10×4 to 12×6: 72 cells, 80% more space. Existing items keep their positions and overflow is recovered when space allows.
+- Inventory is wider, with smaller spaced equipment sockets revealing the guardian relief. The pack, wallet and controls fit the same desktop sheet; traders use the matching layout.
+- Picking up items while inventory or a town service is open now refreshes the visible pack immediately. Items no longer wait for a move or drop to appear.
+
 ## Version 0.26.0
 
 - All 30 mastery disciplines now have distinct painted skill icons, plus new basic attack, punch, flask, evade, portal and empty-slot artwork. The same paintings appear in the HUD, masteries, skill details and binding picker.
