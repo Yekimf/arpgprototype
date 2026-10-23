@@ -68,9 +68,10 @@ export class Renderer {
     // 224-square terrain canvas. No simulation or generation happens here.
     const x1=Math.max(0,Math.floor((left/34+top/17)/2)-2),x2=Math.min(d.size,Math.ceil(((left+width)/34+(top+height)/17)/2)+2),y1=Math.max(0,Math.floor((top/17-(left+width)/34)/2)-2),y2=Math.min(d.size,Math.ceil(((top+height)/17-left/34)/2)+2),b=d.townBounds;
     for(let y=y1;y<y2;y++)for(let x=x1;x<x2;x++){
-      if(!d.tiles[y][x]||b&&x>=b.x1&&x<=b.x2&&y>=b.y1&&y<=b.y2)continue;
+      const camp=b&&x>=b.x1&&x<=b.x2&&y>=b.y1&&y<=b.y2;
+      if(d.water?.has(y*d.size+x)||!d.tiles[y][x]&&!camp)continue;
       const p=this.iso(x,y);if(p.x<left-34||p.x>left+width+34||p.y<top-34||p.y>top+height)continue;
-      const n=((x*73856093^y*19349663)>>>0)%100,tile=this.forestTerrain(d.roads?.has(y*d.size+x)?1:n<25?2:n>87?3:0,n%4);
+      const n=((x*73856093^y*19349663)>>>0)%100,road=d.roads?.has(y*d.size+x)||d.town&&(Math.abs(x-32.5)<1.7||Math.abs(y-32.5)<1.7),tile=this.forestTerrain(road?1:n<25?2:n>87?3:0,n%4);
       if(tile)ctx.drawImage(tile,p.x-34,p.y,68,34);
     }
   }
@@ -95,12 +96,12 @@ export class Renderer {
       const outside=d.outdoor&&!d.tiles[y][x];
       const road=d.roads?.has(y*d.size+x)||d.town&&(Math.abs(x-32.5)<1.7||Math.abs(y-32.5)<1.7);
       const farmIndex=d.barnFloors?.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)?3:road?2:d.cropPlots?.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)?0:1;
-      const tile=d.outdoor&&d.act===1&&!d.farm&&!camp?this.forestTerrain(road?1:n<25?2:n>87?3:0,n%4):this.terrain(d.farm?farmIndex:d.town||d.outdoor?(road?1:0):d.courts?.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)?1:2,n%4,d.act||1,!!d.farm);
-      if(tile){c.drawImage(tile,v.x-34,v.y,68,34);if(!d.farm&&!d.outdoor)this.line([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17],[v.x,v.y]],'#0b07053a',.5);}
+      const tile=!d.farm&&(d.town||camp||d.outdoor&&d.act===1)?this.forestTerrain(road?1:n<25?2:n>87?3:0,n%4):this.terrain(d.farm?farmIndex:d.town||d.outdoor?(road?1:0):d.courts?.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)?1:2,n%4,d.act||1,!!d.farm);
+      if(tile){c.drawImage(tile,v.x-34,v.y,68,34);if(!d.farm&&!d.outdoor&&!d.town)this.line([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17],[v.x,v.y]],'#0b07053a',.5);}
       else this.poly([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17]],color,'#121f18',1.5);
 
       if(outside)this.poly([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17]],'#17180f99');
-      if(!d.farm){if(!d.outdoor)this.line([[v.x,v.y+2],[v.x+31,v.y+17]],'#66705a44');
+      if(!d.farm){if(!d.outdoor&&!d.town)this.line([[v.x,v.y+2],[v.x+31,v.y+17]],'#66705a44');
       if(!d.town&&n%4===0)this.line([[v.x-24,v.y+16],[v.x-5,v.y+23],[v.x+1,v.y+20],[v.x+10,v.y+23]],'#14131166');
       if(n%7===0){this.ellipse(v.x+6,v.y+16,15,6,'#33483266');this.ellipse(v.x+12,v.y+18,7,3,'#60764435');}
       if(n%19===0){this.poly([[v.x-6,v.y+8],[v.x+6,v.y+13],[v.x+2,v.y+17],[v.x-9,v.y+12]],'#69736144');}
@@ -141,7 +142,7 @@ export class Renderer {
       if(d.outdoor)this.forestFloor(ctx,d,x,y,width,height);
       this.chunkBudget=Math.ceil(d.size/8)**2;
       for(let cy=0;cy<Math.ceil(d.size/8);cy++)for(let cx=0;cx<Math.ceil(d.size/8);cx++){const center=this.iso(cx*8+4,cy*8+4);if(Math.abs(center.x-this.camera.x)>viewW+396||Math.abs(center.y-this.camera.y)>viewH+246)continue;const cached=this.groundChunk(d,cx,cy);ctx.drawImage(cached.canvas,cached.x,cached.y,612,352);}
-      if(d.outdoor&&d.act===1&&!d.farm&&this.settings?.quality!=='performance')this.drawForestDetail(ctx,d,x,y,width,height);
+      if(!d.farm&&(d.town||d.townBounds||d.outdoor&&d.act===1)&&this.settings?.quality!=='performance')this.drawForestDetail(ctx,d,x,y,width,height);
       this.ctx=old;this.groundView={canvas,x,y,cx:this.camera.x,cy:this.camera.y,seen:d.seen.size,time:this.time,d};
     }
     const view=this.groundView;this.ctx.drawImage(view.canvas,view.x,view.y);

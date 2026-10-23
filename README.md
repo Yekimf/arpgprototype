@@ -10,6 +10,10 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.20.1
+
+- Town ground now uses gritty earth, moss and worn dirt paths instead of the old blurry stone tiles. Native-detail viewport caching covers both the campaign town and older saves without increasing the whole forest terrain cache.
+
 ## Version 0.20.0
 
 - Offensive skills have **no cooldown**. They spend mana and share an attack/cast cadence, so holding a key repeats the skill without firing every simulation tick. Basic attacks remain free. Inner Furnace, Will, regeneration affixes, mana leech, mana gained on hit and cost reduction support sustained casting.
