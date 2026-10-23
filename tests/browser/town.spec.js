@@ -67,7 +67,7 @@ test('safe starting town, dungeon departure, town portal, and return preserve th
   await seedTown(page,{equipment});await page.goto('/');await page.locator('[data-front="continue"]').click();await expect(page.locator('#area-loading')).toBeHidden();
   await page.keyboard.press('t');await page.locator('[data-town-action="depart"]').click();
   expect((await snapshot(page)).zone).toBe('dungeon');const initial=(await snapshot(page)).enemies;
-  await page.waitForTimeout(2200);await page.locator('[data-slot="2"]').dispatchEvent('pointerdown');await page.waitForTimeout(1800);
+  await page.waitForTimeout(2200);await page.keyboard.press('e');await page.waitForTimeout(1800);
   const defeated=(await snapshot(page)).enemies;expect(defeated).toBeLessThan(initial);
   await page.keyboard.press('t');await expect.poll(()=>snapshot(page).then(s=>s.zone),{timeout:6500}).toBe('town');
   await page.keyboard.press('t');await page.locator('[data-town-action="depart"]').click();

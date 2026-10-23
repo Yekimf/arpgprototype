@@ -5,7 +5,7 @@ import {ensurePassives} from './passive-tree.js';
 import {makeInsightScroll,migrateScrolls,isInsightScroll,scrollQuantity,SCROLL_STACK} from './scrolls.js';
 import {appraisal,transferGold} from './economy.js';
 import {ensureFlask,refillFlask} from './flasks.js';
-import {generateItem, random, requiresIdentification} from './game.js';
+import {getSkill,generateItem, random, requiresIdentification} from './game.js';
 
 export const BAG={width:12,height:6}, STASH={width:10,height:8};
 export const EQUIPMENT={helm:'Head',charm:'Amulet',weapon:'Main hand',armor:'Body armor',shield:'Off hand',gloves:'Hands',belt:'Belt',ring:'Left ring',ring2:'Right ring',boots:'Feet'};
@@ -67,6 +67,8 @@ export function migratePlayer(player){
   player.slots=Array.from({length:4},(_,i)=>player.slots?.[i]??null);
   if(legacy&&player.slots.includes('lance'))player.skills.lance??=1;
   player.mouseSkill??=legacy?'bolt':'basic';
+  player.primarySkill??='basic';
+  if(player.primarySkill!=='basic'&&(!getSkill(player.primarySkill)?.active||!player.skills[player.primarySkill]))player.primarySkill='basic';
   player.attributes??={might:0,vitality:0,will:0,dexterity:0};player.attributePoints??=Math.max(0,(player.level-1)*5);player.name??='The Loyalist';
   player.bankGold=Math.max(0,Math.floor(player.bankGold||0));player.goldEarned??=0;player.stash??=[];player.shards??=0;migrateScrolls(player);player.buyback??=[];
   player.quests={guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false,...player.quests};

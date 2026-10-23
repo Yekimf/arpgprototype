@@ -92,3 +92,6 @@ import setModels from './art/runtime/set-models.webp?inline';
 import setItems from './art/runtime/set-items.webp?inline';
 export const SET_MODELS_ART=localAsset(setModels);
 export const SET_ITEMS_ART=localAsset(setItems);
+
+import globeFrame from './art/runtime/globe-frame.webp?inline';
+export const GLOBE_FRAME_ART=localAsset(globeFrame);

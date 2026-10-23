@@ -1,6 +1,6 @@
 {
   "name": "forgotten-kingdom",
-  "version": "0.30.0",
+  "version": "0.31.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "test": "node --test tests/*.test.js",
     "test:e2e": "playwright test",
     "test:standalone": "npm run build && node --test tests/standalone.test.mjs",
-    "art:pack": "node scripts/pack-art.mjs && node scripts/pack-farm.mjs && node scripts/pack-forest-life.mjs && node scripts/pack-weapons.mjs && node scripts/pack-guard.mjs && node scripts/pack-lines.mjs && node scripts/pack-world-bounds.mjs && node scripts/pack-armor.mjs && node scripts/pack-menu.mjs && node scripts/pack-quests.mjs && node scripts/pack-fountain.mjs && node scripts/pack-chest.mjs && node scripts/pack-skill-paintings.mjs && node scripts/pack-equipment-etchings.mjs && node scripts/pack-chickens.mjs && node scripts/pack-sets.mjs",
+    "art:pack": "node scripts/pack-art.mjs && node scripts/pack-farm.mjs && node scripts/pack-forest-life.mjs && node scripts/pack-weapons.mjs && node scripts/pack-guard.mjs && node scripts/pack-lines.mjs && node scripts/pack-world-bounds.mjs && node scripts/pack-armor.mjs && node scripts/pack-menu.mjs && node scripts/pack-quests.mjs && node scripts/pack-fountain.mjs && node scripts/pack-chest.mjs && node scripts/pack-skill-paintings.mjs && node scripts/pack-equipment-etchings.mjs && node scripts/pack-chickens.mjs && node scripts/pack-sets.mjs && node scripts/pack-globes.mjs",
     "profile": "node scripts/profile-browser.mjs",
     "art:guard": "node scripts/pack-guard.mjs",
     "profile:offline": "npm run build && node scripts/profile-offline.mjs",

@@ -46,10 +46,10 @@ test('QWER, right mouse, and forced melee aim at the pointer',async({page},info)
   test.skip(info.project.name==='mobile','Keyboard and mouse bindings are desktop controls.');
   await load(page,'dungeon');
   const s=await snapshot(page),cursor={x:s.heroScreen.x-180,y:s.heroScreen.y+20};await page.mouse.move(cursor.x,cursor.y);
-  await page.keyboard.press('r');let cast=await snapshot(page);expect(cast.cooldowns.lance).toBeGreaterThan(0);expect(cast.projectiles[0].kind).toBe('aether');
+  await page.keyboard.press('r');let cast=await snapshot(page);expect(cast.castCounts.lance).toBeGreaterThan(0);expect(cast.projectiles[0].kind).toBe('aether');
   const ray={x:cursor.x-s.heroScreen.x,y:cursor.y-s.heroScreen.y},shot=cast.projectiles[0];expect((ray.x*shot.dx+ray.y*shot.dy)/(Math.hypot(ray.x,ray.y)*Math.hypot(shot.dx,shot.dy))).toBeGreaterThan(.999);
-  await page.mouse.click(cursor.x,cursor.y,{button:'right'});expect((await snapshot(page)).cooldowns.bolt).toBeGreaterThan(0);
-  await page.keyboard.press('q');await page.keyboard.press('e');expect((await snapshot(page)).cooldowns.cleave).toBeGreaterThan(0);expect((await snapshot(page)).cooldowns.nova).toBeGreaterThan(0);
+  await page.waitForTimeout(500);await page.mouse.click(cursor.x,cursor.y,{button:'right'});expect((await snapshot(page)).castCounts.bolt).toBeGreaterThan(0);
+  await page.waitForTimeout(500);await page.keyboard.press('q');await expect.poll(()=>snapshot(page).then(s=>s.castCounts.cleave||0)).toBeGreaterThan(0);await page.waitForTimeout(500);await page.keyboard.press('e');await expect.poll(()=>snapshot(page).then(s=>s.castCounts.nova||0)).toBeGreaterThan(0);
   await page.waitForTimeout(400);await page.keyboard.down('Shift');await page.mouse.click(cursor.x,cursor.y);await page.keyboard.up('Shift');expect((await snapshot(page)).attackAnim).toBeGreaterThan(0);
   await expect.poll(()=>snapshot(page).then(s=>s.animation.action)).toBe('attack');
   await page.locator('#mouse-slot').click();await page.locator('[data-choose-skill="lance"]').click();expect((await snapshot(page)).mouseSkill).toBe('lance');

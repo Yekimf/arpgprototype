@@ -20,12 +20,12 @@ test('movement, abilities, cooldowns, and mastery assignment work',async({page},
     await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:box.x+80,y:box.y+50}]});await page.waitForTimeout(350);await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   }else{await page.keyboard.down('ArrowRight');await page.waitForTimeout(350);await page.keyboard.up('ArrowRight');}
   const moved=await state(page);expect(Math.hypot(moved.position.x-before.position.x,moved.position.y-before.position.y)).toBeGreaterThan(.3);
-  await page.locator('[data-slot="2"]').dispatchEvent('pointerdown');
+  await page.keyboard.press('e');
   const cast=await state(page);expect(cast.mana).toBeLessThan(before.mana);expect(cast.cooldowns.nova).toBeGreaterThan(0);
   await page.locator('[data-panel="skills"]').click();await expect(page.locator('#modal-title')).toHaveText('Masteries');
   await page.locator('[data-skill-detail="vigor"]').click();await page.locator('[data-learn="vigor"]').click();await page.locator('[data-skill-detail="vigor"]').click();await page.locator('[data-learn="vigor"]').click();
   await page.locator('[data-skill-detail="quake"]').click();await expect(page.locator('[data-learn="quake"]')).toBeEnabled();await page.locator('[data-learn="quake"]').click();
-  await page.locator('[data-bind="quake"]').selectOption('0');expect((await state(page)).slots[0]).toBe('quake');expect((await state(page)).points).toBe(1);
+  await page.locator('[data-bind="quake"][data-bind-target="0"]').click();expect((await state(page)).slots[0]).toBe('quake');expect((await state(page)).points).toBe(1);
   await page.locator('[data-action="close"]').last().click();
   await page.locator('#pause').click();const paused=await state(page);await page.waitForTimeout(200);expect((await state(page)).hp).toBe(paused.hp);
   await page.locator('[data-action="close"]').last().click();
@@ -53,14 +53,14 @@ test('all advanced abilities execute and death recovery preserves the character'
   const skills=Object.fromEntries(ALL_SKILLS.map(s=>[s.id,1]));
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await seedGame(page,{skills,slots:['quake','meteor','chain'],mana:900,equipment:p.equipment});await page.goto('/');await continueFixture(page);
-  for(let slot=0;slot<3;slot++)await page.locator(`[data-slot="${slot}"]`).dispatchEvent('pointerdown');
+  for(const key of ['q','w','e'])await page.keyboard.press(key);
   await page.waitForTimeout(1100);
   let s=await state(page);for(const id of ['quake','meteor','chain'])expect(s.cooldowns[id]).toBeGreaterThan(0);
-  await page.locator('[data-panel="skills"]').click();await page.locator('[data-skill-detail="whirl"]').click();await page.locator('[data-bind="whirl"]').selectOption('0');
-  await page.locator('[data-mastery="ember"]').click();await page.locator('[data-skill-detail="inferno"]').click();await page.locator('[data-bind="inferno"]').selectOption('1');
-  await page.locator('[data-mastery="aether"]').click();await page.locator('[data-skill-detail="vortex"]').click();await page.locator('[data-bind="vortex"]').selectOption('2');
+  await page.locator('[data-panel="skills"]').click();await page.locator('[data-skill-detail="whirl"]').click();await page.locator('[data-bind="whirl"][data-bind-target="0"]').click();
+  await page.locator('[data-mastery="ember"]').click();await page.locator('[data-skill-detail="inferno"]').click();await page.locator('[data-bind="inferno"][data-bind-target="1"]').click();
+  await page.locator('[data-mastery="aether"]').click();await page.locator('[data-skill-detail="vortex"]').click();await page.locator('[data-bind="vortex"][data-bind-target="2"]').click();
   await page.locator('[data-action="close"]').last().click();
-  for(let slot=0;slot<3;slot++)await page.locator(`[data-slot="${slot}"]`).dispatchEvent('pointerdown');
+  for(const key of ['q','w','e'])await page.keyboard.press(key);
   await page.waitForTimeout(500);s=await state(page);for(const id of ['whirl','vortex'])expect(s.cooldowns[id]).toBeGreaterThan(0);expect(s.pyre).not.toBeNull();
   // A second page with a fragile fixture exercises actual enemy damage and recovery.
   const isolated=await browser.newContext({viewport:page.viewportSize(),hasTouch:await page.evaluate(()=>matchMedia('(pointer:coarse)').matches)}),fragile=await isolated.newPage(),f=createEquippedPlayer();fragile.on('pageerror',e=>errors.push(e.message));f.hp=1;f.gold=100;

@@ -10,6 +10,12 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.31.0
+
+- Click any Q, W, E, R, LMB or RMB skill box to open a painted ability grid. Choose a learned skill, restore basic mouse attacks, or clear a keyboard slot. The Masteries page also has six clickable destination boxes; assignment dropdowns are removed.
+- Both mouse attacks are configurable and saved. LMB uses the selected skill against enemies, clicks ground to walk, and Shift-click attacks in place. Holding a mouse button repeats attacks without repeatedly toggling auras.
+- New original carved gargoyle, iron and bronze artwork surrounds the live life and mana globes.
+
 ## Version 0.30.0
 
 - Press **N** for the Loyalist’s Chronicle: 27 achievements with progress tracking, one-time unlock notifications, cosmetic renown and selectable earned titles. Includes Minecraft-style milestones and playful references such as “Getting an Upgrade,” “Passive Aggressive,” and “Definitely Not the Cow Level.” Progress is stored per character; existing saves receive earned milestone credit.
@@ -216,7 +222,7 @@ The requested **two hours per act, with longer acts approaching four hours, rema
 | Strike in place | Shift + left click on the world |
 | Selected mouse ability | Right click / hold |
 | Main abilities | Q, W, E, R |
-| Assign ability | Right-click a QWER socket; click the RMB socket; or assign in Masteries |
+| Assign ability | Click a QWER, LMB or RMB box, then choose an ability; or click a destination box in Masteries |
 | Flask / evade | 1 / Space |
 | Talk / use a gate / collect nearby loot | Click the object or press F nearby |
 | Town portal | T, then hold still for three seconds |
