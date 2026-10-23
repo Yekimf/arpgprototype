@@ -161,7 +161,7 @@ export class TownUI {
     }
     if(data.source!=='stash'&&(element?.id==='world'||element?.id==='modal-backdrop')){
       if(data.source==='equipped')this.player.equipment[data.slot]=null;else source.splice(source.indexOf(item),1);
-      this.game.loot.push({x:this.player.x+.7,y:this.player.y+.4,item,manual:true});this.selection=null;this.toast('Dropped '+itemName(item)+' · F picks it up.');this.refresh();
+      this.game.loot.push({x:this.player.x+.7,y:this.player.y+.4,item,manual:true});this.selection=null;this.toast('Dropped '+itemName(item)+' · Click its ground label to pick it up.');this.refresh();
     }
   }
 }

@@ -194,9 +194,9 @@ export class Renderer {
       else if(o.type==='livestock')this.sheep(o);
       else if(o.type==='forest-grass'){this.natureSprite([6,7,13,6,7,13][o.variant],34+(o.variant%3)*8,12+(o.variant%3)*4,2);}
       else if(o.type==='farm-prop'){this.ellipse(0,0,o.width*.27,o.height*.035,'#08060366');this.cachedSprite(this.farmArt,o.farmSprite,o.width,o.height,o.height*(FARM_BASELINES[o.farmSprite]||0));}
-      else if(o.type==='farm-entrance'){this.ellipse(0,0,70,13,'#08060377');this.cachedSprite(this.farmArt,6,o.width||230,o.height||175,(o.height||175)*(FARM_BASELINES[6]||0));this.worldLabel(d.kind==='wilderness'?'THE TITHE GRAIN FIELDS':'WIDOW’S FIELDS',d.kind==='wilderness'?'F · ENTER THE FARM':'F · RETURN TO THE FIELDS',-(o.height||175)-8);}
+      else if(o.type==='farm-entrance'){this.ellipse(0,0,70,13,'#08060377');this.cachedSprite(this.farmArt,6,o.width||230,o.height||175,(o.height||175)*(FARM_BASELINES[6]||0));this.worldLabel(d.kind==='wilderness'?'THE TITHE GRAIN FIELDS':'WIDOW’S FIELDS',d.kind==='wilderness'?'CLICK · ENTER THE FARM':'CLICK · RETURN TO THE FIELDS',-(o.height||175)-8);}
       else if(o.type==='critter'){this.critter(o);}
-      else if(o.type==='field'||o.type==='quest-object'){this.questObject(o.kind||'orders');this.worldLabel(o.label,'F · EXAMINE',-76);}
+      else if(o.type==='field'||o.type==='quest-object'){this.questObject(o.kind||'orders');this.worldLabel(o.label,'CLICK · EXAMINE',-76);}
       else if(o.type==='supplies')this.supplies(o,game);
       else if(o.type==='wall')this.wall(o);
       else if(o.type.startsWith('kingdom-gate')){
@@ -206,7 +206,7 @@ export class Renderer {
           const hero=this.iso(p.x,p.y),occludes=inside&&Math.abs(hero.x-v.x)<o.width*.48&&hero.y-v.y>-o.height+120&&hero.y<v.y+110;
           if(occludes)c.globalAlpha=.38;
           this.ellipse(0,3,o.width*.39,27,'#08060488');c.drawImage(art,-o.width/2,-o.height+128,o.width,o.height);
-          c.globalAlpha=1;if(!inside)this.worldLabel('MARCHGATE · THE KINGDOM’S OUTER WALL','APPROACH THE PORTCULLIS · F',-o.height+15);
+          c.globalAlpha=1;if(!inside)this.worldLabel('MARCHGATE · THE KINGDOM’S OUTER WALL','APPROACH THE PORTCULLIS · CLICK',-o.height+15);
         }
       }
       else if(o.type==='road-gate')this.roadGate(o);
@@ -219,8 +219,8 @@ export class Renderer {
       else if(o.type==='tomb')this.tomb(o);
       else if(o.type==='loot')this.loot(o.loot,game);
       else if(o.type==='portal')this.portal(game);
-      else if(o.type==='building'){this.ellipse(0,0,o.width*.36,o.height*.045,'#08060355');this.ellipse(0,0,o.width*.25,o.height*.02,'#05040377');if(o.stash){if(this.stashArt.complete&&this.stashArt.naturalWidth)this.ctx.drawImage(this.stashArt,-o.width/2,-o.height+o.height*SCENE_BASELINES.stash,o.width,o.height);}else this.sprite(o.sprite,o.width,o.height,o.height*(WORLD_FOOT_OFFSETS[o.sprite]||0));if(o.exit)this.worldLabel(game.player.campaign?(d.outdoor?'KINGDOM GATE':'THE KING’S ROAD'):'THE HOLLOW CRYPT','ENTER · F',-o.height-10);if(o.stash)this.worldLabel('PERSONAL STASH','',-o.height-7);}
-      else if(o.type==='entrance'){this.sprite(15,125,135);this.worldLabel('THE KING’S ROAD','F · LEAVE STRONGHOLD',-132);}
+      else if(o.type==='building'){this.ellipse(0,0,o.width*.36,o.height*.045,'#08060355');this.ellipse(0,0,o.width*.25,o.height*.02,'#05040377');if(o.stash){if(this.stashArt.complete&&this.stashArt.naturalWidth)this.ctx.drawImage(this.stashArt,-o.width/2,-o.height+o.height*SCENE_BASELINES.stash,o.width,o.height);}else this.sprite(o.sprite,o.width,o.height,o.height*(WORLD_FOOT_OFFSETS[o.sprite]||0));if(o.exit)this.worldLabel(game.player.campaign?(d.outdoor?'KINGDOM GATE':'THE KING’S ROAD'):'THE HOLLOW CRYPT','ENTER · CLICK',-o.height-10);if(o.stash)this.worldLabel('PERSONAL STASH','',-o.height-7);}
+      else if(o.type==='entrance'){this.sprite(15,125,135);this.worldLabel('THE KING’S ROAD','CLICK · LEAVE STRONGHOLD',-132);}
       else if(o.type==='npc')this.npc(o,game);
       else this.debris(o);
       c.restore();
@@ -464,7 +464,7 @@ export class Renderer {
   portal(game){
     const c=this.ctx,t=this.time;this.light(0,-25,100,'#a1d3bb22');
     for(let i=0;i<4;i++){c.strokeStyle=i%2?'#9ac6a7aa':'#ddcb8b77';c.lineWidth=2;c.beginPath();c.ellipse(0,-30,21+i*3,35+i*2,Math.sin(t*.5+i)*.1,0,Math.PI*2);c.stroke();}
-    this.ellipse(0,-30,18,31,'#80c0aa1a');c.font='9px Inter';c.fillStyle='#d3d4ac';c.textAlign='center';c.fillText(game.player.campaign?'CONTINUE THE ROAD · F':'DESCEND · F',0,-81);
+    this.ellipse(0,-30,18,31,'#80c0aa1a');c.font='9px Inter';c.fillStyle='#d3d4ac';c.textAlign='center';c.fillText(game.player.campaign?'CONTINUE THE ROAD · CLICK':'DESCEND · CLICK',0,-81);
   }
   fireField(x,y,radius,seed=0){
     if(!this.flameFrames){this.flameFrames=[];for(let frame=0;frame<6;frame++){const image=document.createElement('canvas');image.width=32;image.height=48;const f=image.getContext('2d'),g=f.createLinearGradient(0,4,0,46);g.addColorStop(0,'#ceb68c00');g.addColorStop(.35,'#e1ad63b0');g.addColorStop(.8,'#b56530cc');g.addColorStop(1,'#52251a44');f.fillStyle=g;f.beginPath();f.moveTo(8,45);f.bezierCurveTo(3,29,18,24,12+frame%3*2,3+frame*2);f.bezierCurveTo(27,24,18,25,25,34);f.bezierCurveTo(31,43,19,48,8,45);f.fill();f.fillStyle='#edcc8dcc';f.beginPath();f.moveTo(12,45);f.quadraticCurveTo(20,31,17,25);f.quadraticCurveTo(26,40,21,45);f.fill();this.flameFrames.push(image);}}
@@ -525,9 +525,9 @@ export class Renderer {
       }
       c.restore();
     }
-    this.worldLabel(lit?'ATTUNED FOUNTAIN':'DORMANT FOUNTAIN',lit?'CLICK / F · TRAVEL':'CLICK / F · AWAKEN',-126);
+    this.worldLabel(lit?'ATTUNED FOUNTAIN':'DORMANT FOUNTAIN',lit?'CLICK · TRAVEL':'CLICK · AWAKEN',-126);
   }
-  supplies(o){this.sprite(13,72,65,65*(WORLD_FOOT_OFFSETS[13]||0));this.worldLabel('ROADSIDE PROVISIONS','F · REST & RESUPPLY',-70);}
+  supplies(o){this.sprite(13,72,65,65*(WORLD_FOOT_OFFSETS[13]||0));this.worldLabel('ROADSIDE PROVISIONS','CLICK · REST & RESUPPLY',-70);}
   drawMap(game){
     if(this.time<(this.nextMap||0))return;this.nextMap=this.time+.1;
     const render=(c,w,h,overlay)=>{

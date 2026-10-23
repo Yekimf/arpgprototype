@@ -10,6 +10,10 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.33.1
+
+- Removed **F** interaction. Click characters, objects and item labels to talk, travel or pick up loot. The nearby interaction button remains clickable, and world prompts and the control guide now describe mouse actions.
+
 ## Version 0.33.0
 
 - Six distinct common-enemy sprite families: skeletal spearmen, wolfhide axe raiders, undead crossbowmen, heavy levy butchers, robed thorn chanters and powder bombardiers. Combat roles and Act I quest enemies select matching bodies and weapons.
@@ -39,7 +43,7 @@ The root HTML embeds all code, styles and runtime art. It works offline. Use a d
 
 ## Version 0.29.0
 
-- Click a visible ground-item label to approach and collect it. Gear uses label clicks or F; gold still collects automatically when walked over. Labels render above scenery, separate into rows when overlapping, and remain visible for the selected pickup. Full packs leave drops on the ground; manual movement cancels the approach.
+- Click a visible ground-item label to approach and collect it. Gear uses label clicks; gold still collects automatically when walked over. Labels render above scenery, separate into rows when overlapping, and remain visible for the selected pickup. Full packs leave drops on the ground; manual movement cancels the approach.
 - Outdoor areas have occasional scattered chickens with original cream/russet running sprites, safe roaming and deterministic placement. Nearby chickens grant the requested hidden, non-stacking damage and mana recovery benefit without changing the character sheet or adding buff icons.
 
 ## Version 0.28.0
@@ -68,7 +72,7 @@ The root HTML embeds all code, styles and runtime art. It works offline. Use a d
 
 ## Version 0.24.0
 
-- Waypoints are now weathered gothic fountains with carved tiers and gargoyle spouts. Clicking a dormant fountain awakens its animated water and saves its travel attunement; click again or use G to travel. F remains an alternative when nearby. Walking past a fountain no longer activates it.
+- Waypoints are now weathered gothic fountains with carved tiers and gargoyle spouts. Clicking a dormant fountain awakens its animated water and saves its travel attunement; click again or use G to travel. Walking past a fountain no longer activates it.
 - Activation persists across reloads, and previously attuned regional waypoints remain active. Emberfall stays available as the starting travel destination; its fountain starts dormant until first used. Chapter-specific fountains now display their own saved state correctly.
 
 ## Version 0.23.0
@@ -145,7 +149,7 @@ The root HTML embeds all code, styles and runtime art. It works offline. Use a d
 ## Version 0.15.0
 
 - Marchgate now stands across a longer forest road in a 128×128 opening wilderness. Town exits lead directly into nearby encounters. Optional errands reward saving Elin’s livestock and recovering the stolen winter provisions; they no longer block the gate. Quest progress and rewards persist.
-- Inventory inspection has no equip/keep action bar. Right-click to equip or unequip, drag onto the equipment figure to equip, drag onto the playfield to drop, or drag into the trader’s sheet to sell. Shift-click sells at the merchant; Alt-click identifies. Dropped equipment stays on the ground until picked up with F.
+- Inventory inspection has no equip/keep action bar. Right-click to equip or unequip, drag onto the equipment figure to equip, drag onto the playfield to drop, or drag into the trader’s sheet to sell. Shift-click sells at the merchant; Alt-click identifies. Dropped equipment stays on the ground until picked up by clicking its label.
 - Early loot is mostly common gear; early body armour strongly favours leather and excludes plate. Rings and amulets are much rarer than chest armour. Later drops introduce heavier armour and stronger tiers.
 - Masteries use an engraved tiered folio with selectable skill details and bindings. The character folio shares the inventory’s stone-and-iron frame, with an equipped portrait, attributes and grouped combat statistics.
 
@@ -211,7 +215,7 @@ The root HTML embeds all code, styles and runtime art. It works offline. Use a d
 - Unarmed attacks use a six-pose elbow-driven jab and a closed fist, with the hit timed to extension. Gloves use fitted wrist landmarks and material details; the offhand glove sits behind the shield.
 - Character creation is a camp scene with one male loyalist, a name and Begin journey. Calling and surcoat cards have been removed. Existing saved origins and attributes remain compatible; skills are still learned through all three masteries.
 - Leather jerkins, mail hauberks, plate cuirasses and cloth vestments have separate painted inventory cutouts. Their visual family follows the same equipment look used by the player model, including legacy item names.
-- Wilderness edges use visible timber barriers, a forest-floor backdrop and trees beyond the playable boundary. A solid garrison gate blocks walking through the keep arch; approach from the road and press F to enter after recovering the chapter account.
+- Wilderness edges use visible timber barriers, a forest-floor backdrop and trees beyond the playable boundary. A solid garrison gate blocks walking through the keep arch; click the gate from the road to approach and enter.
 - Click navigation uses diagonal routes with body clearance, no corner cutting, straight-line smoothing and reachable ground selection at blocked edges. Movement clamps to waypoints to prevent overshooting. World projection now aligns actor feet and click coordinates with the ground.
 
 ## Version 0.8
@@ -238,7 +242,7 @@ The requested **two hours per act, with longer acts approaching four hours, rema
 | Main abilities | Q, W, E, R |
 | Assign ability | Click a QWER, LMB or RMB box, then choose an ability; or click a destination box in Masteries |
 | Life flask / mana flask / evade | 1 / 2 / Space |
-| Talk / use a gate / collect nearby loot | Click the object or press F nearby |
+| Talk / use a gate / collect nearby loot | Click the character, object or ground item label |
 | Town portal | T, then hold still for three seconds |
 | Inventory / masteries / character | I / K / C |
 | Automap / kingdom map / quest journal | Tab / G / J |

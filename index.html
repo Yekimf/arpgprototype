@@ -10,7 +10,7 @@
   </head>
   <body>
     <div id="app">
-      <canvas id="world" aria-label="Isometric game. Click ground to move, click enemies to attack, right click to cast, QWER skills, Space evade, F interact, I inventory." tabindex="0"></canvas>
+      <canvas id="world" aria-label="Isometric game. Click ground to move, click enemies to attack, right click to cast, QWER skills, Space evade, click characters and objects to interact, I inventory." tabindex="0"></canvas>
       <div class="vignette"></div>
       <header class="topbar">
         <a class="brand" href="./" aria-label="The Forgotten Kingdom home"><span class="brand-sigil">⟐</span><span>THE FORGOTTEN<span class="brand-sub">KINGDOM</span></span></a>
@@ -29,7 +29,7 @@
       <aside id="item-tooltip" class="item-tooltip hidden" role="tooltip"><div id="item-detail"></div></aside>
       <button id="journey-button" class="journey-button">Enter the crypt →</button>
       <nav id="town-services" class="town-services" aria-label="Town services"><button data-npc="guide">Maelin<small>HEALER & GUIDE</small></button><button data-npc="merchant">Orrin<small>TRADE & PROVISIONS</small></button><button data-npc="smith">Garran<small>SMITH & REFORGING</small></button><button data-npc="scholar" title="Rescue Edrin from the Hollow Warden">Edrin<small>ARCHIVIST · MISSING</small></button></nav>
-      <button id="interact-button" class="interact-button hidden"><kbd>F</kbd><span id="interact-label">Speak</span></button>
+      <button id="interact-button" class="interact-button hidden"><span id="interact-label">Speak</span></button>
       <div id="channel-progress" class="channel-progress hidden">Opening a path home<i><b></b></i></div>
       <div class="side-tools"><button data-panel="worldmap" title="World map (G)"><span>⌘</span><span class="tool-label">World map</span><kbd>G</kbd></button><button data-panel="character" title="Character (C)"><span>♙</span><span class="tool-label">Character</span><kbd>C</kbd></button><button data-panel="skills" title="Masteries (K)"><span>✧</span><span class="tool-label">Masteries</span><kbd>K</kbd><i id="skill-badge" class="hidden">0</i></button><button data-panel="inventory" title="Inventory (I)"><span>▱</span><span class="tool-label">Inventory</span><kbd>I</kbd></button><button data-panel="journal" title="Quest journal (J)"><span>♜</span><span class="tool-label">Quests</span><kbd>J</kbd></button><button data-panel="chronicle" title="Achievements & set collection (N)"><span>♜</span><span class="tool-label">Chronicle</span><kbd>N</kbd></button><button data-panel="pause" title="Pause menu (Esc)"><span>☰</span><span class="tool-label">Menu</span><kbd>Esc</kbd></button></div>
       <div class="world-footer"><span><i class="status-dot"></i> SOLO EXPEDITION</span><span id="seed-label">SEED —</span><span class="footer-end">EARLY CHRONICLES <b>v0.30.0</b></span></div>
