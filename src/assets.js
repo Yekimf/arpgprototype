@@ -74,3 +74,10 @@ export const WAYPOINT_FOUNTAIN_ART=localAsset(waypointFountain);
 
 import stashChest from './art/runtime/stash-chest.webp?inline';
 export const STASH_CHEST_ART=localAsset(stashChest);
+
+import skillPaintings from './art/runtime/skill-paintings.webp?inline';
+import equipmentRelief from './art/runtime/equipment-relief.webp?inline';
+import menuCrest from './art/runtime/menu-crest.webp?inline';
+export const SKILL_PAINTINGS_ART=localAsset(skillPaintings);
+export const EQUIPMENT_RELIEF_ART=localAsset(equipmentRelief);
+export const MENU_CREST_ART=localAsset(menuCrest);

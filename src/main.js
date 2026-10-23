@@ -42,6 +42,8 @@ import './quest-book.css';
 import './kingdom.css';
 import './presentation.css';
 import './interface-refinements.css';
+import './painted-menus.css';
+import {SKILL_PAINTINGS_ART,EQUIPMENT_RELIEF_ART,MENU_CREST_ART} from './assets.js';
 import {NPCDialogue} from './npc-dialogue.js';
 import {FOLIO_FRAME_ART,SKILL_FRAME_ART,STORY_ART,LEATHER_ART,MAP_ART,GUARD_ART,STONE_ART} from './assets.js';
 import {FrontEnd} from './front-end.js';
@@ -54,7 +56,8 @@ import {TownUI,HUD_PANELS} from './town-ui.js';
 
 const $=id=>document.getElementById(id);
 const escapeText=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-$('basic-slot').querySelector('.ability-art').innerHTML=skillIcon('basic');$('potion-slot').querySelector('.ability-art').innerHTML=itemArt({art:14});
+for(const [name,url] of [['--skill-paintings',SKILL_PAINTINGS_ART],['--equipment-relief',EQUIPMENT_RELIEF_ART],['--menu-crest',MENU_CREST_ART]])document.documentElement.style.setProperty(name,`url("${url}")`);
+for(const [slot,id] of [['basic','basic'],['potion','potion'],['dodge','evade'],['portal','portal']])$(slot+'-slot').querySelector('.ability-art').innerHTML=skillIcon(id);
 let settings={...DEFAULTS};try{settings=loadSettings(localStorage);}catch{}
 const SAVE_KEY='ashen-reliquary-save-v1';
 const renderer=new Renderer($('world'),$('minimap'));
@@ -568,7 +571,7 @@ document.querySelectorAll('[data-npc]').forEach(button=>button.addEventListener(
 $('sound').addEventListener('click',()=>{game.sound=!game.sound;settings.sound=game.sound;persistSettings();$('sound').textContent=game.sound?'♫':'♪';$('sound').title=game.sound?'Mute sound':'Enable sound';$('sound').setAttribute('aria-label',$('sound').title);toast(game.sound?'Sound enabled':'Sound muted',1200);sound(440,.2,'sine');});
 function showSkillPicker(target){
   game.bindingTarget=target;clearAttackOrder();
-  $('skill-picker').innerHTML=`<div class="skill-picker-title">Bind ${target==='mouse'?'right mouse':SKILL_KEYS[target].toUpperCase()}<button data-close-picker aria-label="Close skill selection">×</button></div><div class="skill-picker-options">${target==='mouse'?'<button data-choose-skill="basic"><span>⚔</span><div>Strike<small>Basic weapon attack · no spirit cost</small></div></button>':''}${ALL_SKILLS.filter(skill=>skill.active&&rankOf(player,skill.id)).map(skill=>`<button data-choose-skill="${skill.id}"><span>${skillIcon(skill.id)}</span><div>${skill.name}<small>${skill.cost} spirit · ${skill.cooldown}s${skill.innate?' · INNATE':''}</small></div></button>`).join('')}</div><div class="skill-picker-hint">${player.level===1?'Reach level 2 to earn your first skill points.':'Learn abilities in Masteries (K). Right-click QWER to bind.'}</div>`;
+  $('skill-picker').innerHTML=`<div class="skill-picker-title">Bind ${target==='mouse'?'right mouse':SKILL_KEYS[target].toUpperCase()}<button data-close-picker aria-label="Close skill selection">×</button></div><div class="skill-picker-options">${target==='mouse'?`<button data-choose-skill="basic"><span>${skillIcon('basic')}</span><div>Strike<small>Basic weapon attack · no spirit cost</small></div></button>`:''}${ALL_SKILLS.filter(skill=>skill.active&&rankOf(player,skill.id)).map(skill=>`<button data-choose-skill="${skill.id}"><span>${skillIcon(skill.id)}</span><div>${skill.name}<small>${skill.cost} spirit · ${skill.cooldown}s${skill.innate?' · INNATE':''}</small></div></button>`).join('')}</div><div class="skill-picker-hint">${player.level===1?'Reach level 2 to earn your first skill points.':'Learn abilities in Masteries (K). Right-click QWER to bind.'}</div>`;
   $('skill-picker').classList.remove('hidden');
 }
 window.addEventListener('keydown',event=>{

@@ -1,8 +1,10 @@
-// Small engraved symbols keep skills legible without emoji or neon badges.
-const blades='M8 30 25 4 28 3 29 6 13 32M7 25 17 32M10 31 6 37';
-const flame='M19 36C6 35 5 24 11 18C13 24 15 20 16 13C17 8 20 6 21 3C23 12 29 14 27 22C32 18 34 24 31 29C29 35 24 37 19 36Z M20 33C14 29 18 24 21 21C21 27 26 27 24 32';
-const shield='M8 7 20 3 32 7 30 23Q27 32 20 37Q12 32 10 23Z M20 8V30M13 14H27';
-const paths={punch:'M10 33 8 22 8 13Q8 9 12 11V7Q12 3 16 5V12 5Q19 2 21 6V12 7Q25 4 27 9V16L29 14Q34 12 34 17L30 28 27 34Z M12 17 26 18 M14 22 27 23 M13 35H28',basic:blades,cleave:blades+' M3 18Q17 2 34 18M30 14 34 18 30 22',quake:shield+' M3 34 10 31 15 35M25 35 31 31 37 34',whirl:'M5 22C2 8 23 1 31 11M35 18C38 32 17 39 9 29M27 5 32 11 26 14M13 35 8 29 14 26 '+blades,bolt:flame,meteor:'M4 32Q20 22 36 32M8 36H32 M12 28 14 19 17 23 20 12 24 22 28 17 30 28',inferno:flame+' M4 34 9 37M32 36 37 32 M2 22 6 25M34 22 38 19',nova:'M20 3V37M5 11 35 29M5 29 35 11M15 7 20 12 25 7M15 33 20 28 25 33M6 18 13 17 13 10M27 30 27 23 34 22',chain:'M25 3 12 21 23 19 14 37 32 14 21 16Z',vortex:'M4 22C2 9 27 3 33 15C39 28 14 37 8 26C2 16 26 10 28 20C30 28 15 30 14 23C13 18 22 16 23 21',lance:'M9 35 28 5 34 3 34 10 14 37Z M22 12 28 15 M15 23 21 27',vigor:shield,precision:blades,blood:'M20 4C15 14 9 19 9 26A11 11 0 0 0 31 26C31 19 25 14 20 4Z',kindling:flame,spirit:flame,ash:shield,phoenix:flame,resonance:shield,flow:'M12 4H28M12 36H28M14 5C14 16 26 24 26 35M26 5C26 16 14 24 14 35M12 19H28',ward:shield,convergence:'M20 4 35 29 5 29Z M5 11 35 11 20 37Z',empty:'M20 9V31M9 20H31'};
-paths.rend=blades+' M24 22 30 29 26 36';paths.bulwark=shield;paths.focus=flame+' M3 6H10M30 6H37';paths.rime=paths.nova+' M8 35 28 5';paths.tempest=paths.chain+' M4 34H36';
-paths.procession=paths.whirl+' M3 4 7 10M33 30 37 36';paths.cataclysm=flame+' M4 4 12 12M28 12 36 4M20 1V10';paths.judgment=paths.chain+' M3 3V13M8 8H-2M32 29V39M27 34H37';
-export function skillIcon(id){return `<svg class="skill-glyph" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="miter" stroke-linecap="round" aria-hidden="true"><path d="${paths[id]||paths.empty}"/></svg>`;}
+// One original painting per discipline. Stable row order also drives the packing script.
+export const SKILL_PAINTINGS=[
+ 'basic','punch','cleave','vigor','precision','quake',
+ 'blood','whirl','execution','rend','bulwark','procession',
+ 'bolt','kindling','spirit','meteor','ash','inferno',
+ 'phoenix','focus','cataclysm','nova','resonance','flow',
+ 'chain','ward','vortex','convergence','lance','rime',
+ 'tempest','judgment','empty','potion','evade','portal',
+];
+export function skillIcon(id){const index=SKILL_PAINTINGS.indexOf(id),cell=index<0?SKILL_PAINTINGS.indexOf('empty'):index;return `<span class="skill-glyph painted-skill" data-skill-icon="${SKILL_PAINTINGS[cell]}" style="--skill-x:${cell%6*20}%;--skill-y:${Math.floor(cell/6)*20}%" aria-hidden="true"></span>`;}

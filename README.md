@@ -10,6 +10,12 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.26.0
+
+- All 30 mastery disciplines now have distinct painted skill icons, plus new basic attack, punch, flask, evade, portal and empty-slot artwork. The same paintings appear in the HUD, masteries, skill details and binding picker.
+- Inventory equipment sits over a custom carved guardian relief, with dark readable sockets. Original raven-and-crown title artwork decorates inventory, stash, shops, character and mastery menus; character and service panels share the new stone artwork.
+- The 36 paintings use one cached 768px atlas. Decorative art is static, bundled offline and leaves equipment hitboxes and square pack cells unchanged.
+
 ## Version 0.25.0
 
 - Personal stash now uses a weathered oak and iron chest sprite.
