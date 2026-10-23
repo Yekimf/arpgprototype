@@ -81,3 +81,6 @@ import menuCrest from './art/runtime/menu-crest.webp?inline';
 export const SKILL_PAINTINGS_ART=localAsset(skillPaintings);
 export const EQUIPMENT_RELIEF_ART=localAsset(equipmentRelief);
 export const MENU_CREST_ART=localAsset(menuCrest);
+
+import equipmentEtchings from './art/runtime/equipment-etchings.webp?inline';
+export const EQUIPMENT_ETCHINGS_ART=localAsset(equipmentEtchings);

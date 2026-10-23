@@ -27,3 +27,8 @@
 #app .hud-panel .bag-label{width:100%;font:9px/12px Georgia;letter-spacing:1px;color:#b5a07c;margin:0 0 4px}
 #app .hud-panel .bag-label>span+span{margin-left:auto}
 #app .dual-service .player-sheet .hud-content{justify-content:flex-start}
+
+/* Empty sockets are carved impressions, with no bright item color or cartoon glyphs. */
+#app .hud-panel .paper-slot .etched-equipment{display:block;width:min(88%,calc(var(--gear-cell)*var(--sh)*.88px));height:auto;aspect-ratio:1;max-width:140px;max-height:none;padding:0;margin:auto;background-image:var(--equipment-etchings);background-size:300% 300%;background-position:var(--etch-x) var(--etch-y);background-repeat:no-repeat;opacity:.42;filter:none;pointer-events:none;mix-blend-mode:screen}
+#app .hud-panel .paper-slot:has(.etched-equipment)>small{display:block!important;position:absolute;bottom:3px;left:2px;right:2px;transform:none;translate:none;color:#91836c;font:7px/1 Georgia,serif;letter-spacing:.4px;text-align:center;text-shadow:0 1px #000;pointer-events:none}
+#app .hud-panel :is(.slot-ring,.slot-ring2,.slot-charm):has(.etched-equipment)>small{display:none!important}

@@ -44,7 +44,7 @@ import './presentation.css';
 import './interface-refinements.css';
 import './painted-menus.css';
 import './inventory-polish.css';
-import {SKILL_PAINTINGS_ART,EQUIPMENT_RELIEF_ART,MENU_CREST_ART} from './assets.js';
+import {EQUIPMENT_ETCHINGS_ART,SKILL_PAINTINGS_ART,EQUIPMENT_RELIEF_ART,MENU_CREST_ART} from './assets.js';
 import {NPCDialogue} from './npc-dialogue.js';
 import {FOLIO_FRAME_ART,SKILL_FRAME_ART,STORY_ART,LEATHER_ART,MAP_ART,GUARD_ART,STONE_ART} from './assets.js';
 import {FrontEnd} from './front-end.js';
@@ -57,7 +57,7 @@ import {TownUI,HUD_PANELS} from './town-ui.js';
 
 const $=id=>document.getElementById(id);
 const escapeText=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-for(const [name,url] of [['--skill-paintings',SKILL_PAINTINGS_ART],['--equipment-relief',EQUIPMENT_RELIEF_ART],['--menu-crest',MENU_CREST_ART]])document.documentElement.style.setProperty(name,`url("${url}")`);
+for(const [name,url] of [['--equipment-etchings',EQUIPMENT_ETCHINGS_ART],['--skill-paintings',SKILL_PAINTINGS_ART],['--equipment-relief',EQUIPMENT_RELIEF_ART],['--menu-crest',MENU_CREST_ART]])document.documentElement.style.setProperty(name,`url("${url}")`);
 for(const [slot,id] of [['basic','basic'],['potion','potion'],['dodge','evade'],['portal','portal']])$(slot+'-slot').querySelector('.ability-art').innerHTML=skillIcon(id);
 let settings={...DEFAULTS};try{settings=loadSettings(localStorage);}catch{}
 const SAVE_KEY='ashen-reliquary-save-v1';

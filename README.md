@@ -10,6 +10,11 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.28.0
+
+- Replaced the simple empty-slot outlines with nine original stone-carved equipment impressions: helm, amulet, sword, cuirass, shield, gauntlets, belt, signet and boots.
+- Muted impressions and discreet slot labels distinguish empty sockets from equipped colored item art and match the guardian relief. Both ring slots use the same signet engraving.
+
 ## Version 0.27.0
 
 - Backpack expanded from 10×4 to 12×6: 72 cells, 80% more space. Existing items keep their positions and overflow is recovered when space allows.
