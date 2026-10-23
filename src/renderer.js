@@ -1,20 +1,21 @@
+import forestSizes from './art/forest-life-sizes.json';
 import {passivePosition} from './farmland.js';
 import {openingStage} from './opening-quests.js';
 import {WORLD_FOOT_OFFSETS} from './world-bounds.js';
 import {GuardSprites} from './guard-sprites.js';
 import {pyreStats} from './devotion.js';
 import {clamp, distance} from './game.js';
-import {WORLD_ART,ITEM_ART,CAMPAIGN_ART,MARCHGATE_ART,MARCHGATE_INNER_ART,FARM_ART} from './assets.js';
+import {WORLD_ART,ITEM_ART,CAMPAIGN_ART,MARCHGATE_ART,MARCHGATE_INNER_ART,FARM_ART,FOREST_LIFE_ART,FOREST_GROUND_ART} from './assets.js';
 import {itemName} from './settlement.js';
 
 export class Renderer {
   constructor(canvas, minimap) {
     this.canvas=canvas; this.ctx=canvas.getContext('2d'); this.map=minimap; this.mc=minimap.getContext('2d');
     this.w=0;this.h=0;this.camera={x:0,y:0};this.time=0;this.zoom=1;
-    this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;this.farmArt=new Image();this.farmArt.src=FARM_ART;
+    this.forestGroundArt=new Image();this.forestGroundArt.src=FOREST_GROUND_ART;this.forestArt=new Image();this.forestArt.src=FOREST_LIFE_ART;this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;this.farmArt=new Image();this.farmArt.src=FARM_ART;
     this.innerGateArt=new Image();this.innerGateArt.src=MARCHGATE_INNER_ART;this.gateArt=new Image();this.gateArt.src=MARCHGATE_ART;this.campaignArt=new Image();this.campaignArt.src=CAMPAIGN_ART;this.heroFrame={row:0,column:0,action:'idle'};
-    this.artKeys=new WeakMap();this.artSerial=0;this.guard=new GuardSprites();this.groundCache=new Map();this.glowCache=new Map();this.wallCache=new Map();this.spriteCache=new Map();this.palisadeCache=new Map();this.tileCache=new Map();this.artLoaded=false;
-    for(const art of [this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.art,this.guard.items,this.guard.original])art.addEventListener('load',()=>{this.artLoaded=[this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.art,this.guard.items,this.guard.original].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
+    this.artKeys=new WeakMap();this.artSerial=0;this.guard=new GuardSprites();this.groundCache=new Map();this.glowCache=new Map();this.wallCache=new Map();this.spriteCache=new Map();this.tileCache=new Map();this.artLoaded=false;
+    for(const art of [this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.art,this.guard.items,this.guard.original])art.addEventListener('load',()=>{this.artLoaded=[this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.art,this.guard.items,this.guard.original].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
     this.resize();window.addEventListener('resize',()=>this.resize());
   }
   configure(settings){this.settings=settings;this.adaptiveScale=1;this.frameSample=null;this.canvas.style.filter=settings.brightness===100?'none':`brightness(${settings.brightness/100})`;this.resize();}
@@ -50,6 +51,28 @@ export class Renderer {
     if(tone>1){c.fillStyle=({2:'#23474c55',3:'#572b1e66',4:'#becedb38',5:'#382c4255'})[tone]||'transparent';c.fillRect(0,0,68,68);}
     this.tileCache.set(key,canvas);return canvas;
   }
+  forestTerrain(index,variant=0){
+    const key='forest-'+index+'-'+variant;if(this.tileCache.has(key))return this.tileCache.get(key);
+    const art=this.forestGroundArt;if(!art.complete||!art.naturalWidth)return null;
+    const canvas=document.createElement('canvas');canvas.width=136;canvas.height=68;const c=canvas.getContext('2d'),s=art.naturalWidth/2,crop=s*.7;
+    const sample=(ctx,i)=>ctx.drawImage(art,i%2*s+(variant%2)*(s-crop),Math.floor(i/2)*s+Math.floor(variant/2)*(s-crop),crop,crop,0,0,68,68);
+    const square=document.createElement('canvas');square.width=square.height=68;const sc=square.getContext('2d');sample(sc,index===1?1:0);
+    if(index>=2){const patch=document.createElement('canvas');patch.width=patch.height=68;const pc=patch.getContext('2d');sample(pc,index);pc.globalCompositeOperation='destination-in';const mask=pc.createRadialGradient(34,34,8,34,34,34);mask.addColorStop(0,'#000c');mask.addColorStop(1,'#0000');pc.fillStyle=mask;pc.fillRect(0,0,68,68);sc.drawImage(patch,0,0);}
+    c.translate(68,0);c.transform(1,.5,-1,.5,0,0);c.drawImage(square,0,0);
+    this.tileCache.set(key,canvas);return canvas;
+  }
+  drawForestDetail(ctx,d,left,top,width,height){
+    // Repaint already-generated tiles into the viewport cache at native detail.
+    // This keeps fine earth/grass grain without retaining a full-resolution
+    // 224-square terrain canvas. No simulation or generation happens here.
+    const x1=Math.max(0,Math.floor((left/34+top/17)/2)-2),x2=Math.min(d.size,Math.ceil(((left+width)/34+(top+height)/17)/2)+2),y1=Math.max(0,Math.floor((top/17-(left+width)/34)/2)-2),y2=Math.min(d.size,Math.ceil(((top+height)/17-left/34)/2)+2),b=d.townBounds;
+    for(let y=y1;y<y2;y++)for(let x=x1;x<x2;x++){
+      if(!d.tiles[y][x]||b&&x>=b.x1&&x<=b.x2&&y>=b.y1&&y<=b.y2)continue;
+      const p=this.iso(x,y);if(p.x<left-34||p.x>left+width+34||p.y<top-34||p.y>top+height)continue;
+      const n=((x*73856093^y*19349663)>>>0)%100,tile=this.forestTerrain(d.roads?.has(y*d.size+x)?1:n<25?2:n>87?3:0,n%4);
+      if(tile)ctx.drawImage(tile,p.x-34,p.y,68,34);
+    }
+  }
   stoneFace(points,shade){
     const c=this.ctx;
     if(!this.itemArt.complete||!this.itemArt.naturalWidth)return this.poly(points,shade);
@@ -71,11 +94,12 @@ export class Renderer {
       const outside=d.outdoor&&!d.tiles[y][x];
       const road=d.roads?.has(y*d.size+x)||d.town&&(Math.abs(x-32.5)<1.7||Math.abs(y-32.5)<1.7);
       const farmIndex=d.barnFloors?.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)?3:road?2:d.cropPlots?.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)?0:1;
-      const tile=this.terrain(d.farm?farmIndex:d.town||d.outdoor?(road?1:0):d.courts?.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)?1:2,n%4,d.act||1,!!d.farm);
-      if(tile){c.drawImage(tile,v.x-34,v.y,68,34);if(!d.farm)this.line([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17],[v.x,v.y]],'#0b07053a',.5);}
+      const tile=d.outdoor&&d.act===1&&!d.farm&&!camp?this.forestTerrain(road?1:n<25?2:n>87?3:0,n%4):this.terrain(d.farm?farmIndex:d.town||d.outdoor?(road?1:0):d.courts?.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)?1:2,n%4,d.act||1,!!d.farm);
+      if(tile){c.drawImage(tile,v.x-34,v.y,68,34);if(!d.farm&&!d.outdoor)this.line([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17],[v.x,v.y]],'#0b07053a',.5);}
       else this.poly([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17]],color,'#121f18',1.5);
+
       if(outside)this.poly([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17]],'#17180f99');
-      if(!d.farm){this.line([[v.x,v.y+2],[v.x+31,v.y+17]],'#66705a44');
+      if(!d.farm){if(!d.outdoor)this.line([[v.x,v.y+2],[v.x+31,v.y+17]],'#66705a44');
       if(!d.town&&n%4===0)this.line([[v.x-24,v.y+16],[v.x-5,v.y+23],[v.x+1,v.y+20],[v.x+10,v.y+23]],'#14131166');
       if(n%7===0){this.ellipse(v.x+6,v.y+16,15,6,'#33483266');this.ellipse(v.x+12,v.y+18,7,3,'#60764435');}
       if(n%19===0){this.poly([[v.x-6,v.y+8],[v.x+6,v.y+13],[v.x+2,v.y+17],[v.x-9,v.y+12]],'#69736144');}
@@ -94,7 +118,7 @@ export class Renderer {
   }
   async prepareDungeon(d,progress){
     const token={};this.prepareToken=token;
-    await Promise.all([this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.art,this.guard.items,this.guard.original].map(art=>art.decode()));
+    await Promise.all([this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.art,this.guard.items,this.guard.original].map(art=>art.decode()));
     if(this.prepareToken!==token)return;
     // Prepare every terrain chunk, indoors and outdoors, at half resolution.
     // A new region is never revealed or generated by player movement.
@@ -116,6 +140,7 @@ export class Renderer {
       if(d.outdoor)this.forestFloor(ctx,d,x,y,width,height);
       this.chunkBudget=Math.ceil(d.size/8)**2;
       for(let cy=0;cy<Math.ceil(d.size/8);cy++)for(let cx=0;cx<Math.ceil(d.size/8);cx++){const center=this.iso(cx*8+4,cy*8+4);if(Math.abs(center.x-this.camera.x)>viewW+396||Math.abs(center.y-this.camera.y)>viewH+246)continue;const cached=this.groundChunk(d,cx,cy);ctx.drawImage(cached.canvas,cached.x,cached.y,612,352);}
+      if(d.outdoor&&d.act===1&&!d.farm&&this.settings?.quality!=='performance')this.drawForestDetail(ctx,d,x,y,width,height);
       this.ctx=old;this.groundView={canvas,x,y,cx:this.camera.x,cy:this.camera.y,seen:d.seen.size,time:this.time,d};
     }
     const view=this.groundView;this.ctx.drawImage(view.canvas,view.x,view.y);
@@ -137,6 +162,7 @@ export class Renderer {
     if(this.indexedObjects!==this.staticObjects){this.indexedObjects=this.staticObjects;this.staticBins=new Map();this.largeObjects=[];for(const o of this.staticObjects){if(o.type.startsWith('kingdom-gate')){this.largeObjects.push(o);continue;}const key=Math.floor(o.x/8)+','+Math.floor(o.y/8);if(!this.staticBins.has(key))this.staticBins.set(key,[]);this.staticBins.get(key).push(o);}}
     const worldX=(this.camera.x/34+this.camera.y/17)/2,worldY=(this.camera.y/17-this.camera.x/34)/2,reach=(viewW/34+viewH/17)/2+8,objects=this.largeObjects.filter(visible);
     for(let by=Math.floor((worldY-reach)/8);by<=Math.floor((worldY+reach)/8);by++)for(let bx=Math.floor((worldX-reach)/8);bx<=Math.floor((worldX+reach)/8);bx++)for(const o of this.staticBins.get(bx+','+by)||[])if(visible(o))objects.push(o);
+    for(const sheep of d.livestock||[])if(visible(sheep))objects.push(sheep);
     for(const animal of d.critters||[])objects.push({...animal,...passivePosition(animal,d,this.time),type:'critter'});
     for(const loot of game.loot)objects.push({...loot,type:'loot',loot});
     if(d.returnGate)objects.push({...d.returnGate,type:d.farm?'farm-entrance':d.fortress?'kingdom-gate-inside':'entrance',width:d.farm?250:1120,height:d.farm?190:747});
@@ -155,7 +181,8 @@ export class Renderer {
       if(o.type==='hero')this.hero(game);
       else if(o.type==='enemy')this.enemy(o.enemy,game);
       else if(o.type==='waypoint')this.waypoint(o,game);
-      else if(o.type==='livestock'){this.line([[-9,2],[-9,13]],'#28251d',3);this.line([[8,2],[8,13]],'#28251d',3);this.ellipse(0,-2,16,10,'#8f8872');for(let i=0;i<6;i++)this.ellipse(-10+i*4,-5+(i%2)*3,5,5,i%2?'#a49b81':'#b0a58a');this.ellipse(17,-2,6,6,'#39372d');this.ellipse(19,-3,1,1,'#c7ba99');}
+      else if(o.type==='livestock')this.sheep(o);
+      else if(o.type==='forest-grass'){this.natureSprite([6,7,13,6,7,13][o.variant],34+(o.variant%3)*8,12+(o.variant%3)*4,2);}
       else if(o.type==='farm-prop'){this.cachedSprite(this.farmArt,o.farmSprite,o.width,o.height);}
       else if(o.type==='farm-entrance'){this.cachedSprite(this.farmArt,6,o.width||230,o.height||175);this.worldLabel(d.kind==='wilderness'?'THE TITHE GRAIN FIELDS':'WIDOW’S FIELDS',d.kind==='wilderness'?'F · ENTER THE FARM':'F · RETURN TO THE FIELDS',-(o.height||175)-8);}
       else if(o.type==='critter'){this.critter(o);}
@@ -174,8 +201,8 @@ export class Renderer {
       }
       else if(o.type==='road-gate')this.roadGate(o);
       else if(o.type==='frontier'||o.type==='livestock-fence')this.frontier(o);
-      else if(o.type==='road-lantern'){this.line([[0,0],[0,-72]],'#332719',5);this.line([[0,-70],[15,-70],[15,-61]],'#6f5837',3);this.poly([[9,-61],[22,-61],[20,-44],[11,-44]],'#37291c','#15110c',2);this.light(15,-53,65,'#d58d3433');this.ellipse(15,-53,4,7,'#d9a85e');}
-      else if(o.type==='signpost'){this.line([[0,0],[0,-56]],'#37281c',7);this.poly([[-28,-62],[31,-57],[38,-47],[29,-37],[-28,-43]],'#4e3b27','#201810',2);this.line([[-24,-53],[23,-49]],'#a18b5b66',1);if(near<9)this.worldLabel(o.label,o.detail,-86);}
+      else if(o.type==='road-lantern')this.roadPost(o,true);
+      else if(o.type==='signpost')this.roadPost(o,false);
       else if(o.type==='palisade')this.palisade(o);
       else if(o.type==='brazier')this.brazier(o);
       else if(o.type==='pillar')this.pillar(o);
@@ -231,20 +258,30 @@ export class Renderer {
     if(!floor){const tile=this.terrain(0,0,d.act||1);if(!tile)return;floor=document.createElement('canvas');floor.width=136;floor.height=68;const c=floor.getContext('2d');for(const [tx,ty]of [[0,0],[-68,-34],[68,-34],[-68,34],[68,34]])c.drawImage(tile,tx,ty);c.globalCompositeOperation='source-atop';c.fillStyle='#10170db0';c.fillRect(0,0,136,68);this.forestTiles.set(d.act||1,floor);}
     ctx.fillStyle=ctx.createPattern(floor,'repeat');ctx.fillRect(x,y,width,height);
   }
-  frontier(o){const key='frontier-'+o.axis;let canvas=this.palisadeCache.get(key);if(!canvas){canvas=document.createElement('canvas');canvas.width=96;canvas.height=96;const old=this.ctx;this.ctx=canvas.getContext('2d');this.ctx.translate(48,70);this.paintFrontier(o);this.ctx=old;this.palisadeCache.set(key,canvas);}this.ctx.drawImage(canvas,-48,-70);}
-  paintFrontier(o){
-    const dir=o.axis==='x'?{x:34,y:17}:{x:-34,y:17};
-    this.line([[0,-4],[dir.x,-4+dir.y]],'#13100b',7);
-    this.line([[0,-27],[dir.x,-27+dir.y]],'#4b3c27',5);
-    this.line([[0,-14],[dir.x,-14+dir.y]],'#59452b',4);
-    for(let i=0;i<=2;i++){const x=dir.x*i/2,y=dir.y*i/2;this.poly([[x-3,y],[x-4,y-32],[x,y-39],[x+4,y-32],[x+3,y]],'#393326','#15140f');this.line([[x-1,y-5],[x-1,y-29]],'#8a765344',1);}
+  natureSprite(index,w,h=null,offset=0){const [sw,sh]=forestSizes[index];return this.cachedSprite(this.forestArt,index,w,h??w*sh/sw,offset);}
+  sheep(o){
+    const dx=Math.cos(o.heading||0),dy=Math.sin(o.heading||0),toward=dx+dy>0,side=dx-dy;
+    const grazing=!o.moving,index=grazing?(toward?9:15):(Math.abs(side)<.35?(toward?14:11):10);
+    this.ellipse(0,-1,18,6,'#090a0780');this.ctx.save();
+    if(side<0)this.ctx.scale(-1,1);
+    const width=index===14||index===11||index===15?31:47;
+    this.natureSprite(index,width,index===9?37:index===15?40:index===11?44:40,1);this.ctx.restore();
   }
-  palisade(o){let canvas=this.palisadeCache.get(o.axis);if(!canvas){canvas=document.createElement('canvas');canvas.width=96;canvas.height=96;const old=this.ctx;this.ctx=canvas.getContext('2d');this.ctx.translate(48,70);this.paintPalisade(o);this.ctx=old;this.palisadeCache.set(o.axis,canvas);}this.ctx.drawImage(canvas,-48,-70);}
-  paintPalisade(o){
-    const dir=o.axis==='x'?{x:34,y:17}:{x:-34,y:17};
-    this.line([[-dir.x*.5,-19-dir.y*.5],[dir.x*.5,-19+dir.y*.5]],'#292017',5);
-    for(let i=-1;i<=1;i++){const x=dir.x*i*.35,y=dir.y*i*.35;this.poly([[x-3,y],[x-3,y-38],[x,y-46],[x+4,y-37],[x+4,y]],'#443b29','#17120d',1);this.line([[x,y-5],[x,y-36]],'#7a6b4355');}
+  roadPost(o,lantern){
+    const angle=o.angle||0,right=Math.cos(angle)>=0;
+    if(!lantern){
+      this.natureSprite(16,16,59);this.ctx.save();this.ctx.translate(0,-65);this.ctx.rotate(angle);this.natureSprite(17,65,24,12);this.ctx.restore();return;
+    }
+    this.ctx.save();
+    // The bracket follows the road in projection; its upright stays vertical.
+    this.ctx.transform(Math.max(.4,Math.abs(Math.cos(angle))),Math.sin(angle)*(right?1:-1),0,1,0,0);
+    this.natureSprite(right?4:5,43,88);const x=right?13:-13;this.light(x,-34,55,'#d58d3430');this.ctx.restore();
   }
+  frontier(o){
+    const right=o.axis==='x';this.ctx.save();this.ctx.translate(right?17:-17,8.5);
+    this.natureSprite(right?0:1,44,48,3);this.ctx.restore();
+  }
+  palisade(o){this.frontier(o);}
   wall(o){
     if(this.itemArt.complete&&this.itemArt.naturalWidth){let tile=this.wallCache.get(o.variant);if(!tile){tile=document.createElement('canvas');tile.width=80;tile.height=140;const old=this.ctx;this.ctx=tile.getContext('2d');this.ctx.translate(40,118);this.paintWall(o);this.ctx=old;this.wallCache.set(o.variant,tile);}this.ctx.drawImage(tile,-40,-118);return;}this.paintWall(o);
   }
@@ -478,7 +515,16 @@ export class Renderer {
         if(!d.tiles[y][x]||!d.seen.has(y*d.size+x))continue;const at=project(x,y),a=scale,b=scale*.5;
         if(!d.tiles[y-1]?.[x]){c.moveTo(at.x,at.y);c.lineTo(at.x+a,at.y+b);}if(!d.tiles[y]?.[x+1]){c.moveTo(at.x+a,at.y+b);c.lineTo(at.x,at.y+2*b);}if(!d.tiles[y+1]?.[x]){c.moveTo(at.x,at.y+2*b);c.lineTo(at.x-a,at.y+b);}if(!d.tiles[y]?.[x-1]){c.moveTo(at.x-a,at.y+b);c.lineTo(at.x,at.y);}
       }c.stroke();
-      if(d.roads){c.fillStyle=overlay?'#b19e7055':'#b19e7033';for(const key of d.roads)if(d.seen.has(key)){const at=project(key%d.size,Math.floor(key/d.size));c.fillRect(at.x-.6,at.y-.4,1.2,.8);}}
+      if(d.roads){
+        // Filled town streets, faint road shoulders, and a narrow continuous
+        // centreline avoid turning the automap into a staircase of tile blocks.
+        const b=d.townBounds;c.fillStyle=overlay?'#b9a17122':'#c6ad7a22';c.beginPath();
+        for(const key of d.roads)if(d.seen.has(key)){const x=key%d.size,y=Math.floor(key/d.size);if(d.paths&&!(b&&x>=b.x1&&x<=b.x2&&y>=b.y1&&y<=b.y2))continue;const at=project(x,y);if(at.x< -scale||at.x>w+scale||at.y< -scale||at.y>h+scale)continue;c.moveTo(at.x,at.y);c.lineTo(at.x+scale,at.y+scale*.5);c.lineTo(at.x,at.y+scale);c.lineTo(at.x-scale,at.y+scale*.5);c.closePath();}c.fill();
+        if(d.paths){c.strokeStyle=overlay?'#c5ae7caa':'#c5ae7caa';c.lineWidth=overlay?3:1.8;c.lineJoin='round';c.lineCap='round';c.beginPath();
+          for(const path of d.paths)for(let i=1;i<path.length;i++){const a=path[i-1],b=path[i],steps=Math.ceil(distance(a,b)*3);let joined=false;for(let j=0;j<=steps;j++){const x=a.x+(b.x-a.x)*j/steps,y=a.y+(b.y-a.y)*j/steps;if(!d.seen.has(Math.floor(y)*d.size+Math.floor(x))){joined=false;continue;}const at=project(x,y);if(joined)c.lineTo(at.x,at.y);else c.moveTo(at.x,at.y);joined=true;}}
+          c.stroke();c.lineCap='butt';
+        }
+      }
       const marker=(o,color,r=3)=>{if(!o||!d.seen.has(Math.floor(o.y)*d.size+Math.floor(o.x)))return;const at=project(o.x,o.y);c.strokeStyle=color;c.lineWidth=1.4;c.beginPath();c.moveTo(at.x,at.y-r);c.lineTo(at.x+r,at.y);c.lineTo(at.x,at.y+r);c.lineTo(at.x-r,at.y);c.closePath();c.stroke();};
       marker(d.field,'#c2a66b',overlay?6:3);if(d.herd&&!game.player.quests.herdRewarded)marker(d.herd,'#c2a66b',overlay?7:4);if(d.provisions&&!game.player.quests.provisionsRecovered)marker(d.provisions,'#c2a66b',overlay?6:3);marker(d.townWaypoint,'#99dce2',overlay?7:4);marker(d.returnGate,'#d1b271',overlay?6:3);marker(d.waypoint,'#99dce2',overlay?7:4);marker(d.portal,'#d1b271',overlay?8:4);marker(d.supplies,'#b9ab83',overlay?5:2);
       for(const n of d.npcs||[])marker(n,'#cbb47e',2);for(const e of d.enemies)if(!e.dead&&distance(e,p)<8)marker(e,e.type==='warden'?'#d6a55f':'#b76c52',e.type==='warden'?4:1.5);

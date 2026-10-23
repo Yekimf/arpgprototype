@@ -10,6 +10,14 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.19.0
+
+- Replaced primitive fences, signposts, lanterns and sheep with weathered, semi-realistic painted art. Roadside arrows and lantern brackets face along their road segments.
+- Click a sign to read its directions and dry humour in a text-only popup. There are no floating sign labels or conversation buttons; Escape or clicking away closes the reading.
+- New olive turf, moss, leaf litter and muddy road textures replace the opening forest’s stony ground. Low grass clumps share actor depth ordering and cover boots as you walk through them. A viewport cache preserves fine surface detail without retaining full-resolution terrain for the whole forest.
+- Discovered roads form clear, continuous lines on both the minimap and Tab automap. Unexplored routes stay hidden.
+- Elin’s pasture holds 22 sheep with natural proportions and coarse wool. They pause to graze and wander between nearby destinations; their movement is constrained inside the fence, including at the open entrance.
+
 ## Version 0.18.0
 
 - Renamed the game **The Forgotten Kingdom**. The new title reads: “The king is dead. The oath remains.” The painted title landscape and story replay remain available.
@@ -192,13 +200,14 @@ Unit checks cover procedural connectivity, progression, equipment transactions, 
 
 Runtime assets are committed; ordinary builds do not generate artwork. `npm run art:pack` rebuilds compressed scenery, equipment layers, parchment prologue scenes, sprite foot offsets and menu illustrations. The game uses cached painted sprites, not a runtime 3D engine. `npm run profile` samples town and stronghold rendering at 1440×900 with Chromium CPU throttled 4×; run it separately from other browser work. UI resolution stays native while Options controls world resolution. Sprite caches use compact image identities instead of embedding entire data URLs in cache keys.
 
-The v0.18 portable HTML is about **11.2 MiB**. `npm run profile:offline` builds and samples the embedded HTML without network access. A controlled 1440×900 Chromium run with 4× CPU throttling measured:
+The v0.19 portable HTML is about **12.4 MiB**. `npm run profile:offline` builds and samples the embedded HTML without network access, including a walk to the populated pasture. A controlled 1440×900 Chromium run with 4× CPU throttling measured:
 
 | Area | Median frame | 95th percentile | Sampled JavaScript heap | Prepared terrain pixels |
 | --- | --- | --- | --- | --- |
-| Expanded Emberfall forest | 51.8 ms | 75.4 ms | 29.5 MiB | 40.3 MiB |
-| Marchgate | 53.7 ms | 85.7 ms | 28.4 MiB | 66.6 MiB |
+| Emberfall in the expanded forest | 46.7 ms | 64.8 ms | 37.9 MiB | 40.3 MiB |
+| Marchgate | 53.6 ms | 79.2 ms | 36.0 MiB | 66.6 MiB |
+| Pasture with grass and 22 sheep | 58.3 ms | 76.4 ms | 44.2 MiB | 40.3 MiB |
 
-Marchgate sampled about 17.5 FPS, up from 12.9 FPS in the v0.17 baseline on the same constrained setup. The much larger forest sampled about 18.4 FPS; the previous smaller town region sampled 20.4 FPS. These measurements include adaptive Balanced resolution, which reached 960×600 while keeping the interface native. They are constrained test-machine samples, not a sustained desktop performance guarantee.
+The sampled rates were 20.8 FPS in town, 17.9 FPS in Marchgate and 17.0 FPS in the populated pasture. These measurements include adaptive Balanced resolution, which reached 960×600 while keeping the interface native. They are constrained test-machine samples, not a sustained desktop performance guarantee. Balanced and High cache the new forest surface at native detail around the viewport; Performance uses the smaller prepared ground layer.
 
 The entire opening region uses 784 prebuilt quarter-resolution chunks; Marchgate uses 324 half-resolution chunks. Neither terrain cache grows as the player walks. Automap discovery still follows exploration. Render quality and the frame ceiling remain adjustable in Options.

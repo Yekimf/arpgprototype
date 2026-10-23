@@ -53,3 +53,9 @@ export const MARCHGATE_INNER_ART=localAsset(marchgateInner);
 
 import farm from './art/runtime/farm-atlas.webp?inline';
 export const FARM_ART=localAsset(farm);
+
+import forestLife from './art/runtime/forest-life.webp?inline';
+export const FOREST_LIFE_ART=localAsset(forestLife);
+
+import forestGround from './art/runtime/forest-ground.webp?inline';
+export const FOREST_GROUND_ART=localAsset(forestGround);
