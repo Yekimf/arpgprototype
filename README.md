@@ -10,6 +10,11 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.34.1
+- Rebuilt interior boundaries as connected, full-height stone walls attached to the exact floor edges on all four sides. Removed detached barricade blocks, giant oval wall shadows and exposed platform skirts. Foreground wall segments cut away near the player.
+- Added room dressing: weapon racks, stores, fallen arms, royal banners and sconces in Marchgate; ossuaries, urns, candles and recessed wall niches in the redoubt. Wall geometry and decorations are prepared during loading and cached.
+- Marchgate now starts at the entrance threshold with a short automatic walk inward, instead of appearing 21 tiles past the gate. Clicking a dungeon entrance walks to its threshold before transitioning; re-entering on foot also uses the entrance. The gate remains solid with a local cutaway where it obscures the guard.
+
 ## Version 0.34.0
 - Focused the playable campaign on Act I: three regions and six combat quests, ending with Edrin’s rescue. Later acts are removed from travel, quests and the world map. Existing characters, items and old campaign history are preserved.
 - Marchgate alone uses the monumental kingdom gate. The granary uses a wooden field entrance; Aldren’s redoubt uses a chapel crypt entrance. The regional map now shows the seven Act I locations.

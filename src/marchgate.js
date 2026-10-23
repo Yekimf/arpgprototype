@@ -11,12 +11,12 @@ export function generateMarchgate(seed,depth){
  const centre=r=>({x:r.x+Math.floor(r.w/2)+.5,y:r.y+Math.floor(r.h/2)+.5});
  for(let i=1;i<spine.length;i++)line(centre(spine[i-1]),centre(spine[i]),4+Math.floor(rng()*4));
  sides.forEach((r,i)=>{const tier=Math.max(0,Math.min(4,Math.floor(i/2)+(rng()<.35?(rng()<.5?-1:1):0)));line(centre(r),centre(spine[tier]),3+Math.floor(rng()*3));if(i>=2&&rng()<.6)line(centre(r),centre(sides[i-2]),3);});
- const entryGate={x:72.5,y:139.5},start={x:72.5,y:118.5},portal={x:72.5,y:12.5};line(entryGate,centre(spine[0]),7);
+ const entryGate={x:72.5,y:139.5},start={x:72.5,y:139},portal={x:72.5,y:12.5};line(entryGate,centre(spine[0]),7);
  let id=1;for(const r of rooms){const at=centre(r),count=r.court?8:5;for(let i=0;i<count;i++){const x=r.x+2+rng()*(r.w-4),y=r.y+2+rng()*(r.h-4);if(Math.hypot(x-start.x,y-start.y)>9&&Math.hypot(x-portal.x,y-portal.y)>4)enemies.push(makeEnemy(id++,x,y,rng()<.2?'wraith':rng()<.35?'crawler':'skeleton',depth,rng()<.08));}
   for(const [x,y]of [[r.x+1,r.y+1],[r.x+r.w-2,r.y+1],[r.x+1,r.y+r.h-2],[r.x+r.w-2,r.y+r.h-2]])props.push({x,y,type:r.court?'brazier':'pillar',variant:0});
   for(let i=0;i<8;i++)props.push({x:r.x+1+rng()*(r.w-2),y:r.y+1+rng()*(r.h-2),type:rng()<.6?'rubble':'bones',variant:i%4});
   if(!r.court)props.push({x:at.x-3,y:at.y-3,type:'tomb',variant:1});
  }
  enemies.push(makeEnemy(id++,portal.x,portal.y,'warden',depth,true));
- return {seed,size,tiles,rooms,start,portal,enemies,props,depth,seen:new Set(),bossDead:false,fortress:true,entryGate,entryFacing:{x:0,y:-1},courts:rooms.filter(r=>r.court),landmarks:spine.map(r=>({...centre(r),name:r.name}))};
+ return {seed,size,tiles,rooms,start,portal,enemies,props,depth,seen:new Set(),bossDead:false,fortress:true,entryGate,entryFacing:{x:0,y:-1},arrival:{x:72.5,y:137.5},courts:rooms.filter(r=>r.court),landmarks:spine.map(r=>({...centre(r),name:r.name}))};
 }

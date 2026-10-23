@@ -105,10 +105,10 @@ export function generateStronghold(seed,act=1,chapter=0){
  const level=actOneLevel(chapter,true),ch=chapterFor(act,chapter),d=act===1&&chapter===1?generateGranary(seed,level):act===1&&chapter===0?generateMarchgate(seed,level):generateRedoubt(seed,level),boss=d.enemies.find(e=>e.type==='warden'),rng=random(seed+41);
  for(const enemy of d.enemies)if(enemy!==boss)dressEnemy(enemy,act,rng);
  if(act===1&&chapter===2){d.biome='thornbound-redoubt';}
- d.act=act;d.chapter=chapter;d.kind='stronghold';d.returnGate=d.entryGate||{x:d.start.x,y:d.start.y-1};d.waypoint={x:d.start.x+2,y:d.start.y+1};
+ d.act=act;d.chapter=chapter;d.kind='stronghold';d.returnGate=d.entryGate||{x:d.start.x,y:d.start.y-1};const serviceAt=d.fortress?{x:d.rooms[0].x+4.5,y:d.rooms[0].y+4.5}:d.start;d.waypoint={x:serviceAt.x+2,y:serviceAt.y+1};
  Object.assign(boss,{name:ch.captain||actFor(act).knight,bossId:captainId(act,chapter),phaseType:['oath','harvest','thorns'][chapter],tint:actFor(act).color,chapter});
  d.tileset=['marchgate','granary','redoubt'][chapter];d.entranceStyle=['fortress','farm','crypt'][chapter];
- d.supplies={x:d.start.x-2,y:d.start.y+2};return placeActOneVeterans(balanceActOne(d,chapter,true),chapter);
+ d.supplies={x:serviceAt.x-2,y:serviceAt.y+2};return placeActOneVeterans(balanceActOne(d,chapter,true),chapter);
 }
 
 export const PROLOGUE=[
