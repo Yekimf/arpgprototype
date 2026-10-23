@@ -71,3 +71,6 @@ export const FOLIO_FRAME_ART=localAsset(folioFrame);
 export const SKILL_FRAME_ART=localAsset(skillFrame);
 import waypointFountain from './art/runtime/waypoint-fountain.webp?inline';
 export const WAYPOINT_FOUNTAIN_ART=localAsset(waypointFountain);
+
+import stashChest from './art/runtime/stash-chest.webp?inline';
+export const STASH_CHEST_ART=localAsset(stashChest);

@@ -1,4 +1,4 @@
-import {isInsightScroll,insightCount} from './scrolls.js';
+import {isInsightScroll,insightCount,scrollQuantity,SCROLL_STACK} from './scrolls.js';
 import {ensureFlask,refillFlask} from './flasks.js';
 import {BASES} from './itemization.js';
 import {itemArt} from './item-art.js';
@@ -49,7 +49,7 @@ export class TownUI {
     const dimensions=container==='stash'?STASH:BAG;
     const used=items.filter(i=>i.bagX>=0).reduce((s,i)=>{const size=itemSize(i);return s+size.w*size.h;},0);
     return `<div class="bag-label"><span>${container==='stash'?'PERSONAL STASH':'TRAVEL PACK'}</span><span>${used} / ${dimensions.width*dimensions.height} cells</span></div><div class="spatial-bag" data-bag-grid="${container}" style="--cols:${dimensions.width};--rows:${dimensions.height}">${items.filter(i=>i.bagX>=0).map(item=>{
-      const size=itemSize(item);return `<button class="bag-item ${rarity(item)} ${requiresIdentification(item)?'unidentified':''} ${item.id===this.selection?'selected':''}" data-pack-id="${escape(item.id)}" data-container="${container}" draggable="false" style="grid-column:${item.bagX+1}/span ${size.w};grid-row:${item.bagY+1}/span ${size.h}" aria-label="${escape(itemName(item))}" title="${escape(itemName(item))}">${icon(item)}${item.favorite?'<b class="keepsake-mark">◆</b>':''}${requiresIdentification(item)?'<b class="unknown-mark">?</b>':''}${item.reforges?`<small class="forge-mark">+${item.reforges}</small>`:''}</button>`;
+      const size=itemSize(item);return `<button class="bag-item ${rarity(item)} ${requiresIdentification(item)?'unidentified':''} ${item.id===this.selection?'selected':''}" data-pack-id="${escape(item.id)}" data-container="${container}" draggable="false" style="grid-column:${item.bagX+1}/span ${size.w};grid-row:${item.bagY+1}/span ${size.h}" aria-label="${escape(itemName(item))}" title="${escape(itemName(item))}">${icon(item)}${isInsightScroll(item)?`<b class="stack-count">${scrollQuantity(item)}</b>`:''}${item.favorite?'<b class="keepsake-mark">◆</b>':''}${requiresIdentification(item)?'<b class="unknown-mark">?</b>':''}${item.reforges?`<small class="forge-mark">+${item.reforges}</small>`:''}</button>`;
     }).join('')}</div>${items.some(i=>i.bagX<0)?`<div class="overflow-items"><small>Legacy overflow · preserved safely. Free pack space to organize.</small>${items.filter(i=>i.bagX<0).map(i=>`<button data-pack-id="${escape(i.id)}" data-container="${container}" class="small-button">${escape(itemName(i))}</button>`).join('')}</div>`:''}`;
   }
   equipment(){const p=this.player;return `<div class="paperdoll"><div class="paperdoll-figure"></div>${Object.entries(EQUIPMENT).map(([slot,name])=>{
@@ -57,7 +57,7 @@ export class TownUI {
   }).join('')}</div>`;}
   detail(){
     const item=this.selected;if(!item)return `<div class="empty-detail"><span>✧</span><p>Select a relic to inspect its properties.</p><small>Drag items to rearrange. Double-click to equip.<br>Shift-click to equip; Ctrl-click to trade or transfer.</small></div>`;
-    if(item.slot==='scroll'||item.quest)return `<div class="relic-heading normal">${icon(item)}<div><span class="eyebrow">${item.quest?'QUEST ITEM':'CONSUMABLE · ONE SPACE'}</span><h3>${escape(item.name)}</h3></div></div><p class="consumable-description">${escape(item.description||'A recovered quest item.')}</p>`;
+    if(item.slot==='scroll'||item.quest)return `<div class="relic-heading normal">${icon(item)}<div><span class="eyebrow">${item.quest?'QUEST ITEM':'CONSUMABLE · '+scrollQuantity(item)+' / '+SCROLL_STACK+' · ONE SPACE'}</span><h3>${escape(item.name)}</h3></div></div><p class="consumable-description">${escape(item.description||'A recovered quest item.')}</p>`;
     const p=this.player,unknown=requiresIdentification(item),equipped=p.equipment[item.slot],pack=this.source==='pack',panel=this.game.panel;
     const name=escape(itemName(item)),base=BASES.find(b=>b.id===item.base)?.name;
     let actions='';
@@ -142,6 +142,10 @@ export class TownUI {
     let data;try{data=JSON.parse(event.dataTransfer.getData('text/plain'));}catch{return;}
     const source=data.source==='pack'?this.player.inventory:data.source==='stash'?this.player.stash:null,item=data.source==='equipped'?this.player.equipment[data.slot]:source?.find(i=>i.id===data.id);if(!item||item.id!==data.id)return;
     event.preventDefault();const element=event.target,targetItem=element?.closest('[data-pack-id]'),grid=element?.closest('[data-bag-grid]'),slot=element?.closest('[data-equip-slot]'),doll=element?.closest('.paperdoll');
+    if(isInsightScroll(item)&&targetItem&&targetItem.dataset.packId!==item.id){
+      const target=targetItem.dataset.container==='stash'?this.player.stash:this.player.inventory,stack=target.find(i=>i.id===targetItem.dataset.packId);
+      if(isInsightScroll(stack)){const n=Math.min(scrollQuantity(item),SCROLL_STACK-scrollQuantity(stack));if(n<=0){this.toast('This stack already holds 20 scrolls.');return;}stack.quantity=scrollQuantity(stack)+n;const left=scrollQuantity(item)-n;if(left)item.quantity=left;else source.splice(source.indexOf(item),1);this.refresh();return;}
+    }
     if(isInsightScroll(item)&&data.source==='pack'&&targetItem?.dataset.container==='pack'&&targetItem.dataset.packId!==item.id){const result=identifyItem(this.player,targetItem.dataset.packId,false,item.id);this.cancelIdentify();this.apply(result);return;}
     if(this.game.panel==='merchant'&&element?.closest('.service-sheet')){if(data.source==='pack')this.apply(sellItem(this.player,item.id));return;}
     if(slot||doll){if(data.source!=='pack')return;const socket=slot?.dataset.equipSlot,target=socket===item.slot||item.slot==='ring'&&socket==='ring2'?socket:undefined;this.apply(equipItem(this.player,item.id,target));return;}

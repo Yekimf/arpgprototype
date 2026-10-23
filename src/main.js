@@ -1,3 +1,5 @@
+import './font-assets.js';
+import {fontFamily} from './font-choices.js';
 import {activateFountain,fountainKey} from './waypoint-fountains.js';
 import {bossRelic,BOSS_ARMS} from './boss-relics.js';
 import {attackTiming} from './weapon-rig.js';
@@ -39,6 +41,7 @@ import './chronicle.css';
 import './quest-book.css';
 import './kingdom.css';
 import './presentation.css';
+import './interface-refinements.css';
 import {NPCDialogue} from './npc-dialogue.js';
 import {FOLIO_FRAME_ART,SKILL_FRAME_ART,STORY_ART,LEATHER_ART,MAP_ART,GUARD_ART,STONE_ART} from './assets.js';
 import {FrontEnd} from './front-end.js';
@@ -134,7 +137,7 @@ enterTown(true);
 player.hp=clamp(player.hp||game.stats.maxHp,1,game.stats.maxHp);player.mana=clamp(player.mana,0,game.stats.maxMana);
 
 function persistSettings(){try{saveSettings(localStorage,settings);}catch{}}
-function applySettings(){Object.assign(settings,sanitizeSettings(settings));game.sound=settings.sound;game.showLoot=settings.lootLabels;renderer.configure(settings);document.documentElement.classList.toggle('reduced-motion',settings.reducedMotion);$('map-overlay').style.opacity=settings.mapOpacity/100;document.querySelector('.map-panel').style.opacity=settings.mapOpacity/100;$('sound').setAttribute('aria-label',game.sound?'Mute sound':'Enable sound');persistSettings();}
+function applySettings(){Object.assign(settings,sanitizeSettings(settings));document.documentElement.dataset.menuFont=settings.menuFont;document.documentElement.style.setProperty('--chosen-font',fontFamily(settings.menuFont));game.sound=settings.sound;game.showLoot=settings.lootLabels;renderer.configure(settings);document.documentElement.classList.toggle('reduced-motion',settings.reducedMotion);$('map-overlay').style.opacity=settings.mapOpacity/100;document.querySelector('.map-panel').style.opacity=settings.mapOpacity/100;$('sound').setAttribute('aria-label',game.sound?'Mute sound':'Enable sound');persistSettings();}
 applySettings();
 function save(){
   if(!validSave&&!player.campaign)return false;
@@ -541,7 +544,7 @@ $('modal').addEventListener('pointermove',e=>{if(!atlasDrag)return;const {svg,x,
 for(const type of ['pointerup','pointercancel'])$('modal').addEventListener(type,()=>{atlasDrag=null;setTimeout(()=>game.atlasDragged=false,0);});
 $('modal').addEventListener('wheel',e=>{const svg=e.target.closest('#passive-atlas');if(!svg)return;e.preventDefault();const v=zoomAtlas(game,e.deltaY<0?'in':'out');svg.setAttribute('viewBox',`${v.x} ${v.y} ${v.w} ${v.h||v.w*2/3}`);},{passive:false});
 $('modal').addEventListener('keydown',e=>{const node=e.target.closest('[data-passive-detail]');if(node&&['Enter',' '].includes(e.key)){e.preventDefault();e.stopPropagation();node.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
-$('modal').addEventListener('input',event=>{const field=event.target.closest('[data-option]');if(!field)return;settings[field.dataset.option]=field.type==='checkbox'?field.checked:field.tagName==='SELECT'&&field.dataset.option==='quality'?field.value:Number(field.value);const output=field.closest('label')?.querySelector('output');if(output)output.textContent=field.value+'%';applySettings();});
+$('modal').addEventListener('input',event=>{const field=event.target.closest('[data-option]');if(!field)return;settings[field.dataset.option]=field.type==='checkbox'?field.checked:field.tagName==='SELECT'&&['quality','menuFont'].includes(field.dataset.option)?field.value:Number(field.value);const output=field.closest('label')?.querySelector('output');if(output)output.textContent=field.value+'%';applySettings();});
 $('modal').addEventListener('change',event=>{
   if(townUI.handleChange(event))return;
   const select=event.target.closest('[data-bind]');if(!select||select.value==='')return;const slot=Number(select.value),id=select.dataset.bind,old=player.slots.indexOf(id);if(old!==-1)player.slots[old]=player.slots[slot];player.slots[slot]=id;renderPanel();save();

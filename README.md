@@ -10,6 +10,13 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.25.0
+
+- Personal stash now uses a weathered oak and iron chest sprite.
+- Scrolls of Insight stack to 20 in one cell, with quantity labels, automatic merging on pickup/purchase/transfer, and drag-to-combine. Existing saves compact safely; identification consumes one scroll and selling prices the full stack.
+- Framed menu button labels are centered, with the pause shortcut separated from the label.
+- Options includes four offline font trials: IM Fell English, EB Garamond, Cormorant Garamond, and Uncial Antiqua. Compare them live or open `font-samples.html` for a separate interactive sample sheet. Font licenses are in `src/fonts`.
+
 ## Version 0.24.0
 
 - Waypoints are now weathered gothic fountains with carved tiers and gargoyle spouts. Clicking a dormant fountain awakens its animated water and saves its travel attunement; click again or use G to travel. F remains an alternative when nearby. Walking past a fountain no longer activates it.

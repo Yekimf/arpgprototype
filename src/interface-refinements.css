@@ -1,0 +1,16 @@
+/* Keep labels in the clear center of the painted frame, away from its end caps. */
+#app .pause-actions button{position:relative;text-align:center;min-height:46px;padding:9px 38px;line-height:1.4}
+.pause-actions kbd{position:absolute;right:18px;top:50%;transform:translateY(-50%);float:none}
+#app :is(.primary-button,.small-button,.text-button,.carved-button),.front-end :is(.carved-button,.front-back),.npc-conversation nav button,.mastery-tabs button,.service-pagination button{text-align:center}
+.stack-count{position:absolute;right:2px;bottom:1px;font:12px/1 Georgia,serif!important;color:#eadbc0;text-shadow:1px 1px 2px #000,-1px -1px 2px #000;z-index:4;pointer-events:none}
+.font-samples{margin-top:24px;border-top:1px solid #76624566;padding-top:16px}
+.font-samples h3{font:20px Georgia,serif;margin:0 0 6px;color:#d5c49e}.font-samples>p{font:12px/1.5 Georgia,serif!important;margin:0 0 14px}
+.font-sample-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.font-sample-grid article{border:1px solid #6d5c4066;padding:14px;background:#09080666;min-width:0}
+.font-sample-grid h4{font:11px Georgia,serif!important;letter-spacing:.5px;margin:0 0 10px;color:#a99b7f}
+#app .font-specimen{font-size:20px;line-height:1.6;color:#ddceb0;text-shadow:0 1px #000}
+.font-sample-grid small{display:block;font:11px/1.5 Georgia,serif!important;color:#9f927a;margin-top:10px}
+html[data-menu-font]:not([data-menu-font=current]){--serif:var(--chosen-font)}
+html[data-menu-font]:not([data-menu-font=current]) #app :is(button,h1,h2,h3,p,label,select,.item-name,.service-item-name,.pause-location,.pause-note,.inventory-controls,.inventory-trade-hint,.relic-stats,.npc-lines){font-family:var(--chosen-font)!important}
+/* The comparison always retains its own typeface. */
+#app .font-samples h3{font-family:Georgia,serif!important}

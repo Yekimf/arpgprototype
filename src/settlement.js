@@ -1,6 +1,6 @@
 import {isTwoHanded} from './itemization.js';
 import {ensurePassives} from './passive-tree.js';
-import {makeInsightScroll,migrateScrolls,isInsightScroll} from './scrolls.js';
+import {makeInsightScroll,migrateScrolls,isInsightScroll,scrollQuantity,SCROLL_STACK} from './scrolls.js';
 import {appraisal,transferGold} from './economy.js';
 import {ensureFlask,refillFlask} from './flasks.js';
 import {generateItem, random, requiresIdentification} from './game.js';
@@ -37,6 +37,13 @@ export function findSpace(items,item,dimensions=BAG){
   return null;
 }
 export function addToContainer(items,item,dimensions=BAG){
+  if(isInsightScroll(item)){
+    let left=scrollQuantity(item);const merges=[],trial=[...items],newStacks=[];
+    for(const stack of items.filter(isInsightScroll)){const n=Math.min(left,SCROLL_STACK-scrollQuantity(stack));if(n>0){merges.push([stack,n]);left-=n;}}
+    while(left){const n=Math.min(left,SCROLL_STACK),stack={...item,id:newStacks.length?makeInsightScroll().id:item.id,quantity:n},spot=findSpace(trial,stack,dimensions);if(!spot)return false;Object.assign(stack,{bagX:spot.x,bagY:spot.y});newStacks.push(stack);trial.push(stack);left-=n;}
+    for(const [stack,n] of merges)stack.quantity=scrollQuantity(stack)+n;
+    for(let i=0;i<newStacks.length;i++){const stack=newStacks[i];if(!i){Object.assign(item,stack);items.push(item);}else items.push(stack);}return true;
+  }
   const spot=findSpace(items,item,dimensions);if(!spot)return false;
   item.bagX=spot.x;item.bagY=spot.y;items.push(item);return true;
 }
@@ -102,7 +109,7 @@ export function identifyItem(player,id,scholar=false,scrollId=null){
   if(scholar&&!player.quests.scholarRescued)return result(false,'Edrin is still trapped beneath the monastery.');
   const scroll=player.inventory.find(i=>isInsightScroll(i)&&(!scrollId||i.id===scrollId));
   if(!scholar&&!scroll)return result(false,'You need a scroll of insight in your pack. Orrin sells them.');
-  if(!scholar)player.inventory.splice(player.inventory.indexOf(scroll),1);item.identified=true;return result(true,`${item.name} revealed.`);
+  if(!scholar){if(scrollQuantity(scroll)>1)scroll.quantity=scrollQuantity(scroll)-1;else player.inventory.splice(player.inventory.indexOf(scroll),1);}item.identified=true;return result(true,`${item.name} revealed.`);
 }
 export function identifyAll(player){
   if(!player.quests.scholarRescued)return result(false,'Rescue the archivist to unlock identification.');
@@ -175,9 +182,9 @@ export function repairAll(player){
 export function acceptGuideQuest(player){
   if(player.quests.guideMet)return result(false,'Help Emberfall’s survivors, then follow the patrol orders through Marchgate to the prison convoy.');
   const gift={id:'maelin-talisman',name:'Hearthbound Talisman',slot:'charm',rarity:'magic',level:1,spirit:8,life:6,identified:false,durability:100,reforges:0,icon:'◈'};
-  const trial=[...player.inventory],gifts=[gift,makeInsightScroll(),makeInsightScroll()];
-  for(const item of gifts)if(!addToContainer(trial,item))return result(false,'Make three cells of room for the talisman and two scrolls.');
-  player.inventory.push(...gifts);player.quests.guideMet=true;player.gold+=50;player.shards+=2;
+  const trial=player.inventory.map(i=>({...i})),gifts=[gift,makeInsightScroll(2)];
+  for(const item of gifts)if(!addToContainer(trial,item))return result(false,'Make room for the talisman and a stack of two scrolls.');
+  player.inventory.splice(0,player.inventory.length,...trial);player.quests.guideMet=true;player.gold+=50;player.shards+=2;
   return result(true,'A promise made · +50 gold, 2 shards, 2 scrolls, and a mysterious talisman.');
 }
 export function claimGuideReward(player){
