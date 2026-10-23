@@ -1,3 +1,5 @@
+import {bossRelic,BOSS_ARMS} from './boss-relics.js';
+import {attackTiming} from './weapon-rig.js';
 import {testingMarkup} from './testing-ui.js';
 import {zoomAtlas} from './passive-ui.js';
 import {allocatePassive,refundPassive} from './passive-tree.js';
@@ -13,7 +15,7 @@ import {WALK_FRAMES,STRIDE_DISTANCE} from './locomotion.js';
 import {CursorCapture} from './cursor-capture.js';
 import './cursor-capture.css';
 import {planWalk} from './navigation.js';
-import {bossPlan} from './boss-abilities.js';
+import {bossPlan,bossSweepHits,bossWaveHits} from './boss-abilities.js';
 import {CHAPTERS,chapterFor} from './campaign-content.js';
 import {DEFAULTS,loadSettings,saveSettings,sanitizeSettings,optionsMarkup} from './settings.js';
 import {collectGold,goldReward} from './economy.js';
@@ -35,6 +37,7 @@ import './service-panels.css';
 import './chronicle.css';
 import './quest-book.css';
 import './kingdom.css';
+import './presentation.css';
 import {NPCDialogue} from './npc-dialogue.js';
 import {STORY_ART,LEATHER_ART,MAP_ART,GUARD_ART,STONE_ART} from './assets.js';
 import {FrontEnd} from './front-end.js';
@@ -97,7 +100,7 @@ function enterTown(initial=false){
   }
   if(player.campaign&&!initial){rememberArea();if(game.zone!=='town')game.expedition={kind:game.dungeon.kind,act:game.act,chapter:game.chapter};}
   if(!player.campaign&&!initial&&game.zone==='dungeon')game.expedition={dungeon:game.dungeon,loot:game.loot,position:{x:player.x,y:player.y},depth:game.depth,seed:game.seed};
-  clearAttackOrder();game.zone='town';game.pyre=null;game.auras={};game.dungeon=generateTown(player);game.loot=[];game.projectiles=[];game.effects=[];game.floaters=[];game.target=null;game.path=null;game.channel=null;game.interactTarget=null;game.mouseDown=false;
+  clearAttackOrder();game.zone='town';game.pyre=null;game.auras={};game.dungeon=generateTown(player);game.loot=[];game.projectiles=[];game.rangedShot=null;game.effects=[];game.floaters=[];game.target=null;game.path=null;game.channel=null;game.interactTarget=null;game.mouseDown=false;
   if(player.campaign){game.dungeon.waypoint={x:33,y:34};game.dungeon.act=player.campaign.act;game.act=player.campaign.act;}
   player.x=game.dungeon.start.x;player.y=game.dungeon.start.y;
   player.shopStock??=generateStock(player.level,game.seed);
@@ -107,7 +110,7 @@ function enterTown(initial=false){
 function enterDungeon(){
   if(player.campaign){const dest=game.expedition||{kind:'wilderness',act:player.campaign.act,chapter:chapterOf(player)};game.expedition=null;enterCampaignArea(dest.kind,dest.act,false,false,dest.chapter||0);return;}
   if(game.expedition){
-    const expedition=game.expedition;clearAttackOrder();game.zone='dungeon';game.dungeon=expedition.dungeon;game.loot=expedition.loot;game.depth=expedition.depth;game.seed=expedition.seed;player.x=expedition.position.x;player.y=expedition.position.y;game.expedition=null;game.target=null;game.path=null;game.interactTarget=null;game.channel=null;game.projectiles=[];game.effects=[];game.floaters=[];renderer.camera={...renderer.iso(player.x,player.y)};buildFlow();setZoneUI();prepareArea();
+    const expedition=game.expedition;clearAttackOrder();game.zone='dungeon';game.dungeon=expedition.dungeon;game.loot=expedition.loot;game.depth=expedition.depth;game.seed=expedition.seed;player.x=expedition.position.x;player.y=expedition.position.y;game.expedition=null;game.target=null;game.path=null;game.interactTarget=null;game.channel=null;game.projectiles=[];game.rangedShot=null;game.effects=[];game.floaters=[];renderer.camera={...renderer.iso(player.x,player.y)};buildFlow();setZoneUI();prepareArea();
   }else newFloor(game.depth,game.seed);
   save();toast('The Hollow Crypt · Press T to return to town.');
 }
@@ -120,7 +123,7 @@ function townPortal(){
 
 function newFloor(depth,seed){
   clearAttackOrder();game.zone='dungeon';game.path=null;game.channel=null;game.interactTarget=null;
-  game.depth=depth;game.seed=seed;game.dungeon=generateDungeon(seed,depth);game.loot=[];game.effects=[];game.projectiles=[];game.floaters=[];game.target=null;
+  game.depth=depth;game.seed=seed;game.dungeon=generateDungeon(seed,depth);game.loot=[];game.effects=[];game.projectiles=[];game.rangedShot=null;game.floaters=[];game.target=null;
   const start=game.dungeon.start;player.x=start.x;player.y=start.y;game.aim={x:player.x+2,y:player.y};game.flowTimer=0;
   renderer.camera={...renderer.iso(player.x,player.y)};
   setZoneUI();reveal();buildFlow();prepareArea();
@@ -155,8 +158,8 @@ function aimPoint(id='basic'){
   const enemy=enemyUnderPointer();if(enemy)return {x:enemy.x,y:enemy.y};
   return mouseScreen?renderer.unproject(mouseScreen.x,mouseScreen.y,['meteor','vortex','cataclysm','judgment'].includes(id)?0:24):game.aim;
 }
-function facePoint(point){const dx=point.x-player.x,dy=point.y-player.y,length=Math.hypot(dx,dy)||1;game.actionFacing={x:dx/length,y:dy/length};game.facing={...game.actionFacing};}
-function clearAttackOrder(){game.combatTarget=null;game.attackPending=false;game.primaryHeld=false;game.secondaryHeld=false;game.primaryMode=null;}
+function facePoint(point){const dx=point.x-player.x,dy=point.y-player.y,length=Math.hypot(dx,dy);if(length<.0001)return;game.actionFacing={x:dx/length,y:dy/length};game.facing={...game.actionFacing};}
+function clearAttackOrder(){game.queuedSkill=null;game.combatTarget=null;game.attackPending=false;game.primaryHeld=false;game.secondaryHeld=false;game.primaryMode=null;}
 function damageEnemy(e,base,element='physical',allowCrit=true,source=null){
   if(e.dead)return;
   let damage=base*game.stats.bonus*outgoingMultiplier(game.sandbox)*(element==='physical'?game.stats.physical:game.stats.spell*(element==='fire'?game.stats.fire:element==='cold'||element==='aether'?game.stats.cold:game.stats.lightning));
@@ -180,7 +183,7 @@ function kill(e){
   if(boss||e.elite||rng()<.3)game.loot.push({x:e.x-.3,y:e.y+.3,item:generateItem(rng,game.depth,boss)});
   if(boss&&player.campaign){campaignBossKilled(e);}else if(boss){game.dungeon.bossDead=true;player.quests.wardenDefeated=true;player.quests.scholarRescued=true;player.points+=2;refillFlask(player,40);$('objective').textContent='Return to Maelin · or descend deeper';$('quest-progress').textContent='Archivist rescued · +2 mastery points';toast('EDRIN IS FREE · The archivist awaits you in Emberfall. Press T.',5500);sound(560,.7,'sine');}
   player.hp=Math.min(game.stats.maxHp,player.hp+rankOf(player,'phoenix')*6+game.stats.lifeOnKill);player.mana=Math.min(game.stats.maxMana,player.mana+rankOf(player,'phoenix')*3);
-  if(levels){game.stats=playerStats(player);effect('ring',player.x,player.y,1.2,{radius:3,color:'#cbd69c'});toast(`LEVEL ${player.level} · +${levels} mastery · +${levels} passive · +${levels*5} attributes · K / C`,4500);sound(680,.45,'sine');const notice=document.createElement('div');notice.className='level-up-notice';notice.innerHTML=`<strong>LEVEL ${player.level}</strong><span>+${levels} MASTERY · +${levels} PASSIVE · +${levels*5} ATTRIBUTES</span>`;document.getElementById('app').append(notice);setTimeout(()=>notice.remove(),4100);}
+  if(levels){game.stats=playerStats(player);effect('ring',player.x,player.y,1.2,{radius:3,color:'#cbd69c'});toast(`LEVEL ${player.level} · +${levels} mastery · +${levels} passive · +${levels*5} attributes · K / C`,4500);sound(680,.45,'sine');document.querySelectorAll('.level-up-notice').forEach(n=>n.remove());const notice=document.createElement('div');notice.className='level-up-notice';notice.innerHTML=`<strong>LEVEL ${player.level}</strong><span>+${levels} MASTERY · +${levels} PASSIVE · +${levels*5} ATTRIBUTES</span>`;document.getElementById('app').append(notice);setTimeout(()=>notice.remove(),4100);}
 
 }
 function hurt(amount,element='physical'){
@@ -197,10 +200,9 @@ function hurt(amount,element='physical'){
 function basicAttack(target=null){
   if(game.zone==='town'||game.channel||game.dodgeTime>0||game.attackCooldown>0||game.actionRecovery>0||game.paused||player.hp<=0)return false;
   if(player.equipment.weapon)player.equipment.weapon.durability=Math.max(0,(player.equipment.weapon.durability??100)-.12);
-  const unarmed=!player.equipment.weapon;game.attackStyle=unarmed?'punch':'strike';game.castColor=null;game.attackCooldown=.48/game.stats.attackSpeed;game.actionRecovery=game.attackCooldown;game.attackAnim=unarmed?.32:.38;game.castLock=unarmed?.2:.28;const aim=target||aimPoint();facePoint(aim);const ax=aim.x-player.x,ay=aim.y-player.y,len=Math.hypot(ax,ay)||1;
-  if(player.equipment.weapon?.ranged){const element=player.equipment.weapon.ranged;game.projectiles.push({x:player.x,y:player.y,dx:ax/len,dy:ay/len,speed:13,life:game.stats.reach/13,damage:element==='physical'?game.stats.damage:game.stats.spellPower,kind:element==='physical'?'blade':element,element,hits:new Set(),hostile:false,pierce:1});return true;}
-  if(!unarmed)effect('slash',player.x,player.y,.28,{dx:ax/len,dy:ay/len,radius:game.stats.reach});
-  game.melee={remaining:unarmed?.145:.14,ax:ax/len,ay:ay/len,unarmed};
+  const unarmed=!player.equipment.weapon,timing=attackTiming(player.equipment.weapon,game.stats.attackSpeed);game.attackStyle=unarmed?'punch':'strike';game.castColor=null;game.attackCooldown=timing.recovery;game.actionRecovery=timing.recovery;game.attackDuration=timing.duration;game.attackAnim=timing.duration;game.castLock=timing.impact;const aim=target||aimPoint();facePoint(aim);const gap=distance(aim,player),ax=gap>.05?aim.x-player.x:game.facing.x,ay=gap>.05?aim.y-player.y:game.facing.y,len=Math.hypot(ax,ay)||1;
+  if(player.equipment.weapon?.ranged){const element=player.equipment.weapon.ranged;game.rangedShot={remaining:timing.impact,shot:{x:player.x,y:player.y,dx:ax/len,dy:ay/len,speed:13,life:game.stats.reach/13,damage:element==='physical'?game.stats.damage:game.stats.spellPower,kind:element==='physical'?'blade':element,element,hits:new Set(),hostile:false,pierce:1}};return true;}
+  game.melee={remaining:timing.impact,ax:ax/len,ay:ay/len,unarmed};
   return true;
 }
 function cast(slot){return castSkill(player.slots[slot]);}
@@ -222,10 +224,10 @@ function castSkill(id,quiet=false){
     if(id==='inferno'){if(!togglePyre(game))return false;}else game.auras[id]=true;
     player.mana=Math.min(manaCapacity(game.stats,game.auras),player.mana-(game.sandbox.infiniteMana?0:profile.cost));effect('sigil',player.x,player.y,.8,{radius:1.5,element:id==='inferno'?'fire':'aether'});return true;
   }
-  if(game.actionRecovery>0||(game.cooldowns[id]||0)>0)return;
+  if(game.actionRecovery>0||(game.cooldowns[id]||0)>0){if(!quiet&&game.actionRecovery<.22&&!skill.toggle)game.queuedSkill={id,remaining:.24};return;}
   if(!game.sandbox.infiniteMana&&player.mana<profile.cost){if(!quiet){toast('Not enough mana',1200);sound(100,.08);}return;}
   if(!game.sandbox.infiniteMana)player.mana-=profile.cost;game.actionRecovery=profile.cadence;game.castCounts[id]=(game.castCounts[id]||0)+1;
-  const power=(['cleave','quake','whirl','rend','procession'].includes(id)?game.stats.damage:game.stats.spellPower)*profile.power,aim=aimPoint(id);facePoint(aim);game.attackAnim=.38;game.castLock=.14;game.castColor=['bolt','meteor'].includes(id)?'#d79a5e':['rime','nova'].includes(id)?'#a8c4c6':'#adaac6';let dx=aim.x-player.x,dy=aim.y-player.y,len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
+  const power=(['cleave','quake','whirl','rend','procession'].includes(id)?game.stats.damage:game.stats.spellPower)*profile.power,aim=aimPoint(id);facePoint(aim);game.attackDuration=.4;game.attackAnim=.4;game.castLock=.14;game.castColor=['bolt','meteor'].includes(id)?'#d79a5e':['rime','nova'].includes(id)?'#a8c4c6':'#adaac6';let dx=aim.x-player.x,dy=aim.y-player.y,len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
   effect('cast-motes',player.x,player.y,.5,{dx,dy,element:skill.element||(['bolt','meteor'].includes(id)?'fire':'aether'),radius:profile.area});
   const range=7,point={x:player.x+dx*Math.min(len,range),y:player.y+dy*Math.min(len,range)};
   if(id==='procession'){
@@ -264,7 +266,7 @@ function elementBurst(id,x,y,radius,power){
 function dodge(){
   if(game.paused||game.dodgeCooldown>0||player.hp<=0)return;
   const aim=aimPoint(),direction={x:aim.x-player.x,y:aim.y-player.y};let dx=direction.x,dy=direction.y,len=Math.hypot(dx,dy)||1;
-  clearAttackOrder();game.melee=null;game.path=null;game.attackAnim=0;game.facing={x:dx/len,y:dy/len};game.dodgeVector={x:dx/len,y:dy/len};game.dodgeTime=.28;game.dodgeCooldown=2.8*game.stats.cdr;player.mana=Math.min(game.stats.maxMana,player.mana+rankOf(player,'ward')*6);effect('ring',player.x,player.y,.35,{radius:1,color:'#b5c5a4'});game.target=null;sound(140,.12);
+  clearAttackOrder();game.rangedShot=null;game.melee=null;game.path=null;game.attackAnim=0;game.facing={x:dx/len,y:dy/len};game.dodgeVector={x:dx/len,y:dy/len};game.dodgeTime=.28;game.dodgeCooldown=2.8*game.stats.cdr;player.mana=Math.min(game.stats.maxMana,player.mana+rankOf(player,'ward')*6);effect('ring',player.x,player.y,.35,{radius:1,color:'#b5c5a4'});game.target=null;sound(140,.12);
 }
 function potion(){
   if(game.paused||player.hp<=0)return;
@@ -314,9 +316,10 @@ function movement(){
 }
 function update(dt){
   game.time+=dt;if(game.paused||game.loading)return;
-  updateFlock(game.dungeon,dt);game.actionRecovery=Math.max(0,game.actionRecovery-dt);restoreLeech(game,dt);if(game.sandbox.infiniteMana)player.mana=manaCapacity(game.stats,game.auras);if(game.sandbox.god)player.hp=game.stats.maxHp;
+  updateFlock(game.dungeon,dt);game.actionRecovery=Math.max(0,game.actionRecovery-dt);if(game.queuedSkill){game.queuedSkill.remaining-=dt;if(game.queuedSkill.remaining<=0)game.queuedSkill=null;else if(game.actionRecovery===0){const id=game.queuedSkill.id;game.queuedSkill=null;castSkill(id,true);}}restoreLeech(game,dt);if(game.sandbox.infiniteMana)player.mana=manaCapacity(game.stats,game.auras);if(game.sandbox.god)player.hp=game.stats.maxHp;
   game.playerSlow=Math.max(0,game.playerSlow-dt);
-  if(game.melee){game.melee.remaining-=dt;if(game.melee.remaining<=0){const {ax,ay,unarmed}=game.melee;game.melee=null;let hit=false;for(const e of game.dungeon.enemies){const range=distance(e,player);if(e.dead||range>game.stats.reach)continue;const dot=((e.x-player.x)*ax+(e.y-player.y)*ay)/(range||1);if(dot>.35){damageEnemy(e,game.stats.damage);hit=true;effect('impact',e.x,e.y,.23);if(unarmed)break;}}sound(hit?180:120,.1,'triangle');}}
+  if(game.rangedShot){game.rangedShot.remaining-=dt;if(game.rangedShot.remaining<=0){game.projectiles.push(game.rangedShot.shot);game.rangedShot=null;}}
+  if(game.melee){game.melee.remaining-=dt;if(game.melee.remaining<=0){const {ax,ay,unarmed}=game.melee;game.melee=null;if(!unarmed)effect('slash',player.x,player.y,.22,{dx:ax,dy:ay,radius:game.stats.reach});let hit=false;for(const e of game.dungeon.enemies){const range=distance(e,player);if(e.dead||range>game.stats.reach)continue;const dot=((e.x-player.x)*ax+(e.y-player.y)*ay)/(range||1);if(range<.45||dot>.35){damageEnemy(e,game.stats.damage);hit=true;effect('weapon-hit',e.x,e.y,.23);if(unarmed)break;}}sound(hit?180:120,.1,'triangle');}}
 
   if(game.dungeon.pendingBoss){game.dungeon.pendingBoss.remaining-=dt;if(game.dungeon.pendingBoss.remaining<=0){const next=game.dungeon.pendingBoss.id;game.dungeon.pendingBoss=null;finalBoss(next);}}
   if(mouseScreen)game.aim=aimPoint();
@@ -346,7 +349,7 @@ function update(dt){
   const beforeMove={x:player.x,y:player.y};
   if(game.dodgeTime>0){game.dodgeTime=Math.max(0,game.dodgeTime-dt);m=game.dodgeVector;moveEntity(game.dungeon,player,m.x*13*dt,m.y*13*dt);}
   else if(game.castLock<=0){const step=Math.min(stepLimit,game.stats.speed*dt*(game.playerSlow>0?.6:1));moveEntity(game.dungeon,player,m.x*step,m.y*step);}
-  game.moving=distance(beforeMove,player)>.0001;if(game.moving){game.lastMove={...m};game.walkPhase+=distance(beforeMove,player)*WALK_FRAMES/STRIDE_DISTANCE;if(game.attackAnim<=0)game.facing={...m};}
+  game.moving=distance(beforeMove,player)>.0001;if(game.moving&&game.castLock<=0)game.attackAnim=0;if(game.moving){game.lastMove={...m};game.walkPhase+=distance(beforeMove,player)*WALK_FRAMES/STRIDE_DISTANCE;if(game.attackAnim<=0)game.facing={...m};}
 
   if(game.moving)dialogue.close();
   if(player.campaign&&game.dungeon.outdoor&&game.dungeon.kind==='wilderness'){const nextZone=inSanctuary(game.dungeon,player)?'town':'wilderness';if(nextZone!==game.zone){game.zone=nextZone;setZoneUI();if(nextZone==='wilderness'){discoverLocation(player,'wilderness',game.act);toast(chapterFor(game.act,game.chapter).wilds+' · '+chapterFor(game.act,game.chapter).task,2500);}else toast('Emberfall · Sanctuary',2000);}}
@@ -364,7 +367,7 @@ function update(dt){
     SKILL_KEYS.forEach((key,slot)=>{if(keys.has(key))castSkill(player.slots[slot],true);});
   }
   tickPyre(game,dt,(e,damage)=>damageEnemy(e,damage/(game.stats.fire*game.stats.bonus*game.stats.spell),'fire',false));
-  if(game.whirl){game.whirl.remaining-=dt;game.whirl.tick-=dt;if(game.whirl.tick<=0){game.whirl.tick+=.24;game.attackAnim=.3;for(const e of game.dungeon.enemies)if(!e.dead&&distance(e,player)<game.whirl.radius)damageEnemy(e,game.whirl.damage,'physical');}if(game.whirl.remaining<=0)game.whirl=null;}
+  if(game.whirl){game.whirl.remaining-=dt;game.whirl.tick-=dt;if(game.whirl.tick<=0){game.whirl.tick+=.24;game.attackDuration=.3;game.attackAnim=.3;for(const e of game.dungeon.enemies)if(!e.dead&&distance(e,player)<game.whirl.radius)damageEnemy(e,game.whirl.damage,'physical');}if(game.whirl.remaining<=0)game.whirl=null;}
   const gathered=collectGold(player,game.loot);if(gathered){floater(`+${gathered} gold`,player.x,player.y,'#c6ab71');save();}
   reveal();game.flowTimer-=dt;if(game.flowTimer<=0)buildFlow();
   const nearbyEnemies=game.dungeon.enemies.filter(e=>!e.dead&&Math.abs(e.x-player.x)<19&&Math.abs(e.y-player.y)<19);
@@ -374,11 +377,12 @@ function update(dt){
     if(e.burn>0){e.burn-=dt;e.burnTick=(e.burnTick||0)-dt;if(e.burnTick<=0){e.burnTick=.7;if(e.burnPower>0)damageEnemy(e,e.burnPower*.7,'fire',false);}}
     if(e.dead)continue;
     const dist=distance(e,player),boss=e.type==='warden';
-    if(boss&&e.bossId&&game.zone!=='town'&&dist<12){e.special=(e.special??2.2)-dt;if(e.special<=0){bossSpecial(e);e.special=bossCadence(e);}}
+    if(boss&&game.zone!=='town'&&dist<12){e.special=(e.special??2.2)-dt;if(e.special<=0&&!e.charge&&e.windup<=0&&!(e.castRecovery>0)){bossSpecial(e);e.special=bossCadence(e);}}
+    if(e.castRecovery>0){e.castRecovery=Math.max(0,e.castRecovery-dt);if(!e.charge)continue;}
     if(game.zone==='town')continue;if(dist<(boss?12:8.5))e.aggro=true;if(!e.aggro||dist>18)continue;
     if(e.rangedWindup){e.rangedWindup.remaining-=dt;if(e.rangedWindup.remaining<=0){const shot=e.rangedWindup;e.rangedWindup=null;game.projectiles.push({x:e.x,y:e.y,dx:shot.dx,dy:shot.dy,speed:7,life:2,damage:e.damage,kind:e.role==='archer'?'blade':'aether',element:e.role==='archer'?'physical':e.faction===4?'cold':'aether',hostile:true});}continue;}
     if(e.charge){e.charge.delay-=dt;if(e.charge.delay<=0){e.charge.remaining-=dt;moveEntity(game.dungeon,e,e.charge.dx*7*dt,e.charge.dy*7*dt);if(dist<1.3&&!e.charge.hit){hurt(e.damage*1.3);e.charge.hit=true;}if(e.charge.remaining<=0)e.charge=null;}continue;}
-    if(e.windup>0){e.windup-=dt;if(e.windup<=0){e.attackAnim=.3;if(boss){effect('quake',e.x,e.y,.65,{radius:2.6,color:'#b7a579'});if(dist<BOSS_MELEE.hitReach){hurt(e.damage*1.6,e.phaseType==='frost'?'cold':e.phaseType==='fire'?'fire':'physical');if(e.phaseType==='frost'||e.phaseType==='flood')game.playerSlow=2;}e.cooldown=BOSS_MELEE.recovery;}else{if(dist<MELEE.hitReach)hurt(e.damage);e.cooldown=MELEE.recovery;}}continue;}
+    if(e.windup>0){e.windup-=dt;if(e.windup<=0){e.attackDuration=.3;e.attackAnim=.3;if(boss){effect('quake',e.x,e.y,.65,{radius:2.6,color:'#b7a579'});if(dist<BOSS_MELEE.hitReach){hurt(e.damage*1.6,e.phaseType==='frost'?'cold':e.phaseType==='fire'?'fire':'physical');if(e.phaseType==='frost'||e.phaseType==='flood')game.playerSlow=2;}e.cooldown=BOSS_MELEE.recovery;}else{if(dist<MELEE.hitReach)hurt(e.damage);e.cooldown=MELEE.recovery;}}continue;}
     if(boss&&dist<BOSS_MELEE.reach&&e.cooldown<=0){e.windup=BOSS_MELEE.windup;continue;}
     if(e.role&&e.cooldown<=0){
       if(e.role==='bomber'&&dist<7){effect('meteor-warning',player.x,player.y,1.2,{radius:1.3,pending:true,damage:e.damage,hostile:true,element:'fire',color:e.tint});e.cooldown=4;continue;}
@@ -410,7 +414,11 @@ function update(dt){
     e.life-=dt;if(e.type==='whirl'){e.x=player.x;e.y=player.y;}
     if(e.type==='ruin-mark'&&e.life<=0&&e.pending){e.pending=false;effect('ruin-impact',e.x,e.y,.8,{radius:e.radius,element:e.element,skill:e.skill});for(const enemy of game.dungeon.enemies)if(!enemy.dead&&distance(enemy,e)<e.radius)damageEnemy(enemy,e.damage,e.element,true,e.skill);}
     if(e.type==='blade-procession'){e.x=player.x;e.y=player.y;e.tick-=dt;if(e.tick<=0){e.tick=.25;for(const enemy of game.dungeon.enemies)if(!enemy.dead&&distance(enemy,e)<e.radius)damageEnemy(enemy,e.damage*.25,'physical',true,e.skill);}}
-    if(e.type==='meteor-warning'&&e.life<=0&&e.pending){e.pending=false;if(e.playerGround){effect('ground-fire',e.x,e.y,5*(e.duration||1),{radius:e.radius,damage:e.damage,tick:0});}else if(e.hostile){effect('boss-impact',e.x,e.y,.65,{radius:e.radius,theme:e.theme,element:e.element});if(distance(player,e)<e.radius)hurt(e.damage,e.element||'physical');}else elementBurst('inferno',e.x,e.y,e.radius,e.damage);}
+    if(e.type==='meteor-warning'&&e.life<=0&&e.pending){e.pending=false;if(e.playerGround){effect('ground-fire',e.x,e.y,5*(e.duration||1),{radius:e.radius,damage:e.damage,tick:0});}else if(e.hostile){if(e.hazard)effect('hostile-ground',e.x,e.y,e.hazard,{radius:e.radius,damage:e.damage,element:e.element,tick:.7});effect('boss-impact',e.x,e.y,.65,{radius:e.radius,theme:e.theme,element:e.element});if(distance(player,e)<e.radius)hurt(e.damage,e.element||'physical');}else elementBurst('inferno',e.x,e.y,e.radius,e.damage);}
+    if(e.type==='hostile-ground'){e.tick-=dt;if(e.tick<=0){e.tick=.7;if(distance(player,e)<e.radius)hurt(e.damage,e.element);}}
+    if(e.type==='boss-sweep-warning'&&e.life<=0&&e.pending){e.pending=false;if(bossSweepHits(e,player))hurt(e.damage,e.element);effect('boss-sweep',e.x,e.y,.45,{radius:e.radius,dx:e.dx,dy:e.dy,arc:e.arc,element:e.element});}
+    if(e.type==='boss-wave-warning'&&e.life<=0&&e.pending){e.pending=false;effect('boss-wave',e.x,e.y,1.25,{radius:e.radius,damage:e.damage,element:e.element,hit:false});}
+    if(e.type==='boss-wave'&&!e.hit){if(bossWaveHits(e,player,1-e.life/e.maxLife)){e.hit=true;hurt(e.damage,e.element);}}
     if(e.type==='ground-fire'){e.tick-=dt;if(e.tick<=0){e.tick=.4;for(const enemy of game.dungeon.enemies)if(!enemy.dead&&distance(enemy,e)<e.radius){damageEnemy(enemy,e.damage*.4,'fire',false);enemy.pyreGlow=.5;}}}
     if(e.type==='vortex'){
       e.tick-=dt;
@@ -445,14 +453,14 @@ function updateHud(dt){
   const flask=ensureFlask(player);$('potion-text').textContent=`${Math.floor(flask.charges)} / 100`;$('potion-slot').title=`Life flask · ${Math.floor(flask.charges)} / 100 charges · 20 per use · Recovers over 3 seconds · No cooldown`;$('potion-slot').style.setProperty('--flask-level',flask.charges+'%');$('potion-slot').classList.toggle('recovering',flask.remaining>0);$('potion-slot').classList.toggle('empty-flask',flask.charges<FLASK.cost);
   document.querySelectorAll('[data-slot]').forEach(button=>{
     const id=player.slots[Number(button.dataset.slot)],skill=getSkill(id),cd=game.cooldowns[id]||0;
-    button.classList.toggle('empty-skill',!skill);button.classList.toggle('sustained-active',id==='inferno'?!!game.pyre:!!game.auras[id]);const skillArt=button.querySelector('.ability-art');if(skillArt.dataset.skill!==(id||'empty')){skillArt.dataset.skill=id||'empty';skillArt.innerHTML=skillIcon(id||'empty');}button.querySelector('.ability-name').textContent=skill?.name||'Unlearned';button.title=skill?`${skill.name} · ${skillProfile(player,skill,game.stats).cost} mana · ${skill.toggle?'toggle · 2s after deactivation':'no cooldown'}`:'Assign an ability in Masteries';
+    button.classList.toggle('empty-skill',!skill);button.classList.toggle('mana-starved',!!skill&&!skill.toggle&&player.mana<skillProfile(player,skill,game.stats).cost);button.classList.toggle('sustained-active',id==='inferno'?!!game.pyre:!!game.auras[id]);const skillArt=button.querySelector('.ability-art');if(skillArt.dataset.skill!==(id||'empty')){skillArt.dataset.skill=id||'empty';skillArt.innerHTML=skillIcon(id||'empty');}button.querySelector('.ability-name').textContent=skill?.name||'Unlearned';button.title=skill?`${skill.name} · ${skillProfile(player,skill,game.stats).cost} mana · ${skill.toggle?'toggle · 2s after deactivation':'no cooldown'}`:'Assign an ability in Masteries';
     if(skill?.toggle){const pyre=pyreStats(player,s);button.title=`Martyr’s Pyre · Toggle · ${pyre.dps.toFixed(0)} fire damage / sec · ${pyre.selfDps.toFixed(1)} life consumed / sec`; }const overlay=button.querySelector('i');overlay.style.display=cd>0&&!skill?.toggle?'flex':'none';overlay.textContent=cd.toFixed(1);button.style.opacity=skill&&player.mana<skill.cost?'.5':'1';
   });
   const basicId=player.equipment.weapon?'basic':'punch',basicName=player.equipment.weapon?'Strike':'Punch';const primary=$('basic-slot');if(primary.dataset.attack!==basicId){primary.dataset.attack=basicId;primary.querySelector('.ability-art').innerHTML=skillIcon(basicId);primary.querySelector('.ability-name').textContent=basicName;primary.title=basicName+' · Left click enemy';}const mouseSkill=getSkill(player.mouseSkill)||{name:basicName},mouseButton=$('mouse-slot'),mouseCd=game.cooldowns[player.mouseSkill]||0;const mouseArt=mouseButton.querySelector('.ability-art');if(mouseArt.dataset.skill!==(player.mouseSkill==='basic'?basicId:player.mouseSkill)){mouseArt.dataset.skill=player.mouseSkill==='basic'?basicId:player.mouseSkill;mouseArt.innerHTML=skillIcon(mouseArt.dataset.skill);}mouseButton.querySelector('.ability-name').textContent=mouseSkill.name;mouseButton.title=`Right mouse: ${mouseSkill.name} · Click to rebind`;mouseButton.querySelector('i').style.display=mouseCd>0?'flex':'none';mouseButton.querySelector('i').textContent=mouseCd.toFixed(1);
   for(const[id,cd]of[['dodge-slot',game.dodgeCooldown]]){const overlay=$(id).querySelector('i');overlay.style.display=cd>0?'flex':'none';overlay.textContent=cd.toFixed(1);}
   const enemy=nearestEnemy(8,game.aim),boss=game.dungeon.enemies.find(e=>e.type==='warden'&&!e.dead&&distance(e,player)<9),target=boss||(enemy&&distance(enemy,game.aim)<1.4?enemy:null);
   $('enemy-health').classList.toggle('hidden',!target||target.type==='warden');
-  const encounter=game.dungeon.enemies.find(e=>e.type==='warden'&&!e.dead&&(e.aggro||distance(e,player)<10));$('boss-health').classList.toggle('hidden',!encounter||game.zone==='town');if(encounter){$('boss-name').textContent=encounter.name||'The Hollow Warden';$('boss-fill').style.width=`${clamp(encounter.hp/encounter.maxHp*100,0,100)}%`;$('boss-phase').textContent=`${encounter.hp/encounter.maxHp<.5?'ENRAGED':'BOUND BY THE BARGAIN'} · ${encounter.moveTimer>0?encounter.moveName||'':encounter.bossId?.startsWith('captain')?'GARRISON COMMANDER':'FALLEN KNIGHT'}`;}
+  const encounter=game.dungeon.enemies.find(e=>e.type==='warden'&&!e.dead&&(e.aggro||distance(e,player)<10));$('boss-health').classList.toggle('hidden',!encounter||game.zone==='town');if(encounter){$('boss-health').classList.toggle('enraged',encounter.hp<encounter.maxHp*.5);$('boss-name').textContent=encounter.name||'The Hollow Warden';$('boss-fill').style.width=`${clamp(encounter.hp/encounter.maxHp*100,0,100)}%`;$('boss-phase').textContent=`${encounter.castRecovery>0?'GATHERING POWER':encounter.hp/encounter.maxHp<.5?'ENRAGED':'BOUND BY THE BARGAIN'} · ${encounter.moveTimer>0?encounter.moveName||'':BOSS_ARMS[encounter.phaseType]?.name||'FALLEN KNIGHT'}`;}
   if(target){$('enemy-name').textContent=target.type==='warden'?(target.name||'The Hollow Warden'):target.name|| (target.type==='wraith'?'Sepulchral Wraith':target.type==='crawler'?'Risen Pursuer':target.elite?'Oathbound Remnant':'Restless Remnant');$('enemy-fill').style.width=`${target.hp/target.maxHp*100}%`;$('enemy-kind').textContent=target.type==='warden'?(target.bossId==='wanderer'?'THE SOURCE OF THE BARGAIN':target.bossId==='king'?'THE USURPER':target.bossId?'CORRUPTED KNIGHT · ROUND TABLE':'ANCIENT · BOSS'):target.elite?'CHAMPION · UNDEAD':'UNDEAD';}
 }
 
@@ -516,7 +524,7 @@ $('modal').addEventListener('click',event=>{
     player.gold-=cost;player.points+=Object.values(player.skills).reduce((a,b)=>a+b,0);player.skills={};player.skillMods={};game.pyre=null;game.auras={};player.slots=[null,null,null,null];player.mouseSkill='basic';game.cooldowns={};game.stats=playerStats(player);player.hp=Math.min(player.hp,game.stats.maxHp);player.mana=Math.min(player.mana,game.stats.maxMana);renderPanel();save();
   }else if(action==='revive'){
     game.pyre=null;game.whirl=null;player.gold-=Math.floor(player.gold*.1);player.hp=game.stats.maxHp;player.mana=game.stats.maxMana;refillFlask(player,Math.max(0,40-ensureFlask(player).charges));player.x=game.dungeon.start.x;player.y=game.dungeon.start.y;
-    game.projectiles=[];game.panel=null;closePanel();enterTown();save();toast('You awaken beneath the lanterns of Emberfall.');
+    game.projectiles=[];game.rangedShot=null;game.panel=null;closePanel();enterTown();save();toast('You awaken beneath the lanterns of Emberfall.');
   }else if(action==='descend'){game.panel=null;closePanel();descend();}
   else if(action==='new-game'){
     closePanel();frontEnd.creation();game.frontScreen=true;game.paused=true;
@@ -649,7 +657,7 @@ function finalBoss(id){const at=game.dungeon.portal,e=makeEnemy(900+game.dungeon
 function enterCampaignArea(kind,act=player.campaign.act,viaWaypoint=false,initial=false,chapter=chapterOf(player,act)){
  if(!player.campaign||!['wilderness','stronghold'].includes(kind)||act>player.campaign.act||act<1||act>5)return false;
  if(!initial)rememberArea();clearAttackOrder();game.path=null;game.target=null;game.interactTarget=null;game.channel=null;game.mouseDown=false;game.act=act;game.chapter=chapter;game.depth=actFor(act).level+chapter*2;game.zone=kind==='wilderness'?'wilderness':'dungeon';
- const key=locationId(act,kind,chapter),cached=game.areas.get(key);game.dungeon=cached?.dungeon||(kind==='wilderness'?generateWilderness(game.seed+act*107+chapter*7919,act,player,chapter):generateStronghold(dungeonSeed(game.seed,act,chapter,player.dungeonGeneration||0),act,chapter));game.loot=cached?.loot||[];game.projectiles=[];game.effects=[];game.floaters=[];game.melee=null;game.actionRecovery=0;game.leechLife=0;game.leechMana=0;
+ const key=locationId(act,kind,chapter),cached=game.areas.get(key);game.dungeon=cached?.dungeon||(kind==='wilderness'?generateWilderness(game.seed+act*107+chapter*7919,act,player,chapter):generateStronghold(dungeonSeed(game.seed,act,chapter,player.dungeonGeneration||0),act,chapter));game.loot=cached?.loot||[];game.projectiles=[];game.rangedShot=null;game.effects=[];game.floaters=[];game.melee=null;game.actionRecovery=0;game.leechLife=0;game.leechMana=0;
  if(!cached&&kind==='stronghold'&&player.campaign.defeated.includes(captainId(act,chapter))){
   for(const e of game.dungeon.enemies)if(e.type==='warden'){e.dead=true;e.hp=0;}
   game.dungeon.bossDead=true;
@@ -692,6 +700,7 @@ function handleCampaignClick(event){
 function campaignBossKilled(e){
  player.inventory=player.inventory.filter(i=>i.id!==questRelic(game.act,game.chapter).id);
  if(!defeatCampaignBoss(player,e.bossId))return;
+ game.loot.push({x:e.x+.5,y:e.y+.4,item:bossRelic(e,game.depth),manual:true});
  player.points++;player.shards+=2;refillFlask(player,40);
  if(game.act===1&&game.chapter>=2){player.quests.scholarRescued=true;if(game.chapter===3)player.quests.wardenDefeated=true;}
  if(game.act===5&&game.chapter===3&&e.bossId!=='wanderer'){
@@ -700,11 +709,12 @@ function campaignBossKilled(e){
  setZoneUI();save();sound(560,.7,'sine');
 }
 function bossSpecial(e){
- const plan=bossPlan(e,player,e.beat||0);e.beat=(e.beat||0)+1;e.moveName=plan.name;e.moveTimer=2;
+ const plan=bossPlan(e,player,e.beat||0);e.beat=(e.beat||0)+1;e.moveName=plan.name;e.moveTimer=2;e.castRecovery=plan.recovery;e.attackDuration=plan.recovery;e.attackAnim=plan.recovery;e.weaponName=plan.weapon;
  effect('boss-cast',e.x,e.y,.8,{radius:1.8,theme:e.phaseType});
  for(const command of plan.commands){
   if(command.kind==='shot')game.projectiles.push({...command,kind:command.element,theme:e.phaseType,hostile:true});
-  if(command.kind==='mark'&&isWalkable(game.dungeon,command.x,command.y))effect('meteor-warning',command.x,command.y,command.delay,{radius:command.radius,pending:true,damage:command.damage,hostile:true,element:command.element,color:e.tint,theme:e.phaseType});
+  if(command.kind==='mark'&&isWalkable(game.dungeon,command.x,command.y))effect('meteor-warning',command.x,command.y,command.delay,{radius:command.radius,pending:true,damage:command.damage,hostile:true,element:command.element,color:e.tint,theme:e.phaseType,hazard:command.hazard});
+  if(command.kind==='sweep'||command.kind==='wave')effect('boss-'+command.kind+'-warning',command.x,command.y,command.delay,{...command,type:'boss-'+command.kind+'-warning',pending:true,theme:e.phaseType});
   if(command.kind==='charge'){e.charge={remaining:1.1,delay:.9,dx:command.dx,dy:command.dy};effect('ring',e.x,e.y,.9,{radius:1.4,color:e.tint});}
   if(command.kind==='blink'&&isWalkable(game.dungeon,command.x,command.y)){effect('ring',e.x,e.y,.4,{radius:1.4,color:e.tint});e.x=command.x;e.y=command.y;}
   if(command.kind==='summon'){e.summoned=true;for(let i=0;i<3;i++){const x=e.x+Math.cos(i*2.1)*1.2,y=e.y+Math.sin(i*2.1)*1.2;if(isWalkable(game.dungeon,x,y))game.dungeon.enemies.push(makeEnemy(1000+game.dungeon.enemies.length,x,y,'skeleton',game.depth,true));}}

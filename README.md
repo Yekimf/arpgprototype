@@ -10,6 +10,14 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.22.0
+
+- Measured grip/tip anchors for all 16 weapon paintings replace shared offsets. Weapons rotate around their handles; posed painted arms, gloves and fingers meet the grip. Two-handed weapons receive a supporting hand and empty weapon slots retain bare hands. Equipment and directional movement remain layered and cached.
+- Eight armed attack poses now have windup, strike and recovery. Weapon family and attack speed set animation timing; melee damage, slash trails and ranged release occur at the strike. Skills accept a short input buffer near the end of recovery; dodge cancels pending basic strikes. Softer enemy hit flashes, restrained sparks and a single level-up notice improve readability. Attacking an overlapping enemy no longer loses its aim or misses at zero distance.
+- Bosses use four named moves per theme, including telegraphed weapon cleaves, expanding waves, delayed seams, charges and lingering fields. Cleaves hit only their shown sector; waves hit at the moving ring; attacks leave casting/recovery windows. Enraged phases increase pattern pressure. The original crypt Warden also uses special attacks.
+- Each campaign boss’s first victory drops an unidentified, named **magic weapon trophy** matching its weapon/theme, in addition to ordinary loot. Trophies have two enchantments and identify normally; these are not guaranteed legendaries. Boss defeat records prevent repeat trophy rewards. Their origin appears after identification.
+- Darkened stone folios, worn iron skill frames, clearer mana-starved abilities, revised orb fittings and a more legible boss frame bring the UI closer to the world’s muted palette. Boss bars mark health phases and show the current move or weapon. No new runtime art files were added.
+
 ## Version 0.21.0
 
 - Strongholds admit you without livestock, wagon provisions or field-account errands. Those quests are optional rewards and lore; their order is flexible. Main objectives and journal text point toward the garrison and its commander. Boss victories still advance chapters.

@@ -1,3 +1,4 @@
+import {armedPose,weaponPlacement,WEAPON_GRIPS,ATTACK_FRAMES} from './weapon-rig.js';
 import weaponBounds from './art/weapon-bounds.json';
 import {WEAPON_ART} from './assets.js';
 import {GUARD_ART,ITEM_ART,ORIGINAL_ART} from './assets.js';
@@ -17,7 +18,7 @@ export class GuardSprites{
  clipTile(c,index,points,exclude=null){c.save();poly(c,points);c.clip();if(exclude){c.beginPath();c.rect(0,0,S,S);c.ellipse(exclude[0]*S,exclude[1]*S,50,72,0,0,Math.PI*2);c.clip('evenodd');}this.tile(c,index);c.restore();}
  frame(p,back,column,heading={x:.9,y:back?-.4:.4},direction=null){const look=appearanceOf(p),key=JSON.stringify(look)+'/'+back+'/'+column+'/'+Math.round(heading.x*10)+'/'+Math.round(heading.y*10)+'/'+(direction?.index??'legacy');if(this.cache.has(key))return this.cache.get(key);if(!this.ready)return null;
   const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;const c=canvas.getContext('2d');c.scale(W/S,128/S);c.translate(0,10);
-  const face=back?FACE.back:FACE.front,offset=back?1:0,body=({none:2,original:0,leather:4,chain:6,plate:8,robe:10})[look.armor]??0,walking=column>0&&column<=WALK_FRAMES,attack=column>WALK_FRAMES,phase=walking?(column-1)/WALK_FRAMES*2*Math.PI:0,progress=attack?(column-WALK_FRAMES-1)/(look.weapon==='none'?5:3):0;
+  const face=back?FACE.back:FACE.front,offset=back?1:0,body=({none:2,original:0,leather:4,chain:6,plate:8,robe:10})[look.armor]??0,walking=column>0&&column<=WALK_FRAMES,attack=column>WALK_FRAMES,phase=walking?(column-1)/WALK_FRAMES*2*Math.PI:0,progress=attack?(column-WALK_FRAMES-1)/(look.weapon==='none'?5:ATTACK_FRAMES-1):0;
   // Preserve the idle leg paintings: a rigid vertical step, no joint posing.
   const index=look.boots==='steel'?offset:look.boots==='leather'?4+offset:2+offset;
   const poses=face.legs.map((part,leg)=>({part,leg,step:walking?walkingLeg(phase,leg,face):null}));
@@ -32,26 +33,24 @@ export class GuardSprites{
   const torsoX=(face.legs[0].hip[0]+face.legs[1].hip[0])*160;
   c.save();if(direction){c.translate(torsoX,0);c.transform(direction.profile,0,direction.turn,1,0,0);c.translate(-torsoX,0);}
   // The unarmoured underlayer is visible when equipment is removed.
-  this.clipTile(c,2+offset,face.body);this.clipTile(c,body+offset,face.body,face.shield);
+  this.clipTile(c,2+offset,face.body);this.clipTile(c,body+offset,face.body,look.shield==='none'?null:face.shield);
   if(look.armor==='plate'){c.save();c.globalCompositeOperation='source-atop';c.fillStyle='#abb7bd13';poly(c,face.body);c.fill();c.restore();}
-  // A planted attack uses the old hand-painted combat sheet for the original outfit.
-  const nativeAttack=attack&&look.armor==='original'&&look.helm==='sallet'&&look.weapon==='sword'&&look.shield==='round'&&look.boots==='steel'&&look.gloves==='steel';
-  if(nativeAttack){c.clearRect(-10,-10,340,350);const s=this.original.naturalWidth/4;c.drawImage(this.original,(column-WALK_FRAMES-1)*s,(back?3:1)*s,s,s,0,0,S,S);this.accessories(c,look,back);c.restore();this.cache.set(key,canvas);return canvas;}
+  const armed=look.weapon!=='none',pose=armedPose(face,look,progress,attack,heading),posed=[];
+  for(let arm=0;arm<2;arm++){
+   const shoulder=point(arm===0?face.arm:face.offArm),elbow=point(arm===0?face.elbow:face.offElbow),hand=point(arm===0?face.hand:face.offHand),punch=!armed&&attack,jab=punch?(arm===0?punchPose(progress,back?-1:1):look.shield==='none'?{x:back?24:-24,y:-22}:{x:0,y:0}):{x:0,y:0};
+   const support=arm===1&&armed&&look.twoHanded?{x:posed[0].end.x+Math.cos(pose.angle)*36,y:posed[0].end.y+Math.sin(pose.angle)*36}:pose.support;
+   const goal=armed?(arm===0?pose.primary:support):{x:hand.x+jab.x,y:hand.y+jab.y};
+   posed.push(joint(shoulder,goal,Math.hypot(elbow.x-shoulder.x,elbow.y-shoulder.y),Math.hypot(hand.x-elbow.x,hand.y-elbow.y),arm===0?(back?-1:1):(back?1:-1)));
+  }
+  // Weapon first, fingers over the handle afterwards. Both wrists use the same
+  // solved grip positions; empty hands retain the painted bare-hand layer.
+  if(armed)this.weapon(c,look.weapon,back,[posed[0].end.x/S,posed[0].end.y/S],look.weaponIcon,pose.angle);
   for(let arm=1;arm>=0;arm--){
-   const shoulder=point(arm===0?face.arm:face.offArm),elbow=point(arm===0?face.elbow:face.offElbow),hand=point(arm===0?face.hand:face.offHand),punch=attack&&look.weapon==='none',jab=punch?arm===0?punchPose(progress,back?-1:1):look.shield==='none'?{x:back?30:-30,y:-28}:{x:0,y:0}:null;
-   const swing=attack&&arm===0?(-.7+progress*1.3)*(back?-1:1):0;
-   let posedHand=hand;
-   c.save();
-   // The shield painting hides its arm. Reuse the exposed weapon-side arm
-   // for the offhand, reflected and fitted to the shoulder/elbow/wrist chain.
-   const sourceShoulder=point(face.arm),sourceElbow=point(face.elbow),sourceHand=point(face.hand),width=arm===1?-1:1;
-   if(jab){const goal={x:hand.x+jab.x,y:hand.y+jab.y},pose=joint(shoulder,goal,Math.hypot(elbow.x-shoulder.x,elbow.y-shoulder.y),Math.hypot(hand.x-elbow.x,hand.y-elbow.y),arm===0?(back?-1:1):(back?1:-1));posedHand=pose.end;this.bone(c,body+offset,face.arms[0],sourceShoulder,sourceElbow,shoulder,pose.knee,width);this.bone(c,body+offset,face.forearms[0],sourceElbow,sourceHand,pose.knee,pose.end,width);c.translate(posedHand.x-hand.x,posedHand.y-hand.y);}
-   else{c.translate(shoulder.x,shoulder.y);c.rotate(swing);c.translate(-shoulder.x,-shoulder.y);if(arm===1){this.bone(c,body+offset,face.arms[0],sourceShoulder,sourceElbow,shoulder,elbow,-1);this.bone(c,body+offset,face.forearms[0],sourceElbow,sourceHand,elbow,hand,-1);}else{this.clipTile(c,body+offset,face.arms[0]);this.clipTile(c,body+offset,face.forearms[0]);}}
-   this.hand(c,look.gloves,back,arm,face,punch&&(arm===0||look.shield==='none'));
-   if(arm===0&&look.weapon!=='none')this.weapon(c,look.weapon,back,face.hand,look.weaponIcon);
-   // Equipment follows its hand. The offhand glove is correctly behind a shield.
+   const shoulder=point(arm===0?face.arm:face.offArm),hand=point(arm===0?face.hand:face.offHand),chain=posed[arm],sourceShoulder=point(face.arm),sourceElbow=point(face.elbow),sourceHand=point(face.hand),width=arm===1?-1:1;
+   this.bone(c,body+offset,face.arms[0],sourceShoulder,sourceElbow,shoulder,chain.knee,width);
+   this.bone(c,body+offset,face.forearms[0],sourceElbow,sourceHand,chain.knee,chain.end,width);
+   c.save();c.translate(chain.end.x-hand.x,chain.end.y-hand.y);this.hand(c,look.gloves,back,arm,face,armed&&(arm===0||look.twoHanded)||!armed&&attack&&(arm===0||look.shield==='none'));c.restore();
    if(arm===1&&look.shield!=='none')this.shield(c,look.shield,back,face.shield);
-   c.restore();
   }
   const head=look.helm==='none'?2:look.helm==='hood'?14:look.helm==='greathelm'?12:0,[hx,hy,hw,hh]=face.head;c.save();c.beginPath();c.rect(hx*S,hy*S,hw*S,hh*S);c.clip();this.tile(c,head+offset);c.restore();
   this.accessories(c,look,back);if(look.surcoat==='iron'){c.save();c.globalCompositeOperation='source-atop';c.fillStyle='#8d99951a';c.fillRect(0,0,S,S);c.restore();}
@@ -65,21 +64,20 @@ export class GuardSprites{
   if(gloves!=='none'){const px=x*S,py=y*S;c.save();c.strokeStyle=gloves==='steel'?'#b4ac9688':'#8b684888';c.lineWidth=1.3;c.beginPath();c.moveTo(px-9,py-10);c.lineTo(px+8,py-8);if(gloves==='steel')for(let i=0;i<3;i++){c.moveTo(px-5+i*4,py);c.lineTo(px-6+i*4,py+6);}c.stroke();c.restore();}
  }
  fist(c,gloves){const skin=gloves==='none',metal=gloves==='steel';const shade=c.createLinearGradient(-8,-9,10,8);shade.addColorStop(0,skin?'#a78767':metal?'#858577':'#705237');shade.addColorStop(.5,skin?'#87674d':metal?'#595d54':'#503b28');shade.addColorStop(1,skin?'#503a2b':metal?'#30372f':'#31291e');c.fillStyle=shade;c.strokeStyle=skin?'#503a2b':'#25231c';c.lineWidth=1.4;c.beginPath();c.moveTo(-9,-9);c.lineTo(5,-12);c.lineTo(12,-6);c.lineTo(14,4);c.lineTo(8,10);c.lineTo(-7,8);c.lineTo(-11,2);c.closePath();c.fill();c.stroke();c.strokeStyle=skin?'#bd967077':metal?'#bbb29a99':'#9e7b4b88';for(let i=0;i<3;i++){c.beginPath();c.moveTo(i*5-5,-5);c.lineTo(i*5-3,3);c.stroke();}}
- weapon(c,look,back,hand,weaponIcon=0){const x=hand[0]*S,y=hand[1]*S;
-  if(look==='sword'){const points=back?[[.77,.47],[.86,.50],[.999,.88],[.96,.90],[.80,.61],[.76,.56]]:[[.29,.48],[.38,.51],[.20,.77],[.06,.91],[.09,.81],[.27,.56]];this.clipTile(c,back?1:0,points);return;}
-  c.save();c.translate(x,y);c.rotate(back?2.65:-2.58);
-  if((weaponIcon===14||!['sword','axe','mace','spear'].includes(look))&&this.weapons.complete&&this.weapons.naturalWidth){const b=weaponBounds[weaponIcon]||weaponBounds[0],h=look==='dagger'?75:look==='wand'?95:look==='staff'?175:look==='greatsword'?155:125,w=h*b[2]/b[3];c.drawImage(this.weapons,...b,-w/2,-h+20,w,h);}
-  else if(look==='spear'){c.strokeStyle='#282016';c.lineWidth=6;c.beginPath();c.moveTo(0,22);c.lineTo(0,-145);c.stroke();c.strokeStyle='#927452';c.lineWidth=2;c.stroke();c.fillStyle='#9a9c93';poly(c,[[0,-.53],[-.025,-.43],[0,-.38],[.025,-.43]]);c.fill();}
-  else{const index=look==='mace'?15:5,s=this.items.naturalWidth/4;c.drawImage(this.items,index%4*s+3,Math.floor(index/4)*s+3,s-6,s-6,-42,-116,84,139);}c.restore();
+ weapon(c,look,back,hand,weaponIcon=0,angle=back?1:2.12){
+  if(!this.weapons.complete||!this.weapons.naturalWidth)return;
+  const b=weaponBounds[weaponIcon]||weaponBounds[0],h=(WEAPON_GRIPS[weaponIcon]||WEAPON_GRIPS[0])[4],w=h*b[2]/b[3],place=weaponPlacement(weaponIcon,w,h,angle);
+  c.save();c.translate(hand[0]*S,hand[1]*S);c.rotate(place.rotation);c.drawImage(this.weapons,...b,place.x,place.y,w,h);c.restore();
  }
+
  shield(c,look,back,center){const x=center[0]*S,y=center[1]*S;c.save();c.beginPath();if(look==='kite'){c.moveTo(x-39,y-62);c.lineTo(x+43,y-56);c.lineTo(x+38,y+25);c.lineTo(x,y+80);c.lineTo(x-38,y+27);c.closePath();}else c.ellipse(x,y,49,71,back?-.12:.12,0,Math.PI*2);c.clip();if(look==='kite'){c.fillStyle='#3d3023';c.fillRect(x-55,y-80,110,165);}this.tile(c,back?1:0);c.restore();if(look==='kite'){c.strokeStyle='#8c7855';c.lineWidth=2;c.beginPath();c.moveTo(x-39,y-62);c.lineTo(x+43,y-56);c.lineTo(x+38,y+25);c.lineTo(x,y+80);c.lineTo(x-38,y+27);c.closePath();c.stroke();}}
  accessories(c,look,back){if(back)return;const gold=look.beltRarity==='legendary'?'#c1a45e':'#9c8051';if(look.belt!=='none'){c.fillStyle='#34291d';c.fillRect(151,164,59,8);c.strokeStyle=gold;c.lineWidth=3;c.strokeRect(171,161,14,12);}if(look.charm!=='none'){c.strokeStyle='#a78c5a';c.lineWidth=1.5;c.beginPath();c.moveTo(171,83);c.lineTo(188,115);c.lineTo(208,89);c.stroke();c.fillStyle='#b2924f';c.beginPath();c.ellipse(188,116,5,7,0,0,Math.PI*2);c.fill();}if(look.ring!=='none'){c.fillStyle='#bb9f55';c.fillRect(99,159,6,3);}if(look.ring2!=='none'){c.fillStyle='#c1a565';c.fillRect(251,174,6,3);}if(look.armorRarity==='legendary'){c.fillStyle='#bd914b';c.fillRect(177,113,4,23);c.fillRect(171,118,16,3);}}
  draw(c,game){
   const vector=(game.attackAnim>0?game.actionFacing:game.facing)||game.lastMove,direction=facingPose(vector),back=direction.back,unarmed=!game.player.equipment.weapon,attack=game.attackAnim>0,mirror=unarmed&&!back?direction.screen.x>0:direction.mirror;
-  const column=attack?WALK_FRAMES+1+Math.min(unarmed?5:3,Math.floor((1-game.attackAnim/(unarmed?.32:.4))*(unarmed?6:4))):game.moving?1+Math.floor(game.walkPhase)%WALK_FRAMES:0;
+  const column=attack?WALK_FRAMES+1+Math.max(0,Math.min(unarmed?5:ATTACK_FRAMES-1,Math.floor((1-game.attackAnim/(game.attackDuration||(unarmed?.32:.4)))*(unarmed?6:ATTACK_FRAMES)))):game.moving?1+Math.floor(game.walkPhase)%WALK_FRAMES:0;
   // The base artwork's handedness is kept for gear. Mirroring is compensated
   // inside the directional pose so projected foot travel follows movement.
   const local={...direction,forward:{x:mirror?-direction.forward.x:direction.forward.x,y:direction.forward.y},turn:mirror?-direction.turn:direction.turn};
-  const frame=this.frame(game.player,back,column,local.forward,attack?null:local);if(!frame)return null;c.save();if(mirror)c.scale(-1,1);if(game.dodgeTime>0)c.globalAlpha*=.7;c.drawImage(frame,-48,-98,96,108);c.restore();return {row:direction.index,directions:16,column,action:game.dodgeTime>0?'evade':attack&&unarmed?'punch':attack?'attack':game.moving?'walk':'idle',style:'painted-guard'};
+  const frame=this.frame(game.player,back,column,local.forward,local);if(!frame)return null;c.save();if(mirror)c.scale(-1,1);if(game.dodgeTime>0)c.globalAlpha*=.7;c.drawImage(frame,-48,-98,96,108);c.restore();return {row:direction.index,directions:16,column,action:game.dodgeTime>0?'evade':attack&&unarmed?'punch':attack?'attack':game.moving?'walk':'idle',style:'painted-guard'};
  }
 }
