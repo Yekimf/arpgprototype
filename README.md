@@ -10,6 +10,11 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.29.0
+
+- Click a visible ground-item label to approach and collect it. Gear uses label clicks or F; gold still collects automatically when walked over. Labels render above scenery, separate into rows when overlapping, and remain visible for the selected pickup. Full packs leave drops on the ground; manual movement cancels the approach.
+- Outdoor areas have occasional scattered chickens with original cream/russet running sprites, safe roaming and deterministic placement. Nearby chickens grant the requested hidden, non-stacking damage and mana recovery benefit without changing the character sheet or adding buff icons.
+
 ## Version 0.28.0
 
 - Replaced the simple empty-slot outlines with nine original stone-carved equipment impressions: helm, amulet, sword, cuirass, shield, gauntlets, belt, signet and boots.

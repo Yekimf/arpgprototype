@@ -84,3 +84,6 @@ export const MENU_CREST_ART=localAsset(menuCrest);
 
 import equipmentEtchings from './art/runtime/equipment-etchings.webp?inline';
 export const EQUIPMENT_ETCHINGS_ART=localAsset(equipmentEtchings);
+
+import chickenArt from './art/runtime/chickens.webp?inline';
+export const CHICKEN_ART=localAsset(chickenArt);
