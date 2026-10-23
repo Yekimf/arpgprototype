@@ -1,24 +1,24 @@
+import {FARM_BASELINES,SCENE_BASELINES} from './scene-anchors.js';
 import {placeLootLabels} from './loot-labels.js';
 import {fountainActive,fountainKey} from './waypoint-fountains.js';
 import {combatEffect,combatProjectile} from './combat-vfx.js';
 import forestSizes from './art/forest-life-sizes.json';
 import {passivePosition} from './farmland.js';
-import {openingStage} from './opening-quests.js';
 import {WORLD_FOOT_OFFSETS} from './world-bounds.js';
 import {GuardSprites} from './guard-sprites.js';
 import {pyreStats} from './devotion.js';
 import {clamp, distance} from './game.js';
-import {CHICKEN_ART,STASH_CHEST_ART,WAYPOINT_FOUNTAIN_ART,WORLD_ART,ITEM_ART,CAMPAIGN_ART,MARCHGATE_ART,MARCHGATE_INNER_ART,FARM_ART,FOREST_LIFE_ART,FOREST_GROUND_ART} from './assets.js';
+import {STONE_COLUMN_ART,CHICKEN_ART,STASH_CHEST_ART,WAYPOINT_FOUNTAIN_ART,WORLD_ART,ITEM_ART,CAMPAIGN_ART,MARCHGATE_ART,MARCHGATE_INNER_ART,FARM_ART,FOREST_LIFE_ART,FOREST_GROUND_ART} from './assets.js';
 import {itemName} from './settlement.js';
 
 export class Renderer {
   constructor(canvas, minimap) {
     this.canvas=canvas; this.ctx=canvas.getContext('2d'); this.map=minimap; this.mc=minimap.getContext('2d');
     this.w=0;this.h=0;this.camera={x:0,y:0};this.time=0;this.zoom=1;
-    this.chickenArt=new Image();this.chickenArt.src=CHICKEN_ART;this.stashArt=new Image();this.stashArt.src=STASH_CHEST_ART;this.fountainArt=new Image();this.fountainArt.src=WAYPOINT_FOUNTAIN_ART;this.forestGroundArt=new Image();this.forestGroundArt.src=FOREST_GROUND_ART;this.forestArt=new Image();this.forestArt.src=FOREST_LIFE_ART;this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;this.farmArt=new Image();this.farmArt.src=FARM_ART;
+    this.columnArt=new Image();this.columnArt.src=STONE_COLUMN_ART;this.chickenArt=new Image();this.chickenArt.src=CHICKEN_ART;this.stashArt=new Image();this.stashArt.src=STASH_CHEST_ART;this.fountainArt=new Image();this.fountainArt.src=WAYPOINT_FOUNTAIN_ART;this.forestGroundArt=new Image();this.forestGroundArt.src=FOREST_GROUND_ART;this.forestArt=new Image();this.forestArt.src=FOREST_LIFE_ART;this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;this.farmArt=new Image();this.farmArt.src=FARM_ART;
     this.innerGateArt=new Image();this.innerGateArt.src=MARCHGATE_INNER_ART;this.gateArt=new Image();this.gateArt.src=MARCHGATE_ART;this.campaignArt=new Image();this.campaignArt.src=CAMPAIGN_ART;this.heroFrame={row:0,column:0,action:'idle'};
     this.artKeys=new WeakMap();this.artSerial=0;this.guard=new GuardSprites();this.groundCache=new Map();this.glowCache=new Map();this.wallCache=new Map();this.spriteCache=new Map();this.tileCache=new Map();this.artLoaded=false;
-    for(const art of [this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons])art.addEventListener('load',()=>{this.artLoaded=[this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
+    for(const art of [this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons])art.addEventListener('load',()=>{this.artLoaded=[this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
     this.resize();window.addEventListener('resize',()=>this.resize());
   }
   configure(settings){this.settings=settings;this.adaptiveScale=1;this.frameSample=null;this.canvas.style.filter=settings.brightness===100?'none':`brightness(${settings.brightness/100})`;this.resize();}
@@ -95,8 +95,8 @@ export class Renderer {
         const point=this.iso(x,y),v={x:point.x-base.x,y:point.y-base.y};
       const n=((x*73856093^y*19349663)>>>0)%100;if(d.water?.has(y*d.size+x)){this.poly([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17]],n<50?'#202d28':'#283731','#334036',.5);this.line([[v.x-15,v.y+16],[v.x+11,v.y+16]],'#72837425');continue;}
       const color=n<15?'#293d30':n<45?'#344238':n<70?'#3a483d':'#414c40';
-      const outside=d.outdoor&&!d.tiles[y][x];
-      const road=d.roads?.has(y*d.size+x)||d.town&&(Math.abs(x-32.5)<1.7||Math.abs(y-32.5)<1.7);
+      const outside=d.outdoor&&!d.tiles[y][x]&&!d.foundationTiles?.has(y*d.size+x);
+      const road=d.foundationTiles?.has(y*d.size+x)||d.roads?.has(y*d.size+x)||d.town&&(Math.abs(x-32.5)<1.7||Math.abs(y-32.5)<1.7);
       const farmIndex=d.barnFloors?.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)?3:road?2:d.cropPlots?.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)?0:1;
       const tile=!d.farm&&(d.town||camp||d.outdoor&&d.act===1)?this.forestTerrain(road?1:n<25?2:n>87?3:0,n%4):this.terrain(d.farm?farmIndex:d.town||d.outdoor?(road?1:0):d.courts?.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)?1:2,n%4,d.act||1,!!d.farm);
       if(tile){c.drawImage(tile,v.x-34,v.y,68,34);if(!d.farm&&!d.outdoor&&!d.town)this.line([[v.x,v.y],[v.x+34,v.y+17],[v.x,v.y+34],[v.x-34,v.y+17],[v.x,v.y]],'#0b07053a',.5);}
@@ -122,10 +122,11 @@ export class Renderer {
   }
   async prepareDungeon(d,progress){
     const token={};this.prepareToken=token;
-    await Promise.all([this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].map(art=>art.decode()));
+    await Promise.all([this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].map(art=>art.decode()));
     if(this.prepareToken!==token)return;
     // Prepare every terrain chunk, indoors and outdoors, at half resolution.
     // A new region is never revealed or generated by player movement.
+    d.foundationTiles=new Set();for(const p of d.props)if(p.type==='building'&&p.sprite!==7||p.type==='farm-prop'&&[12,13].includes(p.farmSprite)){const r=p.exit?3:2;for(let y=Math.max(0,Math.floor(p.y-r));y<Math.min(d.size,p.y+r+1);y++)for(let x=Math.max(0,Math.floor(p.x-r));x<Math.min(d.size,p.x+r+1);x++)if(Math.hypot(x+.5-p.x,y+.5-p.y)<r+.6)d.foundationTiles.add(y*d.size+x);}
     this.cachedDungeon=null;this.drawGround(d,0,0);
     if(!d.outdoor&&!d.town&&!d.critters)d.critters=d.rooms.slice(1,5).map((r,i)=>({x:r.x+1.5,y:r.y+1.5,species:'rat',phase:i*1.7}));
     {const count=Math.ceil(d.size/8);this.chunkBudget=count*count;for(let cy=0;cy<count;cy++){if(this.prepareToken!==token)return;for(let cx=0;cx<count;cx++)this.groundChunk(d,cx,cy);progress((cy+1)/count);await new Promise(requestAnimationFrame);}}
@@ -190,8 +191,8 @@ export class Renderer {
       else if(o.type==='chicken')this.chicken(o);
       else if(o.type==='livestock')this.sheep(o);
       else if(o.type==='forest-grass'){this.natureSprite([6,7,13,6,7,13][o.variant],34+(o.variant%3)*8,12+(o.variant%3)*4,2);}
-      else if(o.type==='farm-prop'){this.cachedSprite(this.farmArt,o.farmSprite,o.width,o.height);}
-      else if(o.type==='farm-entrance'){this.cachedSprite(this.farmArt,6,o.width||230,o.height||175);this.worldLabel(d.kind==='wilderness'?'THE TITHE GRAIN FIELDS':'WIDOW’S FIELDS',d.kind==='wilderness'?'F · ENTER THE FARM':'F · RETURN TO THE FIELDS',-(o.height||175)-8);}
+      else if(o.type==='farm-prop'){this.ellipse(0,0,o.width*.27,o.height*.035,'#08060366');this.cachedSprite(this.farmArt,o.farmSprite,o.width,o.height,o.height*(FARM_BASELINES[o.farmSprite]||0));}
+      else if(o.type==='farm-entrance'){this.ellipse(0,0,70,13,'#08060377');this.cachedSprite(this.farmArt,6,o.width||230,o.height||175,(o.height||175)*(FARM_BASELINES[6]||0));this.worldLabel(d.kind==='wilderness'?'THE TITHE GRAIN FIELDS':'WIDOW’S FIELDS',d.kind==='wilderness'?'F · ENTER THE FARM':'F · RETURN TO THE FIELDS',-(o.height||175)-8);}
       else if(o.type==='critter'){this.critter(o);}
       else if(o.type==='field'||o.type==='quest-object'){this.questObject(o.kind||'orders');this.worldLabel(o.label,'F · EXAMINE',-76);}
       else if(o.type==='supplies')this.supplies(o,game);
@@ -202,7 +203,7 @@ export class Renderer {
           // Foreground masonry fades where it would hide the arriving guard.
           const hero=this.iso(p.x,p.y),occludes=inside&&Math.abs(hero.x-v.x)<o.width*.48&&hero.y-v.y>-o.height+120&&hero.y<v.y+110;
           if(occludes)c.globalAlpha=.38;
-          this.ellipse(0,-14,o.width*.36,37,'#05050366');c.drawImage(art,-o.width/2,-o.height+128,o.width,o.height);
+          this.ellipse(0,3,o.width*.39,27,'#08060488');c.drawImage(art,-o.width/2,-o.height+128,o.width,o.height);
           c.globalAlpha=1;if(!inside)this.worldLabel('MARCHGATE · THE KINGDOM’S OUTER WALL','APPROACH THE PORTCULLIS · F',-o.height+15);
         }
       }
@@ -216,7 +217,7 @@ export class Renderer {
       else if(o.type==='tomb')this.tomb(o);
       else if(o.type==='loot')this.loot(o.loot,game);
       else if(o.type==='portal')this.portal(game);
-      else if(o.type==='building'){this.ellipse(0,o.stash?-2:-o.height*.11,o.width*.37,o.stash?o.width*.07:o.height*.12,'#09070530');if(o.stash){if(this.stashArt.complete&&this.stashArt.naturalWidth)this.ctx.drawImage(this.stashArt,-o.width/2,-o.height+10,o.width,o.height);}else this.sprite(o.sprite,o.width,o.height,o.height*(WORLD_FOOT_OFFSETS[o.sprite]||0));if(o.exit)this.worldLabel(game.player.campaign?(d.outdoor?'KINGDOM GATE':'THE KING’S ROAD'):'THE HOLLOW CRYPT','ENTER · F',-o.height-10);if(o.stash)this.worldLabel('PERSONAL STASH','',-o.height-7);}
+      else if(o.type==='building'){this.ellipse(0,0,o.width*.36,o.height*.045,'#08060355');this.ellipse(0,0,o.width*.25,o.height*.02,'#05040377');if(o.stash){if(this.stashArt.complete&&this.stashArt.naturalWidth)this.ctx.drawImage(this.stashArt,-o.width/2,-o.height+o.height*SCENE_BASELINES.stash,o.width,o.height);}else this.sprite(o.sprite,o.width,o.height,o.height*(WORLD_FOOT_OFFSETS[o.sprite]||0));if(o.exit)this.worldLabel(game.player.campaign?(d.outdoor?'KINGDOM GATE':'THE KING’S ROAD'):'THE HOLLOW CRYPT','ENTER · F',-o.height-10);if(o.stash)this.worldLabel('PERSONAL STASH','',-o.height-7);}
       else if(o.type==='entrance'){this.sprite(15,125,135);this.worldLabel('THE KING’S ROAD','F · LEAVE STRONGHOLD',-132);}
       else if(o.type==='npc')this.npc(o,game);
       else this.debris(o);
@@ -304,16 +305,11 @@ export class Renderer {
     if(o.variant===2){this.line([[22,-h-6],[19,-h+9],[23,-h+13],[17,-3]],'#1a291a',2);}
   }
   pillar(o){
-    const h=o.variant===0?33:73;
-    this.ellipse(0,3,23,11,'#020a0877');
-    this.poly([[-17,-3],[0,6],[17,-3],[0,-12]],'#697057','#233121');
-    this.poly([[-11,-7],[0,-1],[0,-h],[-11,-h-6]],'#394b37','#243722');
-    this.poly([[11,-7],[0,-1],[0,-h],[11,-h-6]],'#526047','#263925');
-    this.line([[-6,-h+1],[-6,-10]],'#77806055');this.line([[6,-h+1],[6,-10]],'#253822');
-    this.poly([[-16,-h-8],[0,-h+1],[16,-h-8],[16,-h-14],[0,-h-23],[-16,-h-14]],'#4b5b41','#273923');
-    this.poly([[-16,-h-14],[0,-h-23],[16,-h-14],[0,-h-5]],'#78805d','#83916a55');
-    if(h>40)this.line([[-4,-h+13],[3,-h+20],[-1,-h+28],[6,-h+40]],'#1c2b1d',1.4);
+    const h=o.variant===0?84:134,w=h*.34;
+    this.ellipse(0,1,w*.52,w*.2,'#06050388');
+    if(this.columnArt.complete&&this.columnArt.naturalWidth)this.ctx.drawImage(this.columnArt,-w/2,-h+2,w,h);
   }
+
   brazier(o){
     const c=this.ctx,flicker=Math.sin(this.time*8+o.x)*2;
     if(this.artLoaded){
@@ -458,7 +454,7 @@ export class Renderer {
     this.ellipse(0,2,17,7,'#08050388');this.sprite(n.sprite,n.id==='smith'?65:64,n.id==='smith'?88:91);
     const nearby=distance(n,game.player)<3;if(nearby){this.ctx.strokeStyle='#c7ac6a55';this.ctx.lineWidth=1;this.ctx.beginPath();this.ctx.ellipse(0,0,20,9,0,0,Math.PI*2);this.ctx.stroke();}
     this.worldLabel(n.name,n.role,-103);
-    if(n.id==='guide'&&(['meet','report-herd','report-provisions'].includes(openingStage(game.player))||game.player.quests.wardenDefeated&&!game.player.quests.guideRewarded)){this.ctx.font='bold 20px Georgia';this.ctx.fillStyle='#e3c476';this.ctx.textAlign='center';this.ctx.fillText('!',0,-123+Math.sin(this.time*2)*3);}
+    if(n.id==='guide'&&(!game.player.quests.guideMet||game.player.quests.wardenDefeated&&!game.player.quests.guideRewarded)){this.ctx.font='bold 20px Georgia';this.ctx.fillStyle='#e3c476';this.ctx.textAlign='center';this.ctx.fillText('!',0,-123+Math.sin(this.time*2)*3);}
   }
   portal(game){
     const c=this.ctx,t=this.time;this.light(0,-25,100,'#a1d3bb22');

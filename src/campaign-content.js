@@ -2,10 +2,9 @@
 // Entries are [approach, stronghold, captain, field task, recovered account, aftermath].
 export const CHAPTERS=[
  [
-  ['Kingsroad Wilds','Ruined Marchgate','Captain Hadrin','Recover the patrol orders','A sealed order names Alaric’s loyal guards as deserters. The signature is Vaelor’s, dated the night before his father died. Edrin has been moved beyond Marchgate.','Hadrin dies with a loyalist badge hidden beneath his breastplate. Fear made an accomplice of him. The prison convoy went east.'],
-  ['Widow’s Fields','The Tithe Granary','Reeve Oswen','Open the confiscated grain store','The tithe ledger lists fields left unplanted, then fines their owners for empty wagons. A margin note diverts the seized grain to Aldren’s garrison.','The grain doors stand open. Families emerge from the drainage ditches to take back their winter stores. One points you toward the prison road.'],
-  ['Gallows Road','The Prison Cistern','Warden Vey','Find the convoy manifest','A list of prisoners ends with Edrin’s name. Beside it: "Keep the archivist alive. He can read the foundation stones." The convoy disappeared into a dry cistern.','You break Edrin’s chains. He remembers Aldren asking for forgiveness before the stranger bound a thorn through his tongue. He asks you to end the knight’s suffering.'],
-  ['Briar March','Aldren’s Redoubt',null,'Break the garrison’s signal brazier','Edrin’s rubbing shows roots wrapped around a human heart. The knights are anchors for the bargain; each holds a road and feeds the next. Aldren was its first prisoner.','The thorns loosen their hold on the gate. Aldren’s hand finally releases his sword. In his saddlebag lies a plea sent to the drowned chapel—and never answered.'],
+  ['Kingsroad Wilds','Ruined Marchgate','Captain Hadrin','Break the dead Kingsroad patrols','A sealed order names Alaric’s loyal guards as deserters. The signature is Vaelor’s, dated the night before his father died. Edrin has been moved beyond Marchgate.','Hadrin dies with a loyalist badge hidden beneath his breastplate. Fear made an accomplice of him. The prison convoy went east.'],
+  ['Widow’s Fields','The Tithe Granary','Reeve Oswen','Defeat the levy enforcers','The tithe ledger lists fields left unplanted, then fines their owners for empty wagons. A margin note diverts the seized grain to Aldren’s garrison.','The grain doors stand open. Families emerge from the drainage ditches to take back their winter stores. One points you toward the prison road.'],
+  ['Blackthorn Hollow','Aldren’s Redoubt',null,'Silence the Thorn Choir','Aldren’s chanters bind dead soldiers to the hollow. End their armed circles, then break the knight’s hold on the redoubt. Edrin is still alive inside.','Aldren’s thorns loosen. You free Edrin, who traces the bargain to the drowned province beyond the wall. The first knight is at rest.'],
  ],
  [
   ['Reedbank Causeway','The Flooded Tollhouse','Tollkeeper Senn','Recover the ferrymen’s chart','Morcant ordered the sluices opened to keep the stranger’s soldiers out. The water rose faster than he expected. His own people were still on the causeway.','Senn’s toll chain sinks into the black water. A ferryman agrees to carry the stranded families while you search the flooded parish.'],
@@ -32,7 +31,7 @@ export const CHAPTERS=[
   ['Crownfall Approach','Throne of Black Glass',null,'Break the inner gate’s binding','Brennan could have stopped the prince. He chose obedience and called it loyalty. His confession ends with a warning: the stranger’s promise cannot survive without a willing king.','The last knight falls. Beyond the gate Vaelor still wears his father’s crown. The stranger stands beside him, waiting for another man to mistake hunger for duty.'],
  ],
 ];
-export const chapterFor=(act=1,chapter=0)=>{const entry=CHAPTERS[Math.max(0,Math.min(4,act-1))][Math.max(0,Math.min(3,chapter))];return {wilds:entry[0],stronghold:entry[1],captain:entry[2],task:entry[3],account:entry[4],aftermath:entry[5],number:chapter+1};};
+export const chapterFor=(act=1,chapter=0)=>{const entry=CHAPTERS[Math.max(0,Math.min(4,act-1))][Math.max(0,Math.min(CHAPTERS[Math.max(0,Math.min(4,act-1))].length-1,chapter))];return {wilds:entry[0],stronghold:entry[1],captain:entry[2],task:entry[3],account:entry[4],aftermath:entry[5],number:chapter+1};};
 export const ENEMY_ROSTERS=[
  [{name:'Deserter Spearman',type:'skeleton',role:'guard',tint:'#817452'},{name:'Briar Ravager',type:'crawler',role:'lunge',tint:'#737b49'},{name:'Marchgate Arbalist',type:'wraith',role:'archer',tint:'#9a8060'}],
  [{name:'Drowned Levy',type:'skeleton',role:'brute',tint:'#617976'},{name:'Mirebound Raider',type:'crawler',role:'venom',tint:'#62754a'},{name:'Reed Witch',type:'wraith',role:'hexer',tint:'#7c9790'}],
@@ -41,3 +40,5 @@ export const ENEMY_ROSTERS=[
  [{name:'Blackglass Praetorian',type:'skeleton',role:'guard',tint:'#8f7967'},{name:'Crown’s Pursuer',type:'crawler',role:'venom',tint:'#85564c'},{name:'Royal Executioner',type:'wraith',role:'archer',tint:'#aa8b6d'}],
 ];
 export function dressEnemy(enemy,act,rng=Math.random){const roster=ENEMY_ROSTERS[act-1],profile=roster[Math.floor(rng()*roster.length)];Object.assign(enemy,profile);enemy.faction=act;enemy.speed=profile.role==='brute'?1.55:profile.role==='lunge'?2.65:profile.role==='archer'?1.8:2.05;enemy.damage*=profile.role==='brute'?1.35:1;return enemy;}
+
+export const lastChapter=act=>(CHAPTERS[act-1]?.length||4)-1;

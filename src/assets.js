@@ -95,3 +95,18 @@ export const SET_ITEMS_ART=localAsset(setItems);
 
 import globeFrame from './art/runtime/globe-frame.webp?inline';
 export const GLOBE_FRAME_ART=localAsset(globeFrame);
+
+import equipmentMaterials from './art/runtime/equipment-materials.webp?inline';
+export const EQUIPMENT_MATERIALS_ART=localAsset(equipmentMaterials);
+
+import stoneColumn from './art/runtime/stone-column.webp?inline';
+export const STONE_COLUMN_ART=localAsset(stoneColumn);
+
+import passivebasic from './art/runtime/passive-basic.webp?inline';
+import passivesteel from './art/runtime/passive-steel.webp?inline';
+import passivecinder from './art/runtime/passive-cinder.webp?inline';
+import passiverime from './art/runtime/passive-rime.webp?inline';
+import passivestorm from './art/runtime/passive-storm.webp?inline';
+import passiveblood from './art/runtime/passive-blood.webp?inline';
+import passivewell from './art/runtime/passive-well.webp?inline';
+export const PASSIVE_SIGIL_ART={basic:localAsset(passivebasic),steel:localAsset(passivesteel),cinder:localAsset(passivecinder),rime:localAsset(passiverime),storm:localAsset(passivestorm),blood:localAsset(passiveblood),well:localAsset(passivewell)};

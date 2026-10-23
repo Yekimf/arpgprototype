@@ -1,9 +1,10 @@
+import {migrateActOne,seedActOneEncounters} from './act-one.js';
 import {questRelic} from './quest-objects.js';
 import {generateOpeningForest} from './opening-forest.js';
 import {dressFarmland,generateGranary} from './farmland.js';
 import {generateMarchgate} from './marchgate.js';
 import {frontierEdges} from './wilderness-boundary.js';
-import {chapterFor,dressEnemy} from './campaign-content.js';
+import {chapterFor,dressEnemy,lastChapter} from './campaign-content.js';
 import {generateTown,TOWN_BOUNDS} from './settlement.js';
 import {generateDungeon,makeEnemy,random,distance,isWalkable} from './game.js';
 
@@ -18,24 +19,24 @@ export const actFor=n=>ACTS[Math.max(0,Math.min(4,Number(n||1)-1))];
 export const locationId=(act,kind,chapter=0)=>kind==='town'?'emberfall':`act-${act}-${kind}${chapter?`-${chapter+1}`:''}`;
 export const chapterOf=(p,act=p.campaign?.act||1)=>p.campaign?.chapters?.[act]||0;
 export const fieldKey=(act,chapter)=>`field-${act}-${chapter}`;
-export const captainId=(act,chapter)=>chapter<3?`captain-${act}-${chapter}`:`knight-${act}`;
+export const captainId=(act,chapter)=>chapter<lastChapter(act)?`captain-${act}-${chapter}`:`knight-${act}`;
 export function completeField(p,act,chapter){const c=ensureCampaign(p),key=fieldKey(act,chapter);if(!c||c.records.includes(key))return false;c.records.push(key);return true;}
-export function nextChapter(p,act=p.campaign?.act){const c=ensureCampaign(p),chapter=chapterOf(p,act);if(!c||chapter>=3||!c.defeated.includes(captainId(act,chapter)))return false;c.chapters[act]=chapter+1;return true;}
-export function createCampaign(){return {act:1,chapters:{},records:[],defeated:[],waypoints:['emberfall'],visited:['emberfall'],guidance:[],completed:false,introSeen:true};}
-export function ensureCampaign(p){if(!p.campaign)return null;const c=p.campaign;c.act=Math.max(1,Math.min(5,c.act||1));const legacy=!c.chapters;c.chapters??={};for(const key of ['defeated','waypoints','visited','guidance','records'])if(!Array.isArray(c[key]))c[key]=[];for(let a=1;a<=5;a++)c.chapters[a]=Math.max(0,Math.min(3,Number(c.chapters[a])||0));if(legacy)for(let a=1;a<=5;a++)if(c.defeated.includes(`knight-${a}`)){c.chapters[a]=3;for(let ch=0;ch<4;ch++)if(!c.records.includes(fieldKey(a,ch)))c.records.push(fieldKey(a,ch));}if(!c.waypoints.includes('emberfall'))c.waypoints.unshift('emberfall');return c;}
+export function nextChapter(p,act=p.campaign?.act){const c=ensureCampaign(p),chapter=chapterOf(p,act);if(!c||chapter>=lastChapter(act)||!c.defeated.includes(captainId(act,chapter)))return false;c.chapters[act]=chapter+1;return true;}
+export function createCampaign(){return {actOneVersion:2,act:1,chapters:{},records:[],defeated:[],waypoints:['emberfall'],visited:['emberfall'],guidance:[],completed:false,introSeen:true};}
+export function ensureCampaign(p){if(!p.campaign)return null;const c=p.campaign;c.act=Math.max(1,Math.min(5,c.act||1));const legacy=!c.chapters;migrateActOne(p);c.chapters??={};for(const key of ['defeated','waypoints','visited','guidance','records'])if(!Array.isArray(c[key]))c[key]=[];for(let a=1;a<=5;a++)c.chapters[a]=Math.max(0,Math.min(lastChapter(a),Number(c.chapters[a])||0));if(legacy)for(let a=1;a<=5;a++)if(c.defeated.includes(`knight-${a}`)){c.chapters[a]=lastChapter(a);for(let ch=0;ch<=lastChapter(a);ch++)if(!c.records.includes(fieldKey(a,ch)))c.records.push(fieldKey(a,ch));}if(!c.waypoints.includes('emberfall'))c.waypoints.unshift('emberfall');return c;}
 export function discoverLocation(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const c=ensureCampaign(p);if(!c)return false;const id=locationId(act,kind,chapter),fresh=!c.visited.includes(id);if(fresh)c.visited.push(id);return fresh;}
 export function attuneWaypoint(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const c=ensureCampaign(p);if(!c)return false;const id=locationId(act,kind,chapter);discoverLocation(p,kind,act,chapter);if(c.waypoints.includes(id))return false;c.waypoints.push(id);return true;}
 export function canTravel(p,id){const c=ensureCampaign(p);return !!c&&c.waypoints.includes(id)&& (id==='emberfall'||Number(id.split('-')[1])<=c.act&&(!id.split('-')[3]||Number(id.split('-')[3])-1<=chapterOf(p,Number(id.split('-')[1]))));}
 export function defeatCampaignBoss(p,bossId){const c=ensureCampaign(p);if(!c||c.defeated.includes(bossId))return false;if(/^captain-[1-5]-[0-2]$/.test(bossId)){if(Number(bossId.split('-')[1])>c.act)return false;}else if(/^knight-[1-5]$/.test(bossId)){if(Number(bossId.split('-')[1])>c.act)return false;}else if(bossId==='king'){if(c.act!==5||!c.defeated.includes('knight-5'))return false;}else if(bossId==='wanderer'){if(c.act!==5||!c.defeated.includes('king'))return false;}else return false;c.defeated.push(bossId);if(bossId==='wanderer')c.completed=true;return true;}
 export function canAdvance(p,act=p.campaign?.act){return !!p.campaign?.defeated.includes(`knight-${act}`);}
 export function advanceCampaign(p){const c=ensureCampaign(p);if(!c||c.act>=5||!canAdvance(p))return false;c.act++;return true;}
-export function campaignObjective(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const a=actFor(act),ch=chapterFor(act,chapter);if(p.campaign?.completed)return 'The bargain is broken. The kingdom sees dawn.';if(kind==='town')return p.quests.guideMet?'Prepare for the next road · J opens your journal':'Speak to Sister Maelin, then follow the Kingsroad';if(kind==='wilderness')return `Enter ${ch.stronghold} · ${ch.captain||a.knight}`;if(act===5&&p.campaign?.defeated.includes('king'))return 'End the Veiled Wanderer’s bargain';if(act===5&&canAdvance(p,5))return 'Confront King Vaelor, the Usurper';return p.campaign?.defeated.includes(captainId(act,chapter))?'The road is open. Read the recovered account':`Defeat ${ch.captain||a.knight}`;}
+export function campaignObjective(p,kind,act=p.campaign?.act||1,chapter=chapterOf(p,act)){const a=actFor(act),ch=chapterFor(act,chapter);if(p.campaign?.completed)return 'The bargain is broken. The kingdom sees dawn.';if(kind==='town')return p.quests.guideMet?'Prepare for the next road · J opens your journal':'Speak to Sister Maelin, then follow the Kingsroad';if(kind==='wilderness')return `Enter ${ch.stronghold} · ${ch.captain||a.knight}`;if(act===5&&p.campaign?.defeated.includes('king'))return 'End the Veiled Wanderer’s bargain';if(act===5&&canAdvance(p,5))return 'Confront King Vaelor, the Usurper';return p.campaign?.defeated.includes(captainId(act,chapter))?'The road is open. Continue from the stronghold exit':`Defeat ${ch.captain||a.knight}`;}
 
 
 // The camp and its surrounding fields are one continuous, seeded area.
 export const inSanctuary=(d,p)=>!!d.townBounds&&p.x>d.townBounds.x1&&p.x<d.townBounds.x2&&p.y>d.townBounds.y1&&p.y<d.townBounds.y2;
 export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
- if(act===1&&chapter===0)return generateOpeningForest(seed,player,chapterFor(act,chapter).task);
+ if(act===1&&chapter===0){const d=generateOpeningForest(seed,player,chapterFor(act,chapter).task);return seedActOneEncounters(d,player,chapter);}
  const camp=act===1&&chapter===0,ch=chapterFor(act,chapter),rng=random(seed),size=camp?128:96,tiles=Array.from({length:size},()=>Array(size).fill(0)),start=camp?{x:48,y:50.5}:{x:17.5,y:77.5},portal=camp?{x:112.5,y:18.5}:{x:76.5,y:18.5},props=[],enemies=[],roads=new Set(),water=new Set();
  const townBounds=camp?{x1:TOWN_BOUNDS.x1+16,y1:TOWN_BOUNDS.y1+18,x2:TOWN_BOUNDS.x2+16,y2:TOWN_BOUNDS.y2+18}:null;
  // A broad, irregular landmass. Ponds, groves and ruins interrupt the field rather
@@ -95,11 +96,13 @@ export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
  if(camp){d.npcs=generateTown(player).npcs.map(n=>({...n,x:n.x+16,y:n.y+18}));d.townWaypoint={x:49,y:52};for(let y=townBounds.y1-2;y<=townBounds.y2+2;y++)for(let x=townBounds.x1-2;x<=townBounds.x2+2;x++)d.seen.add(y*size+x);}
  d.field.kind=questRelic(act,chapter).kind;
  if(act===1&&chapter===1)dressFarmland(d);
+ if(act===1){if(chapter===2)dressBlackthorn(d);seedActOneEncounters(d,player,chapter);}
  return d;
 }
 export function generateStronghold(seed,act=1,chapter=0){
  const level=actFor(act).level+chapter*2,ch=chapterFor(act,chapter),d=act===1&&chapter===1?generateGranary(seed,level):act===1&&chapter===0?generateMarchgate(seed,level):generateDungeon(seed,level,{roomCount:22,size:80}),boss=d.enemies.find(e=>e.type==='warden'),rng=random(seed+41);
  for(const enemy of d.enemies)if(enemy!==boss)dressEnemy(enemy,act,rng);
+ if(act===1&&chapter===2){d.biome='thornbound-redoubt';d.rooms.forEach((r,i)=>r.name=['The Chain Hall','The Briar Nave','The Penitents’ Watch'][i%3]);}
  d.act=act;d.chapter=chapter;d.kind='stronghold';d.returnGate=d.entryGate||{x:d.start.x,y:d.start.y-1};d.waypoint={x:d.start.x+2,y:d.start.y+1};
  Object.assign(boss,{name:ch.captain||actFor(act).knight,bossId:captainId(act,chapter),phaseType:act===1&&chapter===1?'harvest':['thorns','flood','fire','frost','oath'][act-1],tint:actFor(act).color,chapter});
  d.supplies={x:d.start.x-2,y:d.start.y+2};return d;
@@ -113,3 +116,10 @@ export const PROLOGUE=[
  {title:'Those who remain',text:'At Emberfall, the survivors tend their wounded and count their missing. Maelin tells you of the royal patrols, and of an archivist taken to Marchgate. No army remains to help them. You take the north road.',image:4},
  {title:'The road to Crownfall',text:'Beyond Emberfall lie the Kingsroad wilds and the sealed gates of the kingdom. Each fallen knight holds a road forward. At the end waits the mad king—and the shadow that bought his soul.',image:5},
 ];
+
+function dressBlackthorn(d){
+ d.biome='blackthorn-hollow';const rng=random(d.seed+872);d.props=d.props.map(p=>p.type==='building'&&p.sprite===7?{...p,type:'farm-prop',farmSprite:9+(Math.floor(p.x)%2),width:125,height:175}:p);
+ for(const point of d.rooms){const at={x:point.x+point.w/2+3,y:point.y+point.h/2+3};if(isWalkable(d,at.x,at.y))d.props.push({...at,type:'pillar',variant:1},{x:at.x+1,y:at.y-1,type:'bones',variant:1});}
+ for(const e of d.enemies){e.name=e.role==='hexer'?'Hollow Cantor':e.role==='archer'?'Briar Crossbowman':'Thornbound Retainer';e.tint='#78746a';}
+ d.critters=Array.from({length:7},()=>({x:25+rng()*40,y:30+rng()*40,species:'crow',phase:rng()*6}));
+}

@@ -8,7 +8,7 @@ import {questRelic} from '../src/quest-objects.js';
 import {recoverProvisions,claimProvisionsReward} from '../src/opening-quests.js';
 test('the larger opening forest connects one town exit to a distant fenced herd and gate',()=>{
  for(const seed of [17,809,42817]){const p=createPlayer();p.campaign=createCampaign();const d=generateWilderness(seed,1,p),b=d.townBounds,f=d.pasture;assert.equal(d.size,224);assert.ok(distance(d.start,d.herd)>85);assert.ok(distance(d.start,d.portal)>145);assert.ok(findPath(d,d.start,d.portal,{smooth:false}).length>160);
-  for(const at of [d.herd,d.provisions,d.field,d.waypoint,d.supplies,...d.npcs])assert.ok(findPath(d,d.start,at).length);assert.equal(d.livestock.length,22);assert.ok(d.livestock.every(p=>p.x>f.x1&&p.x<f.x2&&p.y>f.y1&&p.y<f.y2));assert.ok(d.props.some(p=>p.type==='signpost'));assert.ok(d.props.filter(p=>p.type==='road-lantern').length>10);
+  for(const at of [d.herd,d.waypoint,d.supplies,...d.npcs])assert.ok(findPath(d,d.start,at).length);assert.equal(d.livestock.length,22);assert.ok(d.livestock.every(p=>p.x>f.x1&&p.x<f.x2&&p.y>f.y1&&p.y<f.y2));assert.ok(d.props.some(p=>p.type==='signpost'));assert.ok(d.props.filter(p=>p.type==='road-lantern').length>10);
   for(let x=b.x1;x<=b.x2;x++)for(const y of [b.y1,b.y2])assert.equal(d.tiles[y][x],0);for(let y=b.y1;y<=b.y2;y++){assert.equal(d.tiles[y][b.x1],0);assert.equal(d.tiles[y][b.x2],Math.abs(y-51.5)<2.5?1:0);}
   for(let x=f.x1;x<=f.x2;x++)for(const y of [f.y1,f.y2])assert.equal(d.tiles[y][x],0);for(let y=f.y1+1;y<f.y2;y++){assert.equal(d.tiles[y][f.x2],0);assert.equal(d.tiles[y][f.x1],Math.abs(y-f.gate.y)<2?1:0);}
  }

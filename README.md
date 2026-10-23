@@ -10,6 +10,14 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
 
+## Version 0.32.0
+
+- **2** drinks a mana flask. It uses 20 of 100 charges, restores mana over three seconds, gains charges in combat and regenerates slowly. Click its blue HUD bottle as an alternative. Recovery respects mana reserved by auras.
+- Fixed passive atlas node graphics and click targets. Select a connected node and click **Inscribe**; allocation works with the captured cursor and persists in saves.
+- Act I now has exactly six combat quests across three regions: **The Dead on the Kingsroad / Ruined Marchgate**, **Break the Levy / The Tithe Granary**, and **Silence the Thorn Choir / The First Fallen Knight** in the new **Blackthorn Hollow**. Defeat three warband leaders on each approach and its stronghold boss. The Last Herd, winter provisions and document-fetch quests are removed from Act I. No errands block travel. Aldren’s defeat frees Edrin and ends the act.
+- Previous Act I saves map their fourth chapter to the new final region; defeated knights and later acts remain intact. Old Act I fetch items leave the pack. Existing unfinished field-account objectives are replaced with combat objectives.
+- New material-specific paintings distinguish cloth hoods, sallets, great helms, leather/iron gloves and boots, and round/kite shields. Marchgate columns now use weathered stone artwork. Ground contact shadows, building foundations and farm sprite anchors tie structures to their terrain.
+
 ## Version 0.31.0
 
 - Click any Q, W, E, R, LMB or RMB skill box to open a painted ability grid. Choose a learned skill, restore basic mouse attacks, or clear a keyboard slot. The Masteries page also has six clickable destination boxes; assignment dropdowns are removed.
@@ -218,12 +226,12 @@ The requested **two hours per act, with longer acts approaching four hours, rema
 | Action | Input |
 | --- | --- |
 | Move | Click / hold open ground; arrow keys also work |
-| Basic attack | Left-click an enemy; hold to repeat |
+| Assigned left attack | Left-click an enemy; hold to repeat |
 | Strike in place | Shift + left click on the world |
 | Selected mouse ability | Right click / hold |
 | Main abilities | Q, W, E, R |
 | Assign ability | Click a QWER, LMB or RMB box, then choose an ability; or click a destination box in Masteries |
-| Flask / evade | 1 / Space |
+| Life flask / mana flask / evade | 1 / 2 / Space |
 | Talk / use a gate / collect nearby loot | Click the object or press F nearby |
 | Town portal | T, then hold still for three seconds |
 | Inventory / masteries / character | I / K / C |
@@ -240,7 +248,7 @@ The requested **two hours per act, with longer acts approaching four hours, rema
 
 ## Equipment, crafting and gold
 
-The pack has **10×4 square cells**, and the stash **10×8**. Item footprints, tall weapon/shield sockets and two ring slots preserve their proportions. Common items equip immediately. Enchanted dungeon loot needs identification; purchased equipment is identified. Edrin identifies carried items freely after his rescue.
+The pack has **12×6 square cells**, and the stash **10×8**. Item footprints, tall weapon/shield sockets and two ring slots preserve their proportions. Common items equip immediately. Enchanted dungeon loot needs identification; purchased equipment is identified. Edrin identifies carried items freely after his rescue.
 
 Twenty equipment bases have distinct damage, reach, attack speed, armour, evasion, block or mana. Higher areas introduce exceptional and elite bases. Magic, rare and legendary items roll two, four and five properties, with prefix/suffix groups, displayed tiers and roll ranges. Fire, cold and storm resistance, regeneration, flask recovery and attack speed support different builds. Three legendary oath families remain available. The painted player changes by equipment family; individual named items share art within that family.
 
@@ -250,15 +258,17 @@ Gold drops scale with enemies and area difficulty and gather automatically when 
 
 Life flasks hold 100 charges, spend 20 per use and have no cooldown. Each use restores 6% life immediately and 48% over three seconds; consecutive uses add to a capped recovery pool. Normal, elite and boss kills grant 6, 14 and 45 charges. Charges regenerate at 0.45 per second outdoors and 4 per second in town, improved by charge recovery modifiers.
 
+Mana flasks use the same charge pool size and combat/passive recharge rules in a separate bottle. Each use restores 6% mana immediately and 50% over three seconds, capped by mana available after aura reservations. Use **2** or click the blue bottle.
+
 ## Skills and campaign
 
-New characters begin at level 1 with a service sword and basic attack. Each level grants two skill points and five attribute points. First, intermediate and advanced abilities unlock at levels 2, 4 and 8, with additional mastery investment requirements. Ironbound, Cinderweaver and Hollow Sage can be combined freely. Respecialization refunds learned ranks for gold.
+New characters begin at level 1 with a service sword, shield and basic attack. Each level grants one mastery point, one passive point and five attribute points. First, intermediate and advanced abilities unlock at levels 2, 4 and 8, with additional mastery investment requirements. Ironbound, Cinderweaver and Hollow Sage can be combined freely. Respecialization refunds learned ranks for gold.
 
 Martyr’s Pyre, available at level 4 after three Cinderweaver points, burns nearby enemies using maximum life, mana and fire bonuses. It consumes 9% of maximum life per second before fire resistance and switches off at 5% life. Resistance, regeneration and flask recovery support it. Returning to town extinguishes it.
 
-Emberfall is inside the open Kingsroad Wilds. Walk through the camp gates into the wilderness; accepting a quest does not teleport you. Follow the north road to Marchgate. Twenty seeded wilderness/stronghold pairs lead through five provinces. Each act has a separate enemy roster and four chapters. Three garrison commanders lead to Aldren, Morcant, Gareth, Yseld or Brennan. Each fallen knight opens the next act; the final chapter then leads to King Vaelor and the Veiled Wanderer. Act starting area levels are 1, 10, 20, 30 and 40, rising by two per chapter. Item requirements now follow area level so later-act drops remain equipable within the level cap.
+Emberfall is inside the open Kingsroad Wilds. Walk through the camp gates into the wilderness; accepting a quest does not teleport you. Follow the north road to Marchgate. Nineteen seeded wilderness/stronghold pairs lead through five provinces. Act I has three regions and six combat quests, ending with Aldren in Blackthorn Hollow. Later acts retain four chapters and separate enemy rosters leading to Morcant, Gareth, Yseld or Brennan. Each fallen knight opens the next act; the final chapter then leads to King Vaelor and the Veiled Wanderer. Act starting area levels are 1, 10, 20, 30 and 40, rising by two per chapter. Item requirements now follow area level so later-act drops remain equipable within the level cap.
 
-The kingdom map lists all eight waypoints for each province. Attune them by visiting; use them from town or another waypoint. Roadside provisions restore life, mana and flasks; clear another enemy before renewing the same cache. The journal records completed field tasks and commander aftermaths once, without repeat rewards.
+The kingdom map lists six regional waypoints for Act I and eight per later act, plus Emberfall. Click a gothic fountain to awaken it; travel from town or another fountain. Roadside provisions restore life, mana and flasks; clear another enemy before renewing the same cache. Act I records defeated warband leaders and bosses; its quest rewards cannot be repeated. Later provinces retain their field accounts and commander aftermaths.
 
 This remains a campaign prototype. Areas share a painted scenery kit and procedural layouts. Enemy variants reuse three painted body archetypes. Strongholds have up to 22 rooms. Automated route tests use powerful fixtures to verify progression; they do not establish final combat balance or hours of gameplay.
 
