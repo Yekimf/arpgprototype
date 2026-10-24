@@ -177,7 +177,7 @@ export class Renderer {
     c.save();c.translate(this.originX,this.h*.53);c.scale(this.zoom,this.zoom);c.translate(-this.camera.x,-this.camera.y);
     const viewW=this.w/this.zoom/2+120,viewH=this.h/this.zoom/2+140;
     this.drawGround(d,viewW,viewH);
-    if(!game.loading&&(!game.paused||game.panel==='death'))advanceRemains(d,dt);
+    if(!game.loading&&(!game.paused||game.panel==='death'||game.lanActive))advanceRemains(d,dt);
     this.drawRemainsGround(game,viewW,viewH);
     for(const [id,on]of Object.entries(game.auras||{}))if(on){const v=this.iso(p.x,p.y);c.save();c.translate(v.x,v.y);combatEffect(this,{type:'sigil',radius:id==='focus'?1.6:1.2,element:id==='focus'?'fire':'aether'},.2,game);c.restore();}
     if(game.pyre){const v=this.iso(p.x,p.y);this.fireField(v.x,v.y,pyreStats(p,game.stats).radius,11);}
@@ -200,6 +200,7 @@ export class Renderer {
     if(d.bossDead)objects.push({...d.portal,type:'portal'});
     for(const enemy of d.enemies)if(!enemy.dead&&(d.outdoor||distance(enemy,p)<14)&&d.seen.has(Math.floor(enemy.y)*d.size+Math.floor(enemy.x)))objects.push({...enemy,type:'enemy',enemy});
     for(const corpse of d.remains?.corpses||[])if(corpse.age<corpse.duration)objects.push({...corpse,type:'falling-body',corpse});
+    for(const peer of game.lanPeers||[])if(visible({...peer,type:'ally'}))objects.push({...peer,type:'ally',peer});
     if(p.hp>0)objects.push({...p,type:'hero'});
     objects.sort((a,b)=>(a.x+a.y)-(b.x+b.y)||(a.type==='dungeon-wall'?-1:b.type==='dungeon-wall'?1:0));
     for(const o of objects){const v=this.iso(o.x,o.y);if(!o.type.startsWith('kingdom-gate')&&(Math.abs(v.x-this.camera.x)>viewW||Math.abs(v.y-this.camera.y)>viewH))continue;
@@ -207,6 +208,7 @@ export class Renderer {
       c.save();c.translate(v.x,v.y);
       if(o.type==='falling-body')this.drawCorpse(o.corpse,game);
       else if(o.type==='hero')this.hero(game);
+      else if(o.type==='ally'){this.ellipse(0,2,15,7,'#020a07a0');this.guard.draw(c,{...game,player:o.peer,moving:o.moving,walkPhase:o.walkPhase,facing:o.facing,actionFacing:o.facing,lastMove:o.facing,attackAnim:o.attackAnim,attackDuration:o.attackDuration,dodgeTime:o.dodgeTime});if(o.pyre)this.fireField(0,0,2.7,9);c.fillStyle=o.party&&o.party===game.lanParty?'#b8cf9a':'#a7bfd4';c.font='12px Georgia';c.textAlign='center';c.fillText(o.name,0,-111);}
       else if(o.type==='enemy'){this.enemy(o.enemy,game);if(o.enemy.shock>0){this.line([[-8,-30],[-3,-37],[1,-28],[7,-33]],'#c3b897aa',1);}if(o.enemy.bleed>0)this.ellipse(3,1,7,3,'#622e2388');}
       else if(o.type==='waypoint')this.waypoint(o,game);
       else if(o.type==='chicken')this.chicken(o);
@@ -562,7 +564,7 @@ export class Renderer {
       }else if(e.type==='heal'){this.light(0,-20,55,'#bfe5a433');for(let i=0;i<5;i++)this.ellipse(Math.cos(i*2.2)*15,-progress*60+i*4,2,2,'#bdd89c');}
       c.restore();
     }
-    for(const b of game.projectiles)combatProjectile(this,b);
+    for(const b of [...game.projectiles,...(game.lanProjectiles||[]),...(game.lanCastProjectiles||[])])combatProjectile(this,b);
     for(const f of game.floaters){const p=this.iso(f.x,f.y);c.save();c.globalAlpha=Math.min(1,f.life);c.font=`${f.crit?'bold 19':'12'}px ${'Georgia'},serif`;c.textAlign='center';c.fillStyle=f.color||'#d9d7b6';c.shadowColor='#06120c';c.shadowBlur=4;c.fillText(f.text,p.x,p.y-42-(1.4-f.life)*27);c.restore();}
   }
   waypoint(o,game){
@@ -605,7 +607,7 @@ export class Renderer {
         }
       }
       const marker=(o,color,r=3)=>{if(!o||!d.seen.has(Math.floor(o.y)*d.size+Math.floor(o.x)))return;const at=project(o.x,o.y);c.strokeStyle=color;c.lineWidth=1.4;c.beginPath();c.moveTo(at.x,at.y-r);c.lineTo(at.x+r,at.y);c.lineTo(at.x,at.y+r);c.lineTo(at.x-r,at.y);c.closePath();c.stroke();};
-      marker(d.field,'#c2a66b',overlay?6:3);if(d.herd&&!game.player.quests.herdRewarded&&!game.player.campaign?.records?.includes('field-1-0'))marker(d.herd,'#c2a66b',overlay?7:4);if(d.provisions&&!game.player.quests.provisionsRecovered)marker(d.provisions,'#c2a66b',overlay?6:3);marker(d.townWaypoint,'#99dce2',overlay?7:4);marker(d.returnGate,'#d1b271',overlay?6:3);marker(d.waypoint,'#99dce2',overlay?7:4);marker(d.portal,'#d1b271',overlay?8:4);marker(d.supplies,'#b9ab83',overlay?5:2);
+      marker(d.field,'#c2a66b',overlay?6:3);if(d.herd&&!game.player.quests.herdRewarded&&!game.player.campaign?.records?.includes('field-1-0'))marker(d.herd,'#c2a66b',overlay?7:4);if(d.provisions&&!game.player.quests.provisionsRecovered)marker(d.provisions,'#c2a66b',overlay?6:3);for(const peer of game.lanPeers||[])marker(peer,peer.party&&peer.party===game.lanParty?'#b8d798':'#9dbfda',overlay?7:4);marker(d.townWaypoint,'#99dce2',overlay?7:4);marker(d.returnGate,'#d1b271',overlay?6:3);marker(d.waypoint,'#99dce2',overlay?7:4);marker(d.portal,'#d1b271',overlay?8:4);marker(d.supplies,'#b9ab83',overlay?5:2);
       for(const n of d.npcs||[])marker(n,'#cbb47e',2);for(const e of d.enemies)if(!e.dead&&distance(e,p)<8)marker(e,e.type==='warden'?'#d6a55f':'#b76c52',e.type==='warden'?4:1.5);
       const v=project(p.x,p.y);c.fillStyle='#f1dfb0';c.beginPath();c.moveTo(v.x,v.y-5);c.lineTo(v.x+3,v.y+3);c.lineTo(v.x,v.y+1);c.lineTo(v.x-3,v.y+3);c.closePath();c.fill();
       if(overlay){c.textAlign='center';c.font='12px Georgia';c.fillStyle='#cbb98caa';c.fillText(document.getElementById('location').textContent,w/2,25);c.font='9px Georgia';c.fillStyle='#b8a68099';c.fillText('TAB · CLOSE     ◈ WAYPOINT     ◆ ROAD / GATE     G · WORLD MAP',w/2,h-20);}

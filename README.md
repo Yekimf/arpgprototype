@@ -1,6 +1,6 @@
 # The Forgotten Kingdom — The Broken Oath
 
-An original, single-player isometric ARPG for **desktop mouse and keyboard**. A soldier returns from visiting family to find King Alaric murdered, his son on the throne, and the royal garrisons corrupted by a stranger’s bargain. The survivors of Emberfall point the way toward Crownfall. There is no ghost of the king or divine guidance.
+An original isometric ARPG with single-player and optional LAN co-op for **desktop mouse and keyboard**. A soldier returns from visiting family to find King Alaric murdered, his son on the throne, and the royal garrisons corrupted by a stranger’s bargain. The survivors of Emberfall point the way toward Crownfall. There is no ghost of the king or divine guidance.
 
 ## Download and play
 
@@ -8,7 +8,38 @@ An original, single-player isometric ARPG for **desktop mouse and keyboard**. A 
 2. [Download the game ZIP](https://github.com/Yekimf/arpgprototype/archive/refs/heads/main.zip) and extract it.
 3. Open **`forgotten-kingdom.html`** in a current desktop browser. To continue an existing offline character, keep using **`ashen-reliquary.html`** at its previous location; it is an identical updated copy.
 
-The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer, multiplayer server or public hosted preview.
+The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer or public hosted preview. An optional local server hosts LAN multiplayer; solo play still works directly from the HTML file.
+
+## Version 0.40.0 — Local multiplayer
+
+- Host up to eight players on one computer; other desktop computers on the same Wi-Fi connect in their browsers. Shared seeded areas, visible equipped characters, enemy health, boss attacks and deaths run through the local host.
+- Bring existing single-player characters, including their equipment, skills, quests and personal stash. Export/import files let characters move between the downloaded game and the LAN address without replacing other characters.
+- Company and party text chat, invitations, party health frames, leader removal and nearby shared kill credit. Every eligible party member receives private item and gold drops; other players cannot take them.
+- Town trading exchanges backpack items and gold together after both players confirm. Changing either offer resets confirmations. Full packs, cancellation, disconnects and failed host saves preserve ownership. The host journals character belongings to recover the latest committed exchange when an older export reconnects.
+
+## Host and join a LAN game
+
+1. Extract the complete game ZIP on the host computer and install **Node.js 20 or newer**. Players joining need only a desktop browser.
+2. On Windows, double-click **`start-lan.bat`**. On macOS/Linux run **`./start-lan.sh`** from a terminal. Alternatively run `node server/lan-server.mjs` (or `npm run lan`). No dependency installation or build is required for the downloaded release.
+3. Keep the host terminal open. Allow Node on the **private network** if the firewall asks. The host opens **`http://localhost:8787`**; friends open the host's Wi-Fi address printed in the terminal, such as `http://192.168.1.20:8787`. Use the same Wi-Fi, without guest/client isolation. No port forwarding is needed.
+4. Choose **Local multiplayer** on the title screen, select or import a character, and **Create LAN game**. Friends refresh the company list and **Join**. A company can have an optional password.
+
+### Bring a single-player character
+
+Open the updated HTML at the same filename and location used for your existing saves, in the same browser. From **Local multiplayer**, choose the character and **Export character**. Open the LAN address, choose **Import character**, then confirm the import. Browser saves belong to their address, so the downloaded file and LAN page have separate character lists.
+
+After playing, press **P → Save & leave LAN game**, then export from that page. Import the file in the original downloaded game and choose **Update matching character**. This updates that loyalist's progress and belongings while preserving other characters and shared stash pages. Personal storage travels with the character; shared stash pages stay in their original browser.
+
+### Chat, parties, loot and trading
+
+- **Enter** opens text chat; choose Company or Party, type and press Enter to send. Escape closes it. **P** opens the company roster. Invite another player, who accepts through their own roster. Party leaders can remove members; anyone can leave.
+- Nearby party members in the same area share kill credit within 30 tiles and roll their own drops. Gold still auto-collects. Players outside your party keep their own kill credit. Ground loot belongs to its recipient and lasts for that host session.
+- To trade, meet in **Emberfall**, within five tiles. Open P and choose **Trade**. Your partner accepts; both characters' belongings then lock until the trade ends. Select up to 12 backpack items and an amount of carried gold, click **Update offer**, review the partner's items, and both **Confirm offer**. Offer edits clear both confirmations. Equipment and personal stash items must be moved into the backpack first.
+- Menus do not pause a multiplayer world. Practice/god-mode and dungeon regeneration controls are unavailable during LAN play. Save and leave before returning to solo.
+
+The host keeps committed character records in **`.lan-data/characters.json`**. Keep this folder with the game and include it in backups. Closing the host ends its companies; start it again to create a new session. Character belongings persist, but enemies, rooms and uncollected ground loot reset. The LAN host is intended for trusted friends using their single-player characters.
+
+For development, `LAN_PORT`, `LAN_DATA_DIR` and `LAN_GAME_FILE` override the port, save folder and served HTML. Run `npm test` for unit checks; with a running host, `LAN_TEST_URL=http://127.0.0.1:8787 GAME_URL=http://127.0.0.1:8787 npx playwright test tests/browser/lan-multiplayer.spec.js` checks two browser clients, private loot, chat, trading and character transfer.
 
 ## Version 0.37.0
 - All equipment families have level and attribute requirements: light gear, heavy armour, agile weapons, caster weapons, jewellery, sets and boss trophies. Attributes display a base of 10 plus allocated points and origin bonuses. Might supports heavy gear, Dexterity agile gear, Will caster gear and Vitality belts/heavy plate; higher-level bases require more investment. Every origin can use its starting sword and shield.

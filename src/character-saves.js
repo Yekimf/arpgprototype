@@ -11,6 +11,7 @@ export class CharacterSaves{
   if(raw){try{const archive=JSON.parse(raw);if(archive.version!==1||!Array.isArray(archive.characters)||archive.characters.some(c=>!c.id||!validCharacterSave(c.save)))throw Error();this.state=archive;this.state.sharedStashes=Array.from({length:3},(_,i)=>Array.isArray(archive.sharedStashes?.[i])?archive.sharedStashes[i]:[]);if(!this.state.characters.some(c=>c.id===archive.activeId))this.state.activeId=this.state.characters[0]?.id||null;}catch{this.error='The character archive could not be read. It has been kept untouched.';this.readOnly=true;}}
   else if(legacy){try{const save=JSON.parse(legacy);if(validCharacterSave(save)&&!this.create(save)){const record={id:id(),createdAt:Date.now(),updatedAt:Date.now(),save:clone(save)};this.state.characters=[record];this.state.activeId=record.id;}}catch{}}
  }
+ importCharacter(save,replaceId=null){if(!validCharacterSave(save))return null;if(!replaceId)return this.create(save);const next=clone(this.state),record=next.characters.find(c=>c.id===replaceId);if(!record)return null;record.save=clone(save);record.updatedAt=Date.now();next.activeId=record.id;return this.commit(next)?this.active:null;}
  get characters(){return this.state.characters;}
  get active(){return this.characters.find(c=>c.id===this.state.activeId)||null;}
  get sharedStashes(){return this.state.sharedStashes;}

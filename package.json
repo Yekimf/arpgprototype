@@ -1,10 +1,11 @@
 {
   "name": "forgotten-kingdom",
-  "version": "0.37.0",
+  "version": "0.40.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "lan": "node server/lan-server.mjs",
     "build": "vite build --base=./ && node scripts/build-standalone.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test tests/*.test.js",
