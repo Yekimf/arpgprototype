@@ -8,6 +8,7 @@ import {rollSetItem} from '../set-items.js';
 import {bossRelic} from '../boss-relics.js';
 import {enemyCombatStats,rollWeaponHit,weaponAttack} from '../defense.js';
 import {bossPlan,bossSweepHits,bossWaveHits} from '../boss-abilities.js';
+import {firstWallTime,projectileContacts} from '../combat-geometry.js';
 const randomUUID=()=>globalThis.crypto.randomUUID();
 const copy=x=>structuredClone(x);
 const poseFacing=(raw,fallback={x:1,y:0})=>{const x=Number(raw?.x),y=Number(raw?.y),length=Math.hypot(x,y);return Number.isFinite(length)&&length>.001?{x:x/length,y:y/length}:{...fallback};};
@@ -137,7 +138,17 @@ export class LanWorld{
   if(dist<(e.type==='warden'?2.2:1.5)){if(e.cooldown<=0)e.windup=e.type==='warden'?.85:.5;continue;}
   let point=target.pos;if(!e.path||e.pathTime<w.tick){e.path=findPath(w.d,e,target.pos);e.pathTime=w.tick+.8;}while(e.path?.length&&distance(e,e.path[0])<.3)e.path.shift();point=e.path?.[0]||point;const len=distance(e,point)||1,speed=e.speed*(e.slow>0?.5:1);moveEntity(w.d,e,(point.x-e.x)/len*speed*dt,(point.y-e.y)/len*speed*dt);
  }
- for(const b of w.shots){b.life-=dt;b.x+=b.dx*b.speed*dt;b.y+=b.dy*b.speed*dt;if(!isWalkable(w.d,b.x,b.y))b.life=0;for(const p of players)if(b.life>0&&distance(b,p.pos)<.6){attack(b.source,p,b.damage,b.element);b.life=0;}}w.shots=w.shots.filter(b=>b.life>0);
+ const shotTargets=players.map(peer=>({id:peer.id,x:peer.pos.x,y:peer.pos.y,peer}));
+ for(const b of w.shots){
+  const travel=Math.min(dt,Math.max(0,b.life));if(!travel){b.life=0;continue;}
+  const from={x:b.x,y:b.y},to={x:b.x+b.dx*b.speed*travel,y:b.y+b.dy*b.speed*travel};
+  const wall=firstWallTime(from,to,(x,y,radius)=>isWalkable(w.d,x,y,radius));
+  const contact=projectileContacts(from,to,shotTargets,{radius:.6,before:wall??Infinity})[0],t=contact?.t??wall??1;
+  b.x=from.x+(to.x-from.x)*t;b.y=from.y+(to.y-from.y)*t;b.life-=dt;
+  if(contact){attack(b.source,contact.enemy.peer,b.damage,b.element);b.life=0;}
+  else if(wall!==null)b.life=0;
+ }
+ w.shots=w.shots.filter(b=>b.life>0);
  for(const a of w.actions){a.age+=dt;if(a.age<(a.delay||1))continue;const progress=Math.min(1,(a.age-(a.delay||1))/.7);if(!a.done){visual(a.kind==='sweep'?'boss-sweep':a.kind==='wave'?'boss-wave':'boss-impact',a.x,a.y,.7,{radius:a.radius,element:a.element,theme:a.source.phaseType,dx:a.dx,dy:a.dy,arc:a.arc});a.done=true;}for(const p of players){if(a.hits.has(p.id))continue;const hit=a.kind==='sweep'?bossSweepHits(a,p.pos):a.kind==='wave'?bossWaveHits(a,p.pos,progress):distance(a,p.pos)<a.radius;if(hit){attack(a.source,p,a.damage,a.element,false);a.hits.add(p.id);}}}w.actions=w.actions.filter(a=>a.age<(a.delay||1)+.75);
  }
 }

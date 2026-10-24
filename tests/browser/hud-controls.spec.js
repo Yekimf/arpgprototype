@@ -46,7 +46,7 @@ test('QWER, right mouse, and forced melee aim at the pointer',async({page},info)
   test.skip(info.project.name==='mobile','Keyboard and mouse bindings are desktop controls.');
   await load(page,'dungeon');
   const s=await snapshot(page),cursor={x:s.heroScreen.x-180,y:s.heroScreen.y+20};await page.mouse.move(cursor.x,cursor.y);
-  await page.keyboard.press('r');let cast=await snapshot(page);expect(cast.castCounts.lance).toBeGreaterThan(0);expect(cast.projectiles[0].kind).toBe('aether');
+  await page.keyboard.press('r');await expect.poll(()=>snapshot(page).then(s=>s.projectiles.some(p=>p.kind==='aether'))).toBe(true);let cast=await snapshot(page);expect(cast.castCounts.lance).toBeGreaterThan(0);expect(cast.projectiles[0].kind).toBe('aether');
   const ray={x:cursor.x-s.heroScreen.x,y:cursor.y-s.heroScreen.y},shot=cast.projectiles[0];expect((ray.x*shot.dx+ray.y*shot.dy)/(Math.hypot(ray.x,ray.y)*Math.hypot(shot.dx,shot.dy))).toBeGreaterThan(.999);
   await page.waitForTimeout(500);await page.mouse.click(cursor.x,cursor.y,{button:'right'});expect((await snapshot(page)).castCounts.bolt).toBeGreaterThan(0);
   await page.waitForTimeout(500);await page.keyboard.press('q');await expect.poll(()=>snapshot(page).then(s=>s.castCounts.cleave||0)).toBeGreaterThan(0);await page.waitForTimeout(500);await page.keyboard.press('e');await expect.poll(()=>snapshot(page).then(s=>s.castCounts.nova||0)).toBeGreaterThan(0);

@@ -5,6 +5,7 @@ import {paintDungeonWall,drawDungeonDressing,drawWallFixture} from './dungeon-wa
 import {floorMaterial,makeFloorMaterial} from './act-one-materials.js';
 import {makeStructureShadow} from './structure-shadows.js';
 import {EnemySprites} from './enemy-sprites.js';
+import {enemyHitPose,enemyHealthTrail} from './enemy-feedback.js';
 import {enemyFamily} from './enemy-appearance.js';
 import {FARM_BASELINES,SCENE_BASELINES} from './scene-anchors.js';
 import {placeLootLabels} from './loot-labels.js';
@@ -18,6 +19,7 @@ import {pyreStats} from './devotion.js';
 import {clamp, distance} from './game.js';
 import {STONE_COLUMN_ART,CHICKEN_ART,STASH_CHEST_ART,WAYPOINT_FOUNTAIN_ART,WORLD_ART,ITEM_ART,CAMPAIGN_ART,MARCHGATE_ART,MARCHGATE_INNER_ART,FARM_ART,FOREST_LIFE_ART,FOREST_GROUND_ART} from './assets.js';
 import {itemName} from './settlement.js';
+const COMBAT_TRANSIENTS=new Set(['melee-trail','hit-impact','weapon-hit','evade-dust']);
 
 export class Renderer {
   constructor(canvas, minimap) {
@@ -436,24 +438,28 @@ export class Renderer {
     if(p.hp<=0)this.light(0,-20,50,'#b02d2522');
   }
   enemy(e,game,bodyOnly=false){
-    const c=this.ctx,t=this.time,bob=Math.sin(t*6+e.phase)*(e.aggro?2:.6),boss=e.type==='warden',family=enemyFamily(e);
+    const c=this.ctx,t=this.time,bob=Math.sin(t*6+e.phase)*(e.aggro?2:.6),boss=e.type==='warden',family=enemyFamily(e),reaction=enemyHitPose(e,game.settings?.reducedMotion);
+    if(!bodyOnly){this.enemyVitals??=new WeakMap();if(!this.enemyVitals.has(e))this.enemyVitals.set(e,enemyHealthTrail(null,e.hp/Math.max(1,e.maxHp),t));}
     if(!bodyOnly)this.ellipse(0,2,boss?28:family?.shadow||13,boss?13:(family?.shadow||13)*.43,'#02090799');
+    const selected=!bodyOnly&&(game.combatTarget===e||e.id!=null&&game.combatTarget?.id===e.id),hovered=!bodyOnly&&e.id!=null&&game.hoverEnemyId===e.id;
+    if(selected||hovered)this.enemyTargetCue(boss?31:(family?.shadow||13)+3,selected);
     if(e.windup>0){this.ellipse(0,0,boss?65:22,boss?32:11,'#ae51303d');this.ellipse(0,0,boss?63:20,boss?30:10,'#d56e1b19');}
     if(!bodyOnly&&e.elite&&!boss){this.ellipse(0,0,16,8,'#a7ac5144');}
     if(this.artLoaded){
-      c.save();if(e.hit>0)c.filter='brightness(1.3)';else if(e.slow>0)c.filter='sepia(.4) hue-rotate(135deg)';c.translate(0,boss?bob*.5:0);
+      c.save();if(!bodyOnly&&reaction.active){c.translate(reaction.x,reaction.y);c.rotate(reaction.tilt);}c.translate(0,boss?bob*.5:0);
       if(e.attackAnim>0&&(boss||!['archer','hexer','bomber','venom'].includes(e.role))){const v=this.iso(game.player.x-e.x,game.player.y-e.y),len=Math.hypot(v.x,v.y)||1,lunge=Math.sin((1-e.attackAnim/(e.attackDuration||.3))*Math.PI)*9;c.translate(v.x/len*lunge,v.y/len*lunge);c.rotate(v.x/len*lunge*.006);}
       if(e.bossId){const id=e.bossId==='king'?5:e.bossId==='wanderer'?6:Number(e.bossId.split('-')[1])-1;this.campaignSprite(id+(e.attackAnim>0?8:0),boss?114:80,boss?144:100);}
       else if(boss)this.sprite(6,114,144);
       else this.enemySprites.draw(c,e,game.player,t,bodyOnly);
       c.restore();
       if(bodyOnly)return;
-      if(e.hp<e.maxHp&&!boss){c.fillStyle='#120906';c.fillRect(-20,-88,40,3);c.fillStyle=e.elite?'#bd9b58':'#a35f41';c.fillRect(-20,-88,40*e.hp/e.maxHp,3);}
+      if((e.hp<e.maxHp||selected||hovered)&&!boss)this.enemyHealthBar(e,-88);
+      if(e.slow>0){c.strokeStyle='#87999a66';c.lineWidth=1;c.beginPath();c.ellipse(0,2,15,6,0,.3,Math.PI-.3);c.stroke();for(const x of [-8,3,10])this.line([[x,1],[x+2,-3],[x+3,0]],'#a3b9b777',1);}
       if(e.burn>0||e.pyreGlow>0)this.light(0,-30,35,'#ea8c4233');if(boss)this.factionDetails(e);return;
     }
-    c.translate(0,bob);if(e.hit>0){c.shadowBlur=10;c.shadowColor='#eee3af';}
+    if(!bodyOnly&&reaction.active){c.translate(reaction.x,reaction.y);c.rotate(reaction.tilt);}c.translate(0,bob);
     if(e.type==='skeleton'){
-      const bone=e.hit>0?'#e4dabe':e.slow>0?'#96c6c9':'#aaa98e';
+      const bone=e.hit>0?'#bbae91':e.slow>0?'#96aca9':'#aaa98e';
       this.line([[-3,-16],[-7,-7],[-8,0]],bone,3);this.line([[3,-16],[5,-7],[10,-1]],bone,3);
       this.line([[0,-29],[0,-14]],bone,3);
       for(let i=0;i<3;i++)this.line([[-6+i,-26+i*4],[6-i,-26+i*4]],bone,2);
@@ -463,13 +469,13 @@ export class Renderer {
       this.poly([[-5,-17],[5,-17],[7,-10],[-6,-9]],'#635c47','#344530');
     }else if(e.type==='wraith'){
       this.light(0,-23,35,'#71c0ac18');
-      this.poly([[0,-46],[-8,-35],[-12,-19],[-16,2],[-5,-4],[0,1],[5,-5],[13,-1],[9,-25],[7,-38]],e.hit>0?'#bdcfb2':'#426c5f','#6e958033');
+      this.poly([[0,-46],[-8,-35],[-12,-19],[-16,2],[-5,-4],[0,1],[5,-5],[13,-1],[9,-25],[7,-38]],e.hit>0?'#71857a':'#426c5f','#6e958033');
       this.poly([[0,-39],[-4,-32],[-3,-24],[4,-26],[4,-34]],'#172e27');this.line([[-2,-31],[3,-31]],'#d3db95',2);
       this.line([[-9,-26],[-18,-19],[-21,-23]],'#7ba08b',2);this.line([[9,-26],[19,-20],[21,-25]],'#7ba08b',2);
     }else{
       this.light(0,-35,90,'#c7bc5f12');
       this.poly([[-15,-50],[-27,-6],[-11,-10],[0,0],[18,-4],[23,-51]],'#3a4939','#1a2b1e');
-      this.poly([[-17,-52],[13,-56],[24,-31],[11,-20],[-14,-23],[-24,-35]],e.hit>0?'#b7ad87':'#747453','#b4a56b77');
+      this.poly([[-17,-52],[13,-56],[24,-31],[11,-20],[-14,-23],[-24,-35]],e.hit>0?'#8e8366':'#747453','#b4a56b77');
       this.line([[-11,-47],[-5,-28],[13,-33]],'#ab9b65',3);
       this.poly([[-22,-56],[-7,-62],[-2,-52],[-19,-43],[-27,-47]],'#868467','#b6a57255');
       this.poly([[8,-59],[24,-55],[30,-43],[16,-40],[6,-50]],'#868467','#b6a57255');
@@ -480,9 +486,25 @@ export class Renderer {
     }
     c.shadowBlur=0;
     this.factionDetails(e);
-    if(e.hp<e.maxHp&&e.type!=='warden'){c.fillStyle='#0a150e';c.fillRect(-17,-53,34,3);c.fillStyle=e.elite?'#c0a76b':'#9b674a';c.fillRect(-17,-53,34*e.hp/e.maxHp,3);}
+    if((e.hp<e.maxHp||selected||hovered)&&!boss&&!bodyOnly)this.enemyHealthBar(e,-53);
     if(e.slow>0){c.strokeStyle='#84c9cf66';c.lineWidth=1;c.beginPath();c.ellipse(0,0,16,7,0,0,Math.PI*2);c.stroke();}
     if(e.burn>0){this.light(0,-12,25,'#d9742522');this.poly([[-4,-9],[-3,-20],[1,-15],[4,-25],[5,-8]],'#f0aa5a77');}
+  }
+  enemyTargetCue(radius,selected=false){
+    const c=this.ctx;c.save();c.strokeStyle=selected?'#bd9765b3':'#9e94736e';c.lineWidth=selected?1.3:1;
+    // Broken brass arcs stay below the feet. They do not flood-fill the floor
+    // or compete with the red ground markings of an incoming enemy attack.
+    for(let i=0;i<4;i++){const angle=i*Math.PI/2+.18;c.beginPath();c.ellipse(0,2,radius,radius*.43,0,angle,angle+.86);c.stroke();}
+    if(selected)for(const sign of [-1,1])this.line([[sign*(radius+2),2],[sign*(radius+5),2]],'#b59a6c99',1);
+    c.restore();
+  }
+  enemyHealthBar(enemy,y){
+    const c=this.ctx;this.enemyVitals??=new WeakMap();
+    const previous=this.enemyVitals.get(enemy),value=enemyHealthTrail(previous,enemy.hp/Math.max(1,enemy.maxHp),this.time);this.enemyVitals.set(enemy,value);
+    const width=42;c.save();c.fillStyle='#100b08e8';c.fillRect(-width/2-1,y-1,width+2,5);
+    c.fillStyle='#665135';c.fillRect(-width/2,y,width*value.trail,3);
+    c.fillStyle=enemy.elite?'#ad8b50':'#8f4933';c.fillRect(-width/2,y,width*value.hp,3);
+    c.fillStyle='#caa67888';c.fillRect(-width/2,y,Math.min(width*value.hp,width),.65);c.restore();
   }
   factionDetails(e){
     if(!e.faction)return;const c=this.ctx;c.save();c.globalAlpha=.8;
@@ -533,7 +555,7 @@ export class Renderer {
   }
   effects(game){
     const c=this.ctx;
-    for(const e of game.effects){const p=this.iso(e.x,e.y),progress=1-e.life/e.maxLife;c.save();c.translate(p.x,p.y);c.globalAlpha=Math.min(1,e.life*3);
+    for(const e of game.effects){const p=this.iso(e.x,e.y),progress=1-e.life/e.maxLife;c.save();c.translate(p.x,p.y);c.globalAlpha=e.type.endsWith('-warning')?1:COMBAT_TRANSIENTS.has(e.type)?Math.min(1,(1-progress)*2.5):Math.min(1,e.life*3);
       if(combatEffect(this,e,progress,game)){}
       else if(e.type==='ground-fire'){this.fireField(0,0,e.radius,Math.floor(e.x));
       }else if(e.type==='whirl'){const a=this.time*18;for(let i=0;i<3;i++){c.strokeStyle=i?'#c7c2a655':'#d6d0b088';c.lineWidth=1.2;c.beginPath();c.ellipse(0,-19,45+i*5,22+i*2,a+i*.2,0,Math.PI*.9);c.stroke();}

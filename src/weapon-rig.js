@@ -16,7 +16,7 @@ export function weaponPointOffset(icon,width,height,angle,point){
  return {x:dx*Math.cos(rotation)-dy*Math.sin(rotation),y:dx*Math.sin(rotation)+dy*Math.cos(rotation)};
 }
 export const ATTACK_FRAMES=8;
-export function attackTiming(weapon,speed=1){const look=weapon?.look||'sword',heavy=weapon?.twoHanded||['greatsword','warhammer'].includes(look),ranged=!!weapon?.ranged;const duration=Math.max(.22,Math.min(.64,(weapon?heavy?.56:look==='dagger'?.3:ranged?.4:.42:.32)/Math.max(.65,speed)));return {duration,impact:duration*(look==='spear'?.48:ranged?.40:.44),recovery:Math.max(duration,.48/Math.max(.3,speed))};}
+export function attackTiming(weapon,speed=1){const look=weapon?.look||'sword',heavy=weapon?.twoHanded||['greatsword','warhammer'].includes(look),ranged=!!weapon?.ranged;const duration=Math.max(.22,Math.min(.64,(weapon?heavy?.56:look==='dagger'?.3:ranged?.4:.42:.32)/Math.max(.65,speed)));return {duration,impact:duration*(look==='spear'?.48:ranged?.40:.44),recovery:Math.max(duration,(weapon?heavy?.60:look==='dagger'?.33:ranged?.43:.46:.36)/Math.max(.65,speed))};}
 const mix=(a,b,t)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});
 export function armedPose(face,{twoHanded=false,weapon='sword'}={},progress=0,attack=false,heading={x:0,y:1}){
  const hand={x:face.hand[0]*320,y:face.hand[1]*320},shoulder={x:face.arm[0]*320,y:face.arm[1]*320},back=face.hand[0]>.5;

@@ -20,7 +20,7 @@ export class GuardSprites{
  frame(p,back,column,heading={x:.9,y:back?-.4:.4},direction=null,state=null){
   const look=appearanceOf(p);direction??=facingPose(back?{x:-1,y:-1}:{x:1,y:1});
   state??={action:column>WALK_FRAMES?look.weapon==='none'?'punch':'attack':column?'walk':'idle',frame:column>WALK_FRAMES?column-WALK_FRAMES-1:Math.max(0,column-1),count:look.weapon==='none'?6:8,mode:weaponMode(look)};
-  const key=JSON.stringify(look)+'/'+direction.index+'/'+state.action+'/'+state.mode+'/'+state.frame;
+  const key=JSON.stringify(look)+'/'+direction.index+'/'+state.action+'/'+state.mode+'/'+state.frame+'/'+(Number.isInteger(state.locomotionFrame)?state.locomotionFrame:'-');
   if(this.cache.has(key)){const frame=this.cache.get(key);this.cache.delete(key);this.cache.set(key,frame);return frame;}if(!this.ready)return null;
   const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;const c=canvas.getContext('2d');c.translate(32,20);c.scale(.4,.4);
   // Every piece uses one projection. There is no final whole-character flip:
@@ -32,8 +32,8 @@ export class GuardSprites{
   const handLayer=arm=>{this.skin=look.setParts.gloves;const options={hand:rig.hands[arm],gloves:look.gloves,back,arm,closed:armed||state.action==='punch'};if(rig.hands[arm].grip)paintGripFingers(c,this,options);else paintHand(c,this,options);};
   const layers={
    legs:()=>{const index=(look.boots==='steel'?0:look.boots==='leather'?4:2)+offset;this.skin=look.setParts.boots;
-    const phase=state.action==='walk'?state.frame/WALK_FRAMES*Math.PI*2:0;
-    const legs=face.legs.map((part,leg)=>({part,leg,step:state.action==='walk'?walkingLeg(phase,leg,face):null})).sort((a,b)=>(a.step?.heel.y??a.part.ankle[1]*S)-(b.step?.heel.y??b.part.ankle[1]*S));
+    const walking=state.action==='walk'||Number.isInteger(state.locomotionFrame),cycle=state.action==='walk'?state.frame:state.locomotionFrame,phase=walking?cycle/WALK_FRAMES*Math.PI*2:0;
+    const legs=face.legs.map((part,leg)=>({part,leg,step:walking?walkingLeg(phase,leg,face):null})).sort((a,b)=>(a.step?.heel.y??a.part.ankle[1]*S)-(b.step?.heel.y??b.part.ankle[1]*S));
     for(const {part,leg,step}of legs){c.save();if(step)c.translate(step.x,step.y);this.skin=look.setParts.armor;this.clipTile(c,body+offset,part.thigh);this.skin=look.setParts.boots;this.clipTile(c,index,part.shin);c.restore();c.save();if(step){const boot=face.legs[1];c.translate(step.heel.x,step.heel.y);c.scale(leg===0?-1:1,1);c.translate(-boot.ankle[0]*S,-boot.ankle[1]*S);this.clipTile(c,index,boot.foot);}else this.clipTile(c,index,part.foot);c.restore();}
    },
    torso:()=>{const mask=back&&rig.grip?face.bodyGrip:face.body;this.skin=null;this.clipTile(c,2+offset,mask);this.skin=look.setParts.armor;this.clipTile(c,body+offset,mask,face.shield);},
@@ -59,6 +59,6 @@ export class GuardSprites{
   const look=appearanceOf(game.player),state=animationState(game,look),vector=(game.attackAnim>0?game.actionFacing:game.facing)||game.lastMove||{x:1,y:1},direction=facingPose(vector);
   const frame=this.frame(game.player,direction.back,state.action==='walk'?state.frame+1:state.action==='idle'?0:WALK_FRAMES+1+state.frame,direction.forward,direction,state);if(!frame)return null;
   c.save();if(game.dodgeTime>0)c.globalAlpha*=.7;c.drawImage(frame,-GUARD_FRAME.anchorX*.75,-GUARD_FRAME.anchorY*.75,W*.75,H*.75);c.restore();
-  return {row:direction.index,directions:16,column:state.action==='walk'?state.frame+1:state.action==='idle'?0:WALK_FRAMES+1+state.frame,frame:state.frame,clip:state.mode,action:game.dodgeTime>0?'evade':state.action,style:'layered-guard',layers:layerOrder(direction,state.mode,frame.composition.grip),cacheBytes:this.cache.size*W*H*4};
+  return {row:direction.index,directions:16,column:state.action==='walk'?state.frame+1:state.action==='idle'?0:WALK_FRAMES+1+state.frame,frame:state.frame,clip:state.mode,action:game.dodgeTime>0?'evade':state.action,style:'layered-guard',layers:layerOrder(direction,state.mode,frame.composition.grip),cacheBytes:this.cache.size*W*H*4,...(Number.isInteger(state.locomotionFrame)?{locomotionFrame:state.locomotionFrame}:{})};
  }
 }

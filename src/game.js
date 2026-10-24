@@ -62,7 +62,8 @@ export function makeEnemy(id,x,y,type,depth,elite=false) {
 }
 
 export function isWalkable(dungeon,x,y,radius=.21) {
-  return [[-radius,-radius],[radius,-radius],[-radius,radius],[radius,radius]].every(([a,b])=>dungeon.tiles[Math.floor(y+b)]?.[Math.floor(x+a)]===1);
+  const left=Math.floor(x-radius),right=Math.floor(x+radius),top=Math.floor(y-radius),bottom=Math.floor(y+radius),a=dungeon.tiles[top],b=dungeon.tiles[bottom];
+  return a?.[left]===1&&a?.[right]===1&&b?.[left]===1&&b?.[right]===1;
 }
 export function moveEntity(dungeon,entity,dx,dy,radius=.21) {
   if(isWalkable(dungeon,entity.x+dx,entity.y,radius)) entity.x+=dx;
@@ -99,7 +100,7 @@ export const MASTERIES = {
     {id:'execution',name:'Executioner',icon:'♔',max:3,req:7,description:'Deal {v}% more damage to enemies below 35% life.',base:15,step:15},
   ]},
   ember: {name:'Cinderweaver',subtitle:'FIRE · DEVOTION · IMMOLATION',description:'Bind the last embers of a fallen star. Every flame carries the promise of another.',color:'#d89a6d',nodes:[
-    {id:'bolt',name:'Ember Bolt',icon:'♨',max:5,req:0,active:true,cost:12,cooldown:1.5,description:'Launch a piercing ember for {v}% damage. Burns for 3 seconds.',base:145,step:28},
+    {id:'bolt',name:'Ember Bolt',icon:'♨',max:5,req:0,active:true,cost:12,cooldown:1.5,description:'Launch an ember that hits one enemy for {v}% fire damage and burns for 3 seconds.',base:145,step:28},
     {id:'kindling',name:'Kindling',icon:'♢',max:5,req:0,description:'+{v}% fire damage, including burning damage.',base:8,step:8},
     {id:'spirit',name:'Inner Furnace',icon:'☼',max:5,req:0,description:'+{v} maximum mana and +0.6 mana regeneration per rank.',base:12,step:12},
     {id:'meteor',name:'Consecrated Ground',icon:'☄',max:5,req:3,active:true,cost:30,cooldown:8,description:'Kindle the aimed ground for 5 seconds, dealing {v}% fire damage per second to enemies standing within it.',base:75,step:15},
@@ -117,7 +118,7 @@ export const MASTERIES = {
     {id:'convergence',name:'Convergence',icon:'❖',max:3,req:7,description:'+{v}% all damage for each mastery with 3+ invested points.',base:5,step:5},
   ]},
 };
-export const INNATE_SKILL={id:'lance',name:'Spectral Shard',icon:'➹',max:5,req:0,active:true,cost:8,cooldown:2,base:110,step:20,description:'A focused aether projectile deals {v}% weapon damage, aimed at the cursor.'};
+export const INNATE_SKILL={id:'lance',name:'Spectral Shard',icon:'➹',max:5,req:0,active:true,cost:8,cooldown:2,base:110,step:20,description:'A focused aether projectile deals {v}% spell damage, aimed at the cursor. Pierces up to three enemies.'};
 MASTERIES.aether.nodes.push(INNATE_SKILL);
 for(const [key,nodes] of Object.entries(NEW_SKILLS))MASTERIES[key].nodes.push(...nodes);
 for(const mastery of Object.values(MASTERIES))for(const node of mastery.nodes)if(node.active&&!node.toggle)node.cooldown=0;

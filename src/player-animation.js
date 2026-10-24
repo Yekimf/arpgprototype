@@ -1,9 +1,10 @@
+import {WALK_FRAMES} from './locomotion.js';
 import {oneHandedMelee,oneHandedPose} from './one-handed-pose.js';
 // Original key poses in the guard painting's coordinate space. These are sampled
 // into fixed frames once, then shared by body, gloves, shield and weapon layers.
 // Combat timing selects frames; equipment never runs its own animation clock.
 export const PLAYER_DIRECTIONS=16;
-export const CLIP_FRAMES={idle:1,walk:16,attack:8,punch:6,cast:8};
+export const CLIP_FRAMES={idle:1,walk:WALK_FRAMES,attack:8,punch:6,cast:8};
 const smooth=t=>t*t*(3-2*t);
 const tracks={
  slash:[[0,0,0,0],[.23,-8,-48,-1.1],[.48,46,-14,.55],[.7,27,8,1],[1,0,0,0]],
@@ -17,7 +18,7 @@ const tracks={
 function sample(track,t){let b=track.findIndex(k=>k[0]>=t);if(b<=0)return track[0].slice(1);const a=track[b-1],next=track[b],u=smooth((t-a[0])/(next[0]-a[0]));return a.slice(1).map((n,i)=>n+(next[i+1]-n)*u);}
 export const POSE_FRAMES=Object.fromEntries(Object.entries(tracks).map(([name,track])=>[name,Object.freeze(Array.from({length:name==='punch'?6:8},(_,i)=>Object.freeze(sample(track,i/(name==='punch'?5:7)))))]));
 export function weaponMode(look){if(look.weapon==='none')return 'punch';if(['bow','crossbow'].includes(look.weapon))return look.weapon;if(['spear','dagger'].includes(look.weapon))return 'thrust';return look.twoHanded?'heavy':'slash';}
-export function animationState(game,look){const attacking=game.attackAnim>0,cast=attacking&&game.animationMode==='cast',action=cast?'cast':attacking?look.weapon==='none'?'punch':'attack':game.moving?'walk':'idle',count=CLIP_FRAMES[action],progress=attacking?Math.max(0,Math.min(1,1-game.attackAnim/(game.attackDuration||.4))):0,frame=attacking?Math.min(count-1,Math.floor(progress*count)):game.moving?Math.floor(game.walkPhase||0)%count:0;return {action,frame,count,mode:cast?'cast':weaponMode(look)};}
+export function animationState(game,look){const attacking=game.attackAnim>0,cast=attacking&&game.animationMode==='cast',action=cast?'cast':attacking?look.weapon==='none'?'punch':'attack':game.moving?'walk':'idle',count=CLIP_FRAMES[action],progress=attacking?Math.max(0,Math.min(1,1-game.attackAnim/(game.attackDuration||.4))):0,frame=attacking?Math.min(count-1,Math.floor(progress*count)):game.moving?Math.floor(game.walkPhase||0)%count:0;return {action,frame,count,mode:cast?'cast':weaponMode(look),...(attacking&&game.moving?{locomotionFrame:Math.floor(game.walkPhase||0)%WALK_FRAMES}:{})};}
 export function layerOrder(direction,mode=null,grip=false){
  if(grip){if(direction.back)return ['legs','offArm','primaryArm','torso','head','accessories','shield','offForearm','offHand','primaryForearm','primaryPalm','weapon','primaryHand'];return ['legs','offArm','torso','head','accessories','primaryArm','primaryForearm','offForearm','primaryPalm','weapon','primaryHand','offHand','shield'];}
  const primaryNear=direction.screen.x>=0,far=primaryNear?'offArm':'primaryArm',near=primaryNear?'primaryArm':'offArm';
