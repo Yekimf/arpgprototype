@@ -10,6 +10,7 @@ import {enemyCombatStats,rollWeaponHit,weaponAttack} from '../defense.js';
 import {bossPlan,bossSweepHits,bossWaveHits} from '../boss-abilities.js';
 const randomUUID=()=>globalThis.crypto.randomUUID();
 const copy=x=>structuredClone(x);
+const poseFacing=(raw,fallback={x:1,y:0})=>{const x=Number(raw?.x),y=Number(raw?.y),length=Math.hypot(x,y);return Number.isFinite(length)&&length>.001?{x:x/length,y:y/length}:{...fallback};};
 const hash=async s=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(s)))),n=>n.toString(16).padStart(2,'0')).join('');
 const text=(s,n=160)=>String(s??'').replace(/[\x00-\x1f]/g,' ').trim().slice(0,n);
 export const assets=p=>({inventory:p.inventory,equipment:p.equipment,gold:p.gold,stash:p.stash,bankGold:p.bankGold,buyback:p.buyback,shopStock:p.shopStock,shards:p.shards});
@@ -75,7 +76,7 @@ export class LanWorld{
    if(a.area!==s.area)return;const d=this.area(r,s.area).d,dt=Math.min(2,Math.max(.1,(this.now()-s.lastMove)/1000)),max=Math.max(playerStats(s.player).speed,13)*dt+2;
    const pos={x:Number(a.x),y:Number(a.y)};if(!Number.isFinite(pos.x)||!Number.isFinite(pos.y)||!isWalkable(d,pos.x,pos.y,.2))return;
    if(distance(pos,s.pos)<=max)s.pos=pos;s.lastMove=this.now();s.player.hp=Math.max(0,Math.min(playerStats(s.player).maxHp,Number(a.hp)||0));
-   s.pose={facing:{x:Number(a.facing?.x)||1,y:Number(a.facing?.y)||0},moving:!!a.moving,walkPhase:Number(a.walkPhase)||0,attackAnim:Math.max(0,Math.min(.7,Number(a.attackAnim)||0)),attackDuration:.4,dodgeTime:Math.max(0,Math.min(.3,Number(a.dodgeTime)||0)),pyre:!!a.pyre};return;
+   s.pose={facing:poseFacing(a.facing),moving:!!a.moving,walkPhase:Number(a.walkPhase)||0,attackAnim:Math.max(0,Math.min(.7,Number(a.attackAnim)||0)),attackDuration:Math.max(.22,Math.min(.7,Number(a.attackDuration)||.4)),animationMode:a.animationMode==='cast'?'cast':'attack',actionFacing:poseFacing(a.actionFacing,poseFacing(a.facing)),dodgeTime:Math.max(0,Math.min(.3,Number(a.dodgeTime)||0)),pyre:!!a.pyre};return;
   }
   if(a.type==='enter'){if(s.trade)throw Error('Cancel the trade before travelling.');const w=this.area(r,a.area);s.area=a.area;const at={x:Number(a.x),y:Number(a.y)};s.pos=isWalkable(w.d,at.x,at.y,.2)?at:{...w.d.start};s.lastMove=this.now();return {type:'entered',area:s.area};}
   if(a.type==='cast'){if(s.trade)throw Error('Finish trading first.');this.broadcast(r,{type:'cast',area:s.area,from:s.id,skill:text(a.skill,30),x:s.pos.x,y:s.pos.y,tx:Number(a.tx)||s.pos.x,ty:Number(a.ty)||s.pos.y},s.area);return;}

@@ -1,0 +1,2 @@
+import {readFile,writeFile} from 'node:fs/promises';import {createHash} from 'node:crypto';
+const game=await readFile(new URL('../dist/forgotten-kingdom.html',import.meta.url)),version=createHash('sha256').update(game).digest('hex').slice(0,16),template=await readFile(new URL('./offline-worker.js',import.meta.url),'utf8');await writeFile(new URL('../dist/sw.js',import.meta.url),template.replaceAll('__BUILD_VERSION__',version));console.log('Offline web app worker: '+version);

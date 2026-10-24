@@ -8,7 +8,14 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 2. [Download the game ZIP](https://github.com/Yekimf/arpgprototype/archive/refs/heads/main.zip) and extract it.
 3. Open **`forgotten-kingdom.html`** in a current desktop browser. To continue an existing offline character, keep using **`ashen-reliquary.html`** at its previous location; it is an identical updated copy.
 
-The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer or public hosted preview. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
+The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
+
+## Version 0.44.0 — Shared offline saves and layered player equipment
+
+- The website can be prepared for offline play or installed as a desktop web app. Website and app share the existing single-player characters and stash in the same browser profile. Downloaded HTML saves can be moved once through the new title-screen **Local saves & offline play** backup/import menu. [Setup and migration](docs/shared-offline-saves.md).
+- Reworked player composition with shared pose frames, direction-dependent layer order, independent arm attachments, wrist-mounted gloves/shields and fitted two-handed grips. Separate slashing, heavy, thrust, bow, crossbow, punch and cast poses retain the existing painted armor and set appearances. LAN/WebRTC peers carry their actual action timing and casting pose.
+- Cached frames use a bounded pixel budget and include padding for raised weapons. Character portraits and creation share the compositor. The source artwork still consists of front/back paintings projected into sixteen facing sectors; a full sixteen-angle rendered art library remains future work. [Animation details](docs/player-animation.md).
+- No database migration is needed. Publish `main` through **Publish browser game** to update the website, then prepare offline play while connected.
 
 ## Version 0.43.0 — Online character screens and the company hall
 

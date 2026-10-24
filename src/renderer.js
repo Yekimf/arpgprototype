@@ -208,7 +208,7 @@ export class Renderer {
       c.save();c.translate(v.x,v.y);
       if(o.type==='falling-body')this.drawCorpse(o.corpse,game);
       else if(o.type==='hero')this.hero(game);
-      else if(o.type==='ally'){this.ellipse(0,2,15,7,'#020a07a0');this.guard.draw(c,{...game,player:o.peer,moving:o.moving,walkPhase:o.walkPhase,facing:o.facing,actionFacing:o.facing,lastMove:o.facing,attackAnim:o.attackAnim,attackDuration:o.attackDuration,dodgeTime:o.dodgeTime});if(o.pyre)this.fireField(0,0,2.7,9);c.fillStyle=o.party&&o.party===game.lanParty?'#b8cf9a':'#a7bfd4';c.font='12px Georgia';c.textAlign='center';c.fillText(o.name,0,-111);}
+      else if(o.type==='ally'){this.ellipse(0,2,15,7,'#020a07a0');this.guard.draw(c,{...game,player:o.peer,moving:o.moving,walkPhase:o.walkPhase,facing:o.facing,actionFacing:o.actionFacing||o.facing,animationMode:o.animationMode,lastMove:o.facing,attackAnim:o.attackAnim,attackDuration:o.attackDuration,dodgeTime:o.dodgeTime});if(o.pyre)this.fireField(0,0,2.7,9);c.fillStyle=o.party&&o.party===game.lanParty?'#b8cf9a':'#a7bfd4';c.font='12px Georgia';c.textAlign='center';c.fillText(o.name,0,-111);}
       else if(o.type==='enemy'){this.enemy(o.enemy,game);if(o.enemy.shock>0){this.line([[-8,-30],[-3,-37],[1,-28],[7,-33]],'#c3b897aa',1);}if(o.enemy.bleed>0)this.ellipse(3,1,7,3,'#622e2388');}
       else if(o.type==='waypoint')this.waypoint(o,game);
       else if(o.type==='chicken')this.chicken(o);
