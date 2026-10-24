@@ -18,14 +18,10 @@ export const POSE_FRAMES=Object.fromEntries(Object.entries(tracks).map(([name,tr
 export function weaponMode(look){if(look.weapon==='none')return 'punch';if(['bow','crossbow'].includes(look.weapon))return look.weapon;if(['spear','dagger'].includes(look.weapon))return 'thrust';return look.twoHanded?'heavy':'slash';}
 export function animationState(game,look){const attacking=game.attackAnim>0,cast=attacking&&game.animationMode==='cast',action=cast?'cast':attacking?look.weapon==='none'?'punch':'attack':game.moving?'walk':'idle',count=CLIP_FRAMES[action],progress=attacking?Math.max(0,Math.min(1,1-game.attackAnim/(game.attackDuration||.4))):0,frame=attacking?Math.min(count-1,Math.floor(progress*count)):game.moving?Math.floor(game.walkPhase||0)%count:0;return {action,frame,count,mode:cast?'cast':weaponMode(look)};}
 export function layerOrder(direction,mode=null){
- if(['bow','crossbow','cast'].includes(mode))return ['legs','offArm','torso','head','accessories','primaryArm','weapon','primaryHand','offHand','shield'];
- const back=direction.back,primaryNear=direction.screen.x>=0;
- const primary=['weapon','primaryArm','primaryHand'],off=['offArm','offHand','shield'];
- // Facing away: both arms can pass behind the coat. At side views the far arm
- // is under the torso and the near arm above it. Hands always cover their grip.
- const rear=back?[...(primaryNear?off:primary),...(primaryNear?primary:off)]:Math.abs(direction.screen.x)>.7?(primaryNear?off:primary):[];
- const front=back?[]:Math.abs(direction.screen.x)>.7?(primaryNear?primary:off):[...primary,...off];
- return ['legs',...rear,'torso','head','accessories',...front];
+ const primaryNear=direction.screen.x>=0,far=primaryNear?'offArm':'primaryArm',near=primaryNear?'primaryArm':'offArm';
+ // Only the upper arm goes behind the coat. A gripping forearm and fingers
+ // cannot be buried by a later torso/head draw when the pose crosses the chest.
+ return ['legs',far,'torso','head','accessories',near,'weapon','primaryForearm','offForearm','primaryHand','offHand','shield'];
 }
 export function poseFrame(face,look,state,heading={x:0,y:1}){
  const mode=state.mode||weaponMode(look),frames=POSE_FRAMES[mode],sampled=state.action==='idle'||state.action==='walk'?[0,0,0]:frames[Math.min(frames.length-1,state.frame)]||frames[0],reach=sampled[0],lift=sampled[1],sweep=sampled[2],dx=heading.x,dy=heading.y*.5,length=Math.hypot(dx,dy)||1,aim={x:dx/length,y:dy/length},back=face.hand[0]>.5;
@@ -33,14 +29,12 @@ export function poseFrame(face,look,state,heading={x:0,y:1}){
  let angle=(look.twoHanded?-.95:back?1:2.12)+sweep;
  const attack=!['idle','walk'].includes(state.action);
  if(attack&&state.frame>0&&state.frame<state.count-1)angle=Math.atan2(aim.y,aim.x)+sweep;
- if(look.twoHanded){primary.x=160+aim.x*reach*.6;primary.y=148+lift+aim.y*reach*.4;}
+ if(look.twoHanded){primary.x=(face.arm[0]+face.offArm[0])*160+aim.x*reach*.6;primary.y=148+lift+aim.y*reach*.4;}
  let support={x:face.offHand[0]*320,y:face.offHand[1]*320};
- let gripDistance=look.twoHanded?look.weapon==='bow'?0:look.weapon==='crossbow'?25:29:null;
- if(look.twoHanded){support={x:primary.x+Math.cos(angle)*gripDistance,y:primary.y+Math.sin(angle)*gripDistance};if(look.weapon==='bow'){
-  // Bow limbs are perpendicular to the shot, with the left wrist holding the
-  // riser ahead of the body and the right wrist drawing the string to the chest.
-  const draw=attack?Math.abs(lift)*1.3:0;support={x:160+aim.x*65,y:116+aim.y*34};primary.x=face.arm[0]*320+aim.x*(12-draw);primary.y=128+aim.y*(10-draw);angle=Math.atan2(aim.y,aim.x)-Math.PI/2;gripDistance=null;
- }}
+ if(look.twoHanded&&look.weapon==='bow'){
+  support={x:(face.arm[0]+face.offArm[0])*160+aim.x*50,y:116+aim.y*34};
+  angle=Math.atan2(aim.y,aim.x)+Math.PI/2;
+ }
  if(state.action==='walk'){const phase=state.frame/16*Math.PI*2,shift=Math.sin(phase)*2;primary.y+=shift;if(!look.twoHanded)support.y-=shift;else support.y+=shift;}
- return {primary,support,angle,gripDistance,weaponHand:look.weapon==='bow'?'off':'primary'};
+ return {primary,support,angle,aim,draw:mode==='bow'&&attack?Math.abs(lift):0,weaponHand:look.weapon==='bow'?'off':'primary'};
 }

@@ -7,3 +7,22 @@ test('directional equipment composition renders every weapon family with bounded
  document.body.replaceChildren(canvas);return{minimum,bytes:guard.cache.size*192*176*4,canvas:canvas.toDataURL()};});
  expect(result.minimum).toBeGreaterThan(800);expect(result.bytes).toBeLessThanOrEqual(32*1024*1024);await page.locator('#animation-contact').screenshot({path:'/tmp/v440-animation-contact.png'});
 });
+
+test('bare, leather and steel hands remain visible at the real grip and joined to their sleeves across all weapons and facings',async({page})=>{
+ test.setTimeout(120000);await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>window.__reliquary?.snapshot().artLoaded);
+ const result=await page.evaluate(async()=>{const [{GuardSprites},{createPlayer},{BASES},{facingPose},{weaponMode},{paintLimb,paintHand}]=await Promise.all([import('/src/guard-sprites.js'),import('/src/game.js'),import('/src/itemization.js'),import('/src/locomotion.js'),import('/src/player-animation.js'),import('/src/player-limbs.js')]);const guard=new GuardSprites();await Promise.all([guard.art,guard.items,guard.original,guard.weapons,guard.setArt].map(i=>i.decode()));const p=createPlayer();p.level=100;p.attributes={might:200,dexterity:200,vitality:200,will:200};p.equipment.shield=null;const failures=[];let checked=0;
+ const paintPoint=(point,d)=>({x:32+.4*(160+d.profile*(point.x-160)),y:20+.4*point.y}),alpha=(c,p)=>c.getImageData(Math.round(p.x),Math.round(p.y),1,1).data[3];
+ for(const base of [null,...BASES.filter(b=>b.slot==='weapon')])for(let row=0;row<16;row++){
+ const a=row*Math.PI/8,d=facingPose({x:Math.sin(a)-2*Math.cos(a),y:-Math.sin(a)-2*Math.cos(a)});p.equipment.weapon=base?{...base,id:base.id,damage:8,rarity:'normal'}:null;const look={weapon:base?.look||'none',twoHanded:!!base?.twoHanded},state={action:base?'attack':'punch',frame:3,count:base?8:6,mode:weaponMode(look)},signatures=[];
+ for(const glove of ['none','leather','steel']){p.equipment.gloves=glove==='none'?null:{id:'test-gloves-'+glove,name:'Gloves',slot:'gloves',look:glove,rarity:'normal'};const sprite=guard.frame(p,d.back,20,d.forward,d,state),c=sprite.getContext('2d'),rig=sprite.composition;
+ for(const hand of rig.hands){if(alpha(c,paintPoint(hand.center,d))<220||alpha(c,paintPoint(hand.wrist,d))<200)failures.push([base?.id||'fists',row,glove,'hand or wrist missing']);}
+ // A change of gloves must affect pixels at the visible grip, not just its data.
+ const center=paintPoint(rig.hands[0].center,d),pixels=c.getImageData(Math.round(center.x)-3,Math.round(center.y)-3,7,7).data;signatures.push([...pixels].join(','));checked++;
+ }
+ if(new Set(signatures).size!==3)failures.push([base?.id||'fists',row,'glove change invisible']);
+ }
+ const canvas=document.createElement('canvas');canvas.id='grip-closeups';canvas.width=1120;canvas.height=1140;const c=canvas.getContext('2d');c.fillStyle='#24231f';c.fillRect(0,0,canvas.width,canvas.height);const cases=[['sword',8],['sword',0],['greatsword',8],['greatsword',0],['bow',5],['crossbow',11]];
+ for(let n=0;n<cases.length;n++){const [name,row]=cases[n],base=BASES.find(b=>b.id===name),a=row*Math.PI/8,d=facingPose({x:Math.sin(a)-2*Math.cos(a),y:-Math.sin(a)-2*Math.cos(a)});p.equipment.weapon={...base,id:base.id,damage:8,rarity:'normal'};p.equipment.gloves=null;const sprite=guard.frame(p,d.back,20,d.forward,d,{action:'attack',mode:weaponMode({weapon:base.look,twoHanded:!!base.twoHanded}),frame:3,count:8}),x=n%2*560,y=Math.floor(n/2)*380;c.imageSmoothingEnabled=false;c.drawImage(sprite,67,36,85,51,x,y+34,560,336);c.fillStyle='#d6c294';c.font='20px Georgia';c.fillText(name+' · '+(d.back?'back':'front')+' · '+row,x+14,y+26);}
+ document.body.replaceChildren(canvas);return{failures,checked};});
+ expect(result.failures).toEqual([]);expect(result.checked).toBe(17*16*3);await page.locator('#grip-closeups').screenshot({path:'/tmp/v441-grip-closeups.png'});
+});

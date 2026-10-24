@@ -1,11 +1,20 @@
 // Grip and tip measurements refer to the tightly cropped weapon paintings.
 // Artwork rotates around the grip, never around an arbitrary item rectangle.
 export const WEAPON_GRIPS=[
- [.78,.19,.05,.97,125],[.78,.19,.03,.99,166],[.74,.26,.03,.99,80],[.22,.86,.79,.16,125],
- [.28,.84,.66,.14,146],[.25,.85,.73,.12,118],[.21,.83,.55,.12,132],[.24,.83,.98,.02,185],
- [.25,.83,.70,.12,180],[.27,.82,.65,.15,180],[.30,.78,.78,.18,95],[.28,.80,.70,.12,100],
- [.55,.52,.75,.04,165],[.42,.76,.62,.30,128],[.27,.81,.67,.14,150],[.27,.85,.67,.15,120]
+ [.78,.19,.05,.97,125],[.78,.19,.03,.99,166],[.74,.26,.03,.99,80],[24/185,.86,.79,.16,125],
+ [32/192,.84,.66,.14,146],[29/172,.85,.73,.12,118],[30/220,.83,.55,.12,132],[34/190,.83,.98,.02,185],
+ [33/167,.83,.70,.12,180],[28/159,.82,.65,.15,180],[33/154,.78,.78,.18,95],[25/135,.80,.70,.12,100],
+ [31/128,124/240,.95,.01,165],[80/240,125/222,.62,.30,128],[32/171,.81,.67,.14,150],[18/149,.85,.67,.15,120]
 ];
+// Second grips are measured on the painted handle/stock, not a fixed distance
+// toward the weapon tip. The greatsword's second hand belongs behind the hilt.
+export const WEAPON_SUPPORTS={1:[139/154,20/240],4:[72/192,145/240],7:[.39,.59],8:[70/167,142/240],9:[60/159,140/240],13:[127/240,65/222],14:[60/171,140/240]};
+export const BOW_STRING=[.52,.52];
+export const BOW_TIPS=[[.94,.02],[.05,.99]];
+export function weaponPointOffset(icon,width,height,angle,point){
+ const [gx,gy]=WEAPON_GRIPS[icon]||WEAPON_GRIPS[0],rotation=weaponPlacement(icon,width,height,angle).rotation,dx=(point[0]-gx)*width,dy=(point[1]-gy)*height;
+ return {x:dx*Math.cos(rotation)-dy*Math.sin(rotation),y:dx*Math.sin(rotation)+dy*Math.cos(rotation)};
+}
 export const ATTACK_FRAMES=8;
 export function attackTiming(weapon,speed=1){const look=weapon?.look||'sword',heavy=weapon?.twoHanded||['greatsword','warhammer'].includes(look),ranged=!!weapon?.ranged;const duration=Math.max(.22,Math.min(.64,(weapon?heavy?.56:look==='dagger'?.3:ranged?.4:.42:.32)/Math.max(.65,speed)));return {duration,impact:duration*(look==='spear'?.48:ranged?.40:.44),recovery:Math.max(duration,.48/Math.max(.3,speed))};}
 const mix=(a,b,t)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});

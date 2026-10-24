@@ -1,15 +1,13 @@
 import {animationState,poseFrame,layerOrder,weaponMode} from './player-animation.js';
-import {weaponPlacement,WEAPON_GRIPS} from './weapon-rig.js';
+import {weaponPlacement,WEAPON_GRIPS,BOW_TIPS} from './weapon-rig.js';
 import weaponBounds from './art/weapon-bounds.json';
 import {WEAPON_ART} from './assets.js';
 import {SET_MODELS_ART,GUARD_ART,ITEM_ART,ORIGINAL_ART} from './assets.js';
 import {appearanceOf} from './itemization.js';
 import {facingPose,walkingLeg,WALK_FRAMES} from './locomotion.js';
-import {joint,point,fitGrips} from './animation-rig.js';
-const FACE={
- front:{head:[.46,0,.25,.235],hand:[.30,.535],offHand:[.80,.55],shield:[.805,.50],arm:[.38,.28],offArm:[.70,.28],elbow:[.32,.405],offElbow:[.77,.41],body:[[.39,.22],[.66,.22],[.75,.34],[.69,.54],[.72,.67],[.63,.72],[.53,.65],[.36,.72],[.32,.62],[.36,.45]],arms:[[[.36,.24],[.46,.28],[.42,.41],[.30,.44],[.27,.39],[.30,.30]],[[.66,.24],[.75,.26],[.82,.40],[.73,.45],[.68,.38]]],forearms:[[[.30,.38],[.42,.40],[.37,.50],[.34,.56],[.27,.57],[.26,.50]],[[.73,.38],[.82,.38],[.87,.54],[.83,.59],[.76,.56],[.72,.48]]],legs:[{hip:[.52,.60],knee:[.535,.79],ankle:[.52,.945],thigh:[[.43,.59],[.61,.60],[.63,.81],[.44,.83]],shin:[[.44,.77],[.63,.77],[.64,.94],[.43,.96]],foot:[[.43,.92],[.64,.92],[.64,.97],[.52,.999],[.42,.97]]},{hip:[.67,.60],knee:[.70,.76],ankle:[.73,.91],thigh:[[.60,.59],[.75,.59],[.79,.79],[.62,.80]],shin:[[.62,.75],[.79,.75],[.81,.91],[.64,.93]],foot:[[.64,.89],[.81,.88],[.82,.93],[.74,.97],[.64,.94]]}]},
- back:{head:[.45,0,.25,.23],hand:[.80,.54],offHand:[.29,.54],shield:[.33,.47],arm:[.70,.28],offArm:[.37,.28],elbow:[.76,.40],offElbow:[.30,.40],body:[[.38,.22],[.66,.21],[.72,.31],[.72,.51],[.79,.72],[.65,.78],[.50,.73],[.34,.67],[.35,.46]],arms:[[[.68,.25],[.76,.28],[.82,.40],[.72,.44],[.66,.34]],[[.37,.25],[.30,.28],[.23,.40],[.32,.44],[.40,.34]]],forearms:[[[.72,.38],[.82,.38],[.86,.52],[.85,.57],[.77,.58],[.72,.47]],[[.23,.38],[.33,.38],[.35,.49],[.32,.57],[.25,.57],[.22,.48]]],legs:[{hip:[.52,.68],knee:[.52,.83],ankle:[.51,.96],thigh:[[.40,.67],[.60,.68],[.62,.86],[.42,.86]],shin:[[.42,.81],[.62,.81],[.62,.96],[.42,.98]],foot:[[.42,.93],[.62,.93],[.63,.98],[.51,.999],[.41,.98]]},{hip:[.68,.67],knee:[.71,.82],ankle:[.74,.95],thigh:[[.61,.66],[.77,.66],[.81,.85],[.60,.86]],shin:[[.61,.80],[.81,.80],[.83,.95],[.64,.98]],foot:[[.64,.93],[.82,.92],[.84,.97],[.75,.999],[.63,.97]]}]}
-};
+import {solveEquipmentRig} from './equipment-rig.js';
+import {paintLimb,paintHand} from './player-limbs.js';
+import {GUARD_LAYOUT as FACE} from './guard-layout.js';
 const W=192,H=176,S=320;
 export const GUARD_FRAME={width:W,height:H,anchorX:96,anchorY:148,scale:.75};
 const poly=(c,points)=>{c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x*S,y*S):c.moveTo(x*S,y*S));c.closePath();};
@@ -28,54 +26,33 @@ export class GuardSprites{
   // the right-hand weapon and left-hand shield retain their anatomical sides.
   const center=160;c.translate(center,0);c.scale(direction.profile,1);c.translate(-center,0);
   const face=back?FACE.back:FACE.front,offset=back?1:0,body=({none:2,original:0,leather:4,chain:6,plate:8,robe:10})[look.armor]??0;
-  const pose=poseFrame(face,look,state,heading),armed=look.weapon!=='none',posed=[];
-  if(look.twoHanded&&pose.gripDistance!==null){const roots=[point(face.arm),point(face.offArm)],elbows=[point(face.elbow),point(face.offElbow)],hands=[point(face.hand),point(face.offHand)],lengths=roots.map((r,i)=>Math.hypot(r.x-elbows[i].x,r.y-elbows[i].y)+Math.hypot(hands[i].x-elbows[i].x,hands[i].y-elbows[i].y));Object.assign(pose,fitGrips(roots,lengths,pose.primary,{x:Math.cos(pose.angle)*pose.gripDistance,y:Math.sin(pose.angle)*pose.gripDistance}));}
-  for(let arm=0;arm<2;arm++){
-   const shoulder=point(arm?face.offArm:face.arm),elbow=point(arm?face.offElbow:face.elbow),hand=point(arm?face.offHand:face.hand);
-   let goal=arm?pose.support:pose.primary;
-
-   posed.push(joint(shoulder,goal,Math.hypot(elbow.x-shoulder.x,elbow.y-shoulder.y),Math.hypot(hand.x-elbow.x,hand.y-elbow.y),arm?(back?1:-1):(back?-1:1)));
-  }
-  const armLayer=arm=>{this.skin=look.setParts.armor;const shoulder=point(arm?face.offArm:face.arm),elbow=point(arm?face.offElbow:face.elbow),hand=point(arm?face.offHand:face.hand),chain=posed[arm];
-   // Each arm has its own source masks. Reusing and flipping the sword arm
-   // previously cut away the shield arm and detached its glove.
-   this.skin=null;this.bone(c,2+offset,face.arms[arm],shoulder,elbow,shoulder,chain.knee);this.bone(c,2+offset,face.forearms[arm],elbow,hand,chain.knee,chain.end);this.skin=look.setParts.armor;
-   this.bone(c,body+offset,face.arms[arm],shoulder,elbow,shoulder,chain.knee);
-   this.bone(c,body+offset,face.forearms[arm],elbow,hand,chain.knee,chain.end);
-  };
-  const handLayer=arm=>{const source=point(arm?face.offHand:face.hand),target=posed[arm].end;this.skin=look.setParts.gloves;c.save();c.translate(target.x-source.x,target.y-source.y);this.hand(c,look.gloves,back,arm,face,armed&&(arm===0||look.twoHanded)||state.action==='punch'&&arm===0);c.restore();};
+  const pose=poseFrame(face,look,state,heading),armed=look.weapon!=='none',rig=solveEquipmentRig(face,look,pose,weaponBounds);
+  const armLayer=(arm,part)=>{this.skin=look.setParts.armor;const hand=rig.hands[arm];paintLimb(c,this,{from:part==='upper'?hand.shoulder:hand.elbow,to:part==='upper'?hand.elbow:hand.wrist,part,look:look.armor,back,gloves:part==='upper'?'none':look.gloves});};
+  const handLayer=arm=>{this.skin=look.setParts.gloves;paintHand(c,this,{hand:rig.hands[arm],gloves:look.gloves,back,arm,closed:armed||state.action==='punch'});};
   const layers={
    legs:()=>{const index=(look.boots==='steel'?0:look.boots==='leather'?4:2)+offset;this.skin=look.setParts.boots;
     const phase=state.action==='walk'?state.frame/WALK_FRAMES*Math.PI*2:0;
     const legs=face.legs.map((part,leg)=>({part,leg,step:state.action==='walk'?walkingLeg(phase,leg,face):null})).sort((a,b)=>(a.step?.heel.y??a.part.ankle[1]*S)-(b.step?.heel.y??b.part.ankle[1]*S));
     for(const {part,leg,step}of legs){c.save();if(step)c.translate(step.x,step.y);this.skin=look.setParts.armor;this.clipTile(c,body+offset,part.thigh);this.skin=look.setParts.boots;this.clipTile(c,index,part.shin);c.restore();c.save();if(step){const boot=face.legs[1];c.translate(step.heel.x,step.heel.y);c.scale(leg===0?-1:1,1);c.translate(-boot.ankle[0]*S,-boot.ankle[1]*S);this.clipTile(c,index,boot.foot);}else this.clipTile(c,index,part.foot);c.restore();}
    },
-   torso:()=>{this.skin=null;this.clipTile(c,2+offset,face.body);this.skin=look.setParts.armor;this.clipTile(c,body+offset,face.body,look.shield==='none'?null:face.shield);},
+   torso:()=>{this.skin=null;this.clipTile(c,2+offset,face.body);this.skin=look.setParts.armor;this.clipTile(c,body+offset,face.body,face.shield);},
    head:()=>{this.skin=look.setParts.helm;const head=look.helm==='none'?2:look.helm==='hood'?14:look.helm==='greathelm'?12:0,[x,y,w,h]=face.head;c.save();c.beginPath();c.rect(x*S,y*S,w*S,h*S);c.clip();this.tile(c,head+offset);c.restore();},
    accessories:()=>this.accessories(c,look,back),
-   primaryArm:()=>armLayer(0),offArm:()=>armLayer(1),primaryHand:()=>handLayer(0),offHand:()=>handLayer(1),
-   weapon:()=>{if(!armed)return;this.skin=null;const hand=posed[pose.weaponHand==='off'?1:0].end;this.weapon(c,look.weapon,back,[hand.x/S,hand.y/S],look.weaponIcon,pose.angle);},
-   shield:()=>{if(look.shield==='none'||look.twoHanded)return;this.skin=look.setParts.shield;c.save();const source=point(face.offHand),target=posed[1].end;c.translate(target.x-source.x,target.y-source.y);this.shield(c,look.shield,back,face.shield);c.restore();},
+   primaryArm:()=>armLayer(0,'upper'),offArm:()=>armLayer(1,'upper'),primaryForearm:()=>armLayer(0,'lower'),offForearm:()=>armLayer(1,'lower'),primaryHand:()=>handLayer(0),offHand:()=>handLayer(1),
+   weapon:()=>{if(!armed)return;this.skin=null;const hand=rig.weapon.anchor;this.weapon(c,look.weapon,back,[hand.x/S,hand.y/S],look.weaponIcon,pose.angle);if(rig.string){c.strokeStyle='#c2af8599';c.lineWidth=1.2;c.beginPath();c.moveTo(rig.string[0].x,rig.string[0].y);c.lineTo(rig.hands[0].center.x,rig.hands[0].center.y);c.lineTo(rig.string[1].x,rig.string[1].y);c.stroke();}},
+   shield:()=>{if(look.shield==='none'||look.twoHanded)return;this.skin=look.setParts.shield;const center=rig.hands[1].center;this.shield(c,look.shield,back,[center.x/S,center.y/S]);},
   };
   for(const name of layerOrder(direction,state.mode))layers[name]();
   if(look.surcoat==='iron'){c.save();c.globalCompositeOperation='source-atop';c.fillStyle='#8d99951a';c.fillRect(0,0,S,S);c.restore();}
-  this.skin=null;this.cache.set(key,canvas);while(this.cache.size*W*H*4>32*1024*1024)this.cache.delete(this.cache.keys().next().value);return canvas;
+  canvas.composition=rig;this.skin=null;this.cache.set(key,canvas);while(this.cache.size*W*H*4>32*1024*1024)this.cache.delete(this.cache.keys().next().value);return canvas;
  }
- bone(c,index,mask,fromA,fromB,toA,toB,width=1){const source=Math.atan2(fromB.y-fromA.y,fromB.x-fromA.x),target=Math.atan2(toB.y-toA.y,toB.x-toA.x),length=Math.hypot(toB.x-toA.x,toB.y-toA.y)/Math.hypot(fromB.x-fromA.x,fromB.y-fromA.y);c.save();c.translate(toA.x,toA.y);c.rotate(target);c.scale(length,width);c.rotate(-source);c.translate(-fromA.x,-fromA.y);this.clipTile(c,index,mask);c.restore();}
- hand(c,gloves,back,arm,face,closed=false){
-  const h=arm===0?face.hand:face.offHand,x=h[0],y=h[1],source=gloves==='none'?(back?[.84,.56]:[.28,.56]):back?[.80,.54]:[.323,.51],sx=source[0],sy=source[1],mask=[[sx-.035,sy-.045],[sx+.03,sy-.04],[sx+.033,sy+.035],[sx+.015,sy+.055],[sx-.03,sy+.042]];
-  c.save();c.translate(x*S,y*S);if(arm===1)c.scale(-1,1);c.translate(-sx*S,-sy*S);this.clipTile(c,(gloves==='steel'?0:gloves==='leather'?4:2)+(back?1:0),mask);c.restore();
-  if(closed){c.save();c.translate(x*S,y*S);this.fist(c,gloves);c.restore();}
-  if(gloves!=='none'){const px=x*S,py=y*S;c.save();c.strokeStyle=gloves==='steel'?'#b4ac9688':'#8b684888';c.lineWidth=1.3;c.beginPath();c.moveTo(px-9,py-10);c.lineTo(px+8,py-8);if(gloves==='steel')for(let i=0;i<3;i++){c.moveTo(px-5+i*4,py);c.lineTo(px-6+i*4,py+6);}c.stroke();c.restore();}
- }
- fist(c,gloves){const skin=gloves==='none',metal=gloves==='steel';const shade=c.createLinearGradient(-8,-9,10,8);shade.addColorStop(0,skin?'#a78767':metal?'#858577':'#705237');shade.addColorStop(.5,skin?'#87674d':metal?'#595d54':'#503b28');shade.addColorStop(1,skin?'#503a2b':metal?'#30372f':'#31291e');c.fillStyle=shade;c.strokeStyle=skin?'#503a2b':'#25231c';c.lineWidth=1.4;c.beginPath();c.moveTo(-9,-9);c.lineTo(5,-12);c.lineTo(12,-6);c.lineTo(14,4);c.lineTo(8,10);c.lineTo(-7,8);c.lineTo(-11,2);c.closePath();c.fill();c.stroke();c.strokeStyle=skin?'#bd967077':metal?'#bbb29a99':'#9e7b4b88';for(let i=0;i<3;i++){c.beginPath();c.moveTo(i*5-5,-5);c.lineTo(i*5-3,3);c.stroke();}}
  weapon(c,look,back,hand,weaponIcon=0,angle=back?1:2.12){
   if(!this.weapons.complete||!this.weapons.naturalWidth)return;
   const b=weaponBounds[weaponIcon]||weaponBounds[0],h=(WEAPON_GRIPS[weaponIcon]||WEAPON_GRIPS[0])[4],w=h*b[2]/b[3],place=weaponPlacement(weaponIcon,w,h,angle);
-  c.save();c.translate(hand[0]*S,hand[1]*S);c.rotate(place.rotation);c.drawImage(this.weapons,...b,place.x,place.y,w,h);c.restore();
+  c.save();c.translate(hand[0]*S,hand[1]*S);c.rotate(place.rotation);if(look==='bow'){if(!this.bow){this.bow=document.createElement('canvas');this.bow.width=b[2];this.bow.height=b[3];const bc=this.bow.getContext('2d');bc.drawImage(this.weapons,...b,0,0,b[2],b[3]);bc.globalCompositeOperation='destination-out';bc.lineWidth=3.5;bc.beginPath();bc.moveTo(BOW_TIPS[0][0]*b[2],BOW_TIPS[0][1]*b[3]);bc.lineTo(BOW_TIPS[1][0]*b[2],BOW_TIPS[1][1]*b[3]);bc.stroke();}c.drawImage(this.bow,place.x,place.y,w,h);}else c.drawImage(this.weapons,...b,place.x,place.y,w,h);c.restore();
  }
 
- shield(c,look,back,center){const x=center[0]*S,y=center[1]*S;c.save();c.beginPath();if(look==='kite'){c.moveTo(x-39,y-62);c.lineTo(x+43,y-56);c.lineTo(x+38,y+25);c.lineTo(x,y+80);c.lineTo(x-38,y+27);c.closePath();}else c.ellipse(x,y,49,71,back?-.12:.12,0,Math.PI*2);c.clip();if(look==='kite'){c.fillStyle='#3d3023';c.fillRect(x-55,y-80,110,165);}this.tile(c,back?1:0);c.restore();if(look==='kite'){c.strokeStyle='#8c7855';c.lineWidth=2;c.beginPath();c.moveTo(x-39,y-62);c.lineTo(x+43,y-56);c.lineTo(x+38,y+25);c.lineTo(x,y+80);c.lineTo(x-38,y+27);c.closePath();c.stroke();}}
+ shield(c,look,back,center){const source=back?FACE.back.shield:FACE.front.shield,x=source[0]*S,y=source[1]*S;c.save();c.translate(center[0]*S-x,center[1]*S-y);c.save();c.beginPath();if(look==='kite'){c.moveTo(x-39,y-62);c.lineTo(x+43,y-56);c.lineTo(x+38,y+25);c.lineTo(x,y+80);c.lineTo(x-38,y+27);c.closePath();}else c.ellipse(x,y,49,71,back?-.12:.12,0,Math.PI*2);c.clip();if(look==='kite'){c.fillStyle='#3d3023';c.fillRect(x-55,y-80,110,165);}this.tile(c,back?1:0);c.restore();if(look==='kite'){c.strokeStyle='#8c7855';c.lineWidth=2;c.beginPath();c.moveTo(x-39,y-62);c.lineTo(x+43,y-56);c.lineTo(x+38,y+25);c.lineTo(x,y+80);c.lineTo(x-38,y+27);c.closePath();c.stroke();}c.restore();}
  accessories(c,look,back){if(back)return;const gold=look.beltRarity==='legendary'?'#c1a45e':'#9c8051';if(look.belt!=='none'){c.fillStyle='#34291d';c.fillRect(151,164,59,8);c.strokeStyle=gold;c.lineWidth=3;c.strokeRect(171,161,14,12);}if(look.charm!=='none'){c.strokeStyle='#a78c5a';c.lineWidth=1.5;c.beginPath();c.moveTo(171,83);c.lineTo(188,115);c.lineTo(208,89);c.stroke();c.fillStyle='#b2924f';c.beginPath();c.ellipse(188,116,5,7,0,0,Math.PI*2);c.fill();}if(look.ring!=='none'){c.fillStyle='#bb9f55';c.fillRect(99,159,6,3);}if(look.ring2!=='none'){c.fillStyle='#c1a565';c.fillRect(251,174,6,3);}if(look.armorRarity==='legendary'){c.fillStyle='#bd914b';c.fillRect(177,113,4,23);c.fillRect(171,118,16,3);}}
  draw(c,game){
   const look=appearanceOf(game.player),state=animationState(game,look),vector=(game.attackAnim>0?game.actionFacing:game.facing)||game.lastMove||{x:1,y:1},direction=facingPose(vector);

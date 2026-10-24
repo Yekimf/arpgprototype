@@ -10,6 +10,12 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.44.1 — Connected hands and corrected weapon grips
+
+- Corrected the weapon anchors against the actual handle pixels. Several old grips sat in transparent space, and the bow gripped its string instead of its riser. Greatsword supporting hands now sit behind the guard, while staff/maul/crossbow supporting hands use their own measured positions.
+- Replaced empty/occluded arm and hand cutouts with continuous textured sleeves, overlapping wrists and painted palms. Forearms and fingers remain visible when a pose crosses the torso. Gloves follow the palm, and the complete shield follows its hand rather than moving only its clipping mask.
+- Added checks for solid handle pixels, every weapon's attack frames and facings, and visible hands/wrists across 816 weapon/facing/glove combinations. Combat balance and save formats are unchanged.
+
 ## Version 0.44.0 — Shared offline saves and layered player equipment
 
 - The website can be prepared for offline play or installed as a desktop web app. Website and app share the existing single-player characters and stash in the same browser profile. Downloaded HTML saves can be moved once through the new title-screen **Local saves & offline play** backup/import menu. [Setup and migration](docs/shared-offline-saves.md).
