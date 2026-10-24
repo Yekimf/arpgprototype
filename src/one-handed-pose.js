@@ -8,8 +8,8 @@ function sample(track,t){const at=track.findIndex(k=>k[0]>=t);if(at<=0)return tr
 const turn=(from,to,amount)=>{const delta=Math.atan2(Math.sin(to-from),Math.cos(to-from));return from+delta*amount;};
 export function oneHandedPose(face,look,state,heading){
  const back=!!face.back,dx=heading.x,dy=heading.y*.5,length=Math.hypot(dx,dy)||1,aim={x:dx/length,y:dy/length},long=['spear','staff'].includes(look.weapon);
- const readyAngle=(back?(long?-.94:-.70):(long?-2.20:-2.45))+aim.x*.045;
- const primary={x:face.hand[0]*320+(back?2:-2),y:face.hand[1]*320-(back?2:3)},support={x:face.offHand[0]*320,y:face.offHand[1]*320};
+ const readyAngle=(back?(long?-.94:.035):(long?-2.20:-2.45))+aim.x*(back?.025:.045);
+ const primary={x:face.hand[0]*320-2,y:face.hand[1]*320+(back?3:-3)},support={x:face.offHand[0]*320,y:face.offHand[1]*320};
  if(look.shield&&look.shield!=='none'){support.x+=back?12:-12;support.y=160;}
  let angle=readyAngle;
  if(state.action==='attack'){
@@ -19,5 +19,5 @@ export function oneHandedPose(face,look,state,heading){
  }else if(state.action==='walk'){
   const step=Math.sin(state.frame/16*Math.PI*2);primary.y+=step*1.4;support.y-=step*.8;angle+=step*.025;
  }
- return {primary,support,angle,aim,draw:0,weaponHand:'primary'};
+ return {primary,support,angle,aim,draw:0,gripWrap:true,weaponHand:'primary'};
 }

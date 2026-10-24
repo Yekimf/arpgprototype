@@ -18,7 +18,8 @@ function sample(track,t){let b=track.findIndex(k=>k[0]>=t);if(b<=0)return track[
 export const POSE_FRAMES=Object.fromEntries(Object.entries(tracks).map(([name,track])=>[name,Object.freeze(Array.from({length:name==='punch'?6:8},(_,i)=>Object.freeze(sample(track,i/(name==='punch'?5:7)))))]));
 export function weaponMode(look){if(look.weapon==='none')return 'punch';if(['bow','crossbow'].includes(look.weapon))return look.weapon;if(['spear','dagger'].includes(look.weapon))return 'thrust';return look.twoHanded?'heavy':'slash';}
 export function animationState(game,look){const attacking=game.attackAnim>0,cast=attacking&&game.animationMode==='cast',action=cast?'cast':attacking?look.weapon==='none'?'punch':'attack':game.moving?'walk':'idle',count=CLIP_FRAMES[action],progress=attacking?Math.max(0,Math.min(1,1-game.attackAnim/(game.attackDuration||.4))):0,frame=attacking?Math.min(count-1,Math.floor(progress*count)):game.moving?Math.floor(game.walkPhase||0)%count:0;return {action,frame,count,mode:cast?'cast':weaponMode(look)};}
-export function layerOrder(direction,mode=null){
+export function layerOrder(direction,mode=null,grip=false){
+ if(grip){if(direction.back)return ['legs','offArm','primaryArm','torso','head','accessories','shield','offForearm','offHand','primaryForearm','primaryPalm','weapon','primaryHand'];return ['legs','offArm','torso','head','accessories','primaryArm','primaryForearm','offForearm','primaryPalm','weapon','primaryHand','offHand','shield'];}
  const primaryNear=direction.screen.x>=0,far=primaryNear?'offArm':'primaryArm',near=primaryNear?'primaryArm':'offArm';
  // Only the upper arm goes behind the coat. A gripping forearm and fingers
  // cannot be buried by a later torso/head draw when the pose crosses the chest.

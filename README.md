@@ -10,6 +10,12 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.44.3 — Wrapped weapon grips and a separate rear carry
+
+- One-handed melee grips now have a palm behind the actual handle and separate curled fingers/thumb in front. The handle remains visible between fingers, replacing the full opaque hand overlay. The arm bones end at the wrist; the palm connects that wrist to the measured grip.
+- Rear swords, axes, maces, flails and daggers hang beside the body with a nearly level blade/head. The rear shoulder stays attached under its pauldron, and the shield-side forearm is visible on the inside of the shield. Longer spears retain an upward carry to fit their length.
+- Added pixel checks that distinguish exposed handle pixels from finger coverage, plus arm-length, grip, facing and clipping regressions. Ranged and two-handed weapon poses are retained for their later references.
+
 ## Version 0.44.2 — Reference stance for one-handed melee weapons
 
 - Existing swords, axes, maces, flails, daggers and one-handed spears use a relaxed hip grip, a gentle elbow bend and an upward/outward weapon angle based on the supplied knight-and-shield reference. The shield is held higher beside the torso.

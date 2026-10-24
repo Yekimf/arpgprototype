@@ -7,6 +7,7 @@ import {appearanceOf} from './itemization.js';
 import {facingPose,walkingLeg,WALK_FRAMES} from './locomotion.js';
 import {solveEquipmentRig} from './equipment-rig.js';
 import {paintLimb,paintHand} from './player-limbs.js';
+import {paintGripPalm,paintGripFingers} from './weapon-grip-art.js';
 import {GUARD_LAYOUT as FACE} from './guard-layout.js';
 const W=192,H=176,S=320;
 export const GUARD_FRAME={width:W,height:H,anchorX:96,anchorY:148,scale:.75};
@@ -28,21 +29,21 @@ export class GuardSprites{
   const face=back?FACE.back:FACE.front,offset=back?1:0,body=({none:2,original:0,leather:4,chain:6,plate:8,robe:10})[look.armor]??0;
   const pose=poseFrame(face,look,state,heading),armed=look.weapon!=='none',rig=solveEquipmentRig(face,look,pose,weaponBounds);
   const armLayer=(arm,part)=>{this.skin=look.setParts.armor;const hand=rig.hands[arm];paintLimb(c,this,{from:part==='upper'?hand.shoulder:hand.elbow,to:part==='upper'?hand.elbow:hand.wrist,part,look:look.armor,back,gloves:part==='upper'?'none':look.gloves});};
-  const handLayer=arm=>{this.skin=look.setParts.gloves;paintHand(c,this,{hand:rig.hands[arm],gloves:look.gloves,back,arm,closed:armed||state.action==='punch'});};
+  const handLayer=arm=>{this.skin=look.setParts.gloves;const options={hand:rig.hands[arm],gloves:look.gloves,back,arm,closed:armed||state.action==='punch'};if(rig.hands[arm].grip)paintGripFingers(c,this,options);else paintHand(c,this,options);};
   const layers={
    legs:()=>{const index=(look.boots==='steel'?0:look.boots==='leather'?4:2)+offset;this.skin=look.setParts.boots;
     const phase=state.action==='walk'?state.frame/WALK_FRAMES*Math.PI*2:0;
     const legs=face.legs.map((part,leg)=>({part,leg,step:state.action==='walk'?walkingLeg(phase,leg,face):null})).sort((a,b)=>(a.step?.heel.y??a.part.ankle[1]*S)-(b.step?.heel.y??b.part.ankle[1]*S));
     for(const {part,leg,step}of legs){c.save();if(step)c.translate(step.x,step.y);this.skin=look.setParts.armor;this.clipTile(c,body+offset,part.thigh);this.skin=look.setParts.boots;this.clipTile(c,index,part.shin);c.restore();c.save();if(step){const boot=face.legs[1];c.translate(step.heel.x,step.heel.y);c.scale(leg===0?-1:1,1);c.translate(-boot.ankle[0]*S,-boot.ankle[1]*S);this.clipTile(c,index,boot.foot);}else this.clipTile(c,index,part.foot);c.restore();}
    },
-   torso:()=>{this.skin=null;this.clipTile(c,2+offset,face.body);this.skin=look.setParts.armor;this.clipTile(c,body+offset,face.body,face.shield);},
+   torso:()=>{const mask=back&&rig.grip?face.bodyGrip:face.body;this.skin=null;this.clipTile(c,2+offset,mask);this.skin=look.setParts.armor;this.clipTile(c,body+offset,mask,face.shield);},
    head:()=>{this.skin=look.setParts.helm;const head=look.helm==='none'?2:look.helm==='hood'?14:look.helm==='greathelm'?12:0,[x,y,w,h]=face.head;c.save();c.beginPath();c.rect(x*S,y*S,w*S,h*S);c.clip();this.tile(c,head+offset);c.restore();},
    accessories:()=>this.accessories(c,look,back),
-   primaryArm:()=>armLayer(0,'upper'),offArm:()=>armLayer(1,'upper'),primaryForearm:()=>armLayer(0,'lower'),offForearm:()=>armLayer(1,'lower'),primaryHand:()=>handLayer(0),offHand:()=>handLayer(1),
+   primaryPalm:()=>{this.skin=look.setParts.gloves;paintGripPalm(c,this,{hand:rig.hands[0],gloves:look.gloves,back});},primaryArm:()=>armLayer(0,'upper'),offArm:()=>armLayer(1,'upper'),primaryForearm:()=>armLayer(0,'lower'),offForearm:()=>armLayer(1,'lower'),primaryHand:()=>handLayer(0),offHand:()=>handLayer(1),
    weapon:()=>{if(!armed)return;this.skin=null;const hand=rig.weapon.anchor;this.weapon(c,look.weapon,back,[hand.x/S,hand.y/S],look.weaponIcon,pose.angle);if(rig.string){c.strokeStyle='#c2af8599';c.lineWidth=1.2;c.beginPath();c.moveTo(rig.string[0].x,rig.string[0].y);c.lineTo(rig.hands[0].center.x,rig.hands[0].center.y);c.lineTo(rig.string[1].x,rig.string[1].y);c.stroke();}},
    shield:()=>{if(look.shield==='none'||look.twoHanded)return;this.skin=look.setParts.shield;const center=rig.hands[1].center;this.shield(c,look.shield,back,[center.x/S,center.y/S]);},
   };
-  for(const name of layerOrder(direction,state.mode))layers[name]();
+  for(const name of layerOrder(direction,state.mode,rig.grip))layers[name]();
   if(look.surcoat==='iron'){c.save();c.globalCompositeOperation='source-atop';c.fillStyle='#8d99951a';c.fillRect(0,0,S,S);c.restore();}
   canvas.composition=rig;this.skin=null;this.cache.set(key,canvas);while(this.cache.size*W*H*4>32*1024*1024)this.cache.delete(this.cache.keys().next().value);return canvas;
  }
@@ -58,6 +59,6 @@ export class GuardSprites{
   const look=appearanceOf(game.player),state=animationState(game,look),vector=(game.attackAnim>0?game.actionFacing:game.facing)||game.lastMove||{x:1,y:1},direction=facingPose(vector);
   const frame=this.frame(game.player,direction.back,state.action==='walk'?state.frame+1:state.action==='idle'?0:WALK_FRAMES+1+state.frame,direction.forward,direction,state);if(!frame)return null;
   c.save();if(game.dodgeTime>0)c.globalAlpha*=.7;c.drawImage(frame,-GUARD_FRAME.anchorX*.75,-GUARD_FRAME.anchorY*.75,W*.75,H*.75);c.restore();
-  return {row:direction.index,directions:16,column:state.action==='walk'?state.frame+1:state.action==='idle'?0:WALK_FRAMES+1+state.frame,frame:state.frame,clip:state.mode,action:game.dodgeTime>0?'evade':state.action,style:'layered-guard',layers:layerOrder(direction,state.mode),cacheBytes:this.cache.size*W*H*4};
+  return {row:direction.index,directions:16,column:state.action==='walk'?state.frame+1:state.action==='idle'?0:WALK_FRAMES+1+state.frame,frame:state.frame,clip:state.mode,action:game.dodgeTime>0?'evade':state.action,style:'layered-guard',layers:layerOrder(direction,state.mode,frame.composition.grip),cacheBytes:this.cache.size*W*H*4};
  }
 }

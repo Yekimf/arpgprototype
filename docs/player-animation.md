@@ -12,8 +12,10 @@ are retained, without twisting or independently rotating the feet.
 
 `guard-sprites.js` composes legs, torso, head, arms, hands, shield and weapon. The
 composition order changes by facing so that far upper arms pass behind the torso.
-Crossing forearms and gripping hands are composited above the torso, after their
-weapon, so the coat cannot erase the palm or its connection to the sleeve.
+One-handed melee forearms meet the wrist, with the palm behind the weapon and
+curled fingers/thumb in front. Rear upper arms remain under the shoulder/coat
+mask, and the shield-side forearm is drawn over the visible inside of the shield.
+Other weapon families retain their existing composition until their pose updates.
 Equipment is not swapped between hands by a final character
 flip. Complete textured limb silhouettes join shoulder, elbow, wrist and palm. Bare,
 leather and steel hands overlap the sleeve at the wrist; source-space crops
@@ -37,9 +39,10 @@ the same compositor and adjusted frame anchors.
 ## One-handed reference stance
 
 `one-handed-pose.js` supplies the carry and melee transitions for the existing
-one-handed swords, axes, maces, flails, daggers and spears. The weapon hand rests
+one-handed swords, axes, maces, flails, daggers and spears. The front weapon hand rests
 beside the hip with a gentle bend at the elbow; the blade or head points outward
-and upward, matching the supplied knight reference. The shield hand is raised to
+and upward. The rear reference uses a lower, more vertical arm and a nearly
+level short weapon. Long spears keep a steeper carry so they remain in frame. The shield hand is raised to
 hold its shield beside the torso. Without a shield the off hand stays relaxed.
 Walking adds a small carry motion; slash/thrust clips return to the same ready
 pose. Weapon angles take the shortest turn toward the aimed strike.
@@ -69,3 +72,20 @@ weapon plus bare fists in sixteen directions, with bare/leather/steel hands,
 checking hand/wrist opacity and that changing gloves changes the visible palm
 pixels. These replace the previous contact sheet's weak whole-sprite pixel count
 as the main protection against missing or detached hands.
+
+## Wrapped one-handed grip
+
+`weapon-grip-art.js` draws the palm/heel first, the original weapon painting next,
+and individual curled fingers plus the opposing thumb last. The fingers follow
+the handle axis; the heel follows the anatomical wrist. Bare hands and both
+glove materials retain painted texture. This depth split applies to the current
+one-handed melee profile, preserving the other weapon families for later work.
+
+The wrist solver subtracts the painted palm length from the forearm measurement
+before solving the two arm bones. The contact point remains the measured handle
+anchor, while the wrist sits ten source pixels toward the arm. This prevents
+the rear elbow from flaring outward just to place a palm-sized arm endpoint.
+
+The browser depth check compares palm-only, palm-plus-weapon and fully wrapped
+renders. It requires both unchanged exposed handle pixels and pixels changed by
+overlapping fingers, so another opaque whole-hand stamp cannot pass.
