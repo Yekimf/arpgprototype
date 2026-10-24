@@ -10,6 +10,14 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.45.0 — WASD movement and custom key bindings
+
+- Open **Escape → Options → Movement & key bindings**. Enable **WASD + click to move** or keep click movement. Arrow keys remain available in either mode. WASD follows screen directions at the normal movement speed, cancels a click path, and steers evade while a direction is held; attacks still aim at the cursor.
+- Each movement mode keeps its own locally saved bindings. Click mode starts with Q/W/E/R skills; WASD starts with Q/E/R/F. Rebind all four skill slots, evade, both flasks and town portal, with optional keyboard alternatives for the selected LMB/RMB abilities for trackpads and laptops. Mouse buttons remain usable.
+- Select a key box and press a key. Escape cancels; Backspace/Delete or the adjacent × clears it. Conflicts and reserved menu/movement keys are rejected with an explanation. **Reset this mode** restores only that mode’s bindings. HUD labels, Masteries assignment boxes, skill selection and the controls guide show the current keys.
+- Held inputs stop on key release, text/chat focus, menus, cursor release, tab blur and character changes. Control preferences are device/browser settings shared by local and online characters; character saves, equipment and learned skills are unchanged. Existing settings retain click movement and Q/W/E/R.
+- Rebuilt both standalone HTML files. Publish `main` through **Publish browser game** to update the website; no database migration is needed.
+
 ## Version 0.44.3 — Wrapped weapon grips and a separate rear carry
 
 - One-handed melee grips now have a palm behind the actual handle and separate curled fingers/thumb in front. The handle remains visible between fingers, replacing the full opaque hand overlay. The arm bones end at the wrist; the palm connects that wrist to the measured grip.
@@ -362,15 +370,15 @@ The requested **two hours per act, with longer acts approaching four hours, rema
 
 | Action | Input |
 | --- | --- |
-| Move | Click / hold open ground; arrow keys also work |
-| Assigned left attack | Left-click an enemy; hold to repeat |
+| Move | Click / hold open ground; arrow keys; optional WASD in Options |
+| Assigned left attack | Left-click an enemy; hold to repeat; optional keyboard alternative attacks in place |
 | Strike in place | Shift + left click on the world |
-| Selected mouse ability | Right click / hold |
-| Main abilities | Q, W, E, R |
-| Assign ability | Click a QWER, LMB or RMB box, then choose an ability; or click a destination box in Masteries |
-| Life flask / mana flask / evade | 1 / 2 / Space |
+| Selected mouse ability | Right click / hold; optional keyboard alternative |
+| Main abilities | Q/W/E/R in click mode; Q/E/R/F in WASD mode; customizable |
+| Assign ability | Click a skill, LMB or RMB box, then choose an ability; or click a destination box in Masteries |
+| Life flask / mana flask / evade | 1 / 2 / Space by default; customizable |
 | Talk / use a gate / collect nearby loot | Click the character, object or ground item label |
-| Town portal | T, then hold still for three seconds |
+| Town portal | T by default, then hold still for three seconds |
 | Inventory / masteries / character | I / K / C |
 | Automap / kingdom map / quest journal | Tab / G / J |
 | Loot labels | Hold Alt, or enable persistent labels in Options |
@@ -382,6 +390,8 @@ The requested **two hours per act, with longer acts approaching four hours, rema
 | Inspect | Hover; click to pin a long, scrollable description |
 | Move an item | Drag to a pack cell or compatible equipment slot |
 | Cancel a drag / close map / close panel / pause | Escape |
+
+Use **Escape → Options → Movement & key bindings** to customize controls. Each movement mode remembers its own layout on this browser.
 
 ## Equipment, crafting and gold
 

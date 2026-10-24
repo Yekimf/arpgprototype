@@ -17,6 +17,17 @@ async function hostAndJoin(browser){
 }
 async function party(a,b){await a.keyboard.press('p');await a.locator('[data-lan=party-invite]').click();await b.keyboard.press('p');await expect(b.locator('[data-lan=party-accept]')).toBeVisible();await b.locator('[data-lan=party-accept]').click();await expect.poll(()=>state(a).then(s=>!!s.lan.peers[0]?.party)).toBe(true);}
 
+test('WASD controls stop for live company chat and multiplayer options without swallowing rebinding keys',async({browser})=>{
+ const {a,b}=await hostAndJoin(browser);try{
+  await a.page.keyboard.press('Escape');await a.page.locator('[data-action=options]').click();await a.page.locator('[data-action=controls]').click();await a.page.locator('[data-movement-mode]').selectOption('wasd');
+  await a.page.locator('[data-bind-action=primary]').click();await a.page.keyboard.press('p');await expect(a.page.locator('.binding-status')).toContainText('reserved');await expect(a.page.locator('#lan-panel')).toBeHidden();await a.page.keyboard.press('Escape');await a.page.locator('#modal [data-action=close]').click();
+  const start=(await state(a.page)).position;await a.page.keyboard.down('s');await expect.poll(()=>state(a.page).then(s=>Math.hypot(s.position.x-start.x,s.position.y-start.y))).toBeGreaterThan(.3);
+  await a.page.keyboard.press('Enter');const stopped=(await state(a.page)).position;await a.page.locator('#lan-chat input').pressSequentially('wasd qerf is a message');await a.page.keyboard.up('s');await a.page.waitForTimeout(250);let s=await state(a.page);expect(Math.hypot(s.position.x-stopped.x,s.position.y-stopped.y)).toBeLessThan(.01);expect(s.castCounts).toEqual({});
+  await a.page.locator('#lan-chat input').press('Enter');await expect(b.page.locator('.lan-chat-lines')).toContainText('wasd qerf is a message');
+  await a.page.keyboard.press('Escape');await a.page.locator('[data-action=options]').click();await a.page.locator('[data-action=controls]').click();const before=(await state(a.page)).position;await a.page.keyboard.press('w');await a.page.keyboard.press('q');await a.page.waitForTimeout(200);s=await state(a.page);expect(Math.hypot(s.position.x-before.x,s.position.y-before.y)).toBeLessThan(.01);expect(s.castCounts).toEqual({});
+ }finally{await a.context.close();await b.context.close();}
+});
+
 test('two single-player characters share a LAN world, party chat and an atomic trade, then return to solo',async({browser})=>{
  test.setTimeout(120000);const {a,b}=await hostAndJoin(browser),errors=[];for(const p of [a.page,b.page])p.on('pageerror',e=>errors.push(e.message));try{
   expect((await state(a.page)).seed).toBe((await state(b.page)).seed);expect((await state(a.page)).layoutSignature).toBe((await state(b.page)).layoutSignature);await party(a.page,b.page);

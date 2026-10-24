@@ -1,3 +1,4 @@
+import {CONTROL_ACTIONS,defaultControls,activeBindings,bindingError,keyLabel,eventCode,movementVector,isMovementCode,controlsMarkup} from './controls.js';
 import {OfflineSupport} from './offline-support.js';
 import {LocalSavesMenu} from './local-saves-menu.js';
 import './online-menus.css';
@@ -67,6 +68,7 @@ import './inventory-polish.css';
 import './collections.css';
 import './skill-bindings.css';
 import './act-one.css';
+import './controls.css';
 import {GLOBE_FRAME_ART,SET_MODELS_ART,SET_ITEMS_ART,EQUIPMENT_ETCHINGS_ART,SKILL_PAINTINGS_ART,EQUIPMENT_RELIEF_ART,MENU_CREST_ART} from './assets.js';
 import {NPCDialogue} from './npc-dialogue.js';
 import {FOLIO_FRAME_ART,SKILL_FRAME_ART,STORY_ART,LEATHER_ART,MAP_ART,GUARD_ART,STONE_ART} from './assets.js';
@@ -83,7 +85,7 @@ const $=id=>document.getElementById(id);
 const escapeText=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 for(const [name,url] of [['--globe-frame',GLOBE_FRAME_ART],['--set-models',SET_MODELS_ART],['--set-items',SET_ITEMS_ART],['--equipment-etchings',EQUIPMENT_ETCHINGS_ART],['--skill-paintings',SKILL_PAINTINGS_ART],['--equipment-relief',EQUIPMENT_RELIEF_ART],['--menu-crest',MENU_CREST_ART]])document.documentElement.style.setProperty(name,`url("${url}")`);
 for(const [slot,id] of [['basic','basic'],['potion','potion'],['mana-potion','potion'],['dodge','evade'],['portal','portal']])$(slot+'-slot').querySelector('.ability-art').innerHTML=skillIcon(id);
-let settings={...DEFAULTS};try{settings=loadSettings(localStorage);}catch{}
+let settings={...DEFAULTS,controls:defaultControls()};try{settings=loadSettings(localStorage);}catch{}
 let characterStorage=null;try{localStorage.getItem('forgotten-kingdom-characters-v1');characterStorage=localStorage;}catch{}
 const characterSaves=new CharacterSaves(characterStorage);
 const renderer=new Renderer($('world'),$('minimap'));
@@ -101,7 +103,7 @@ const cursorCss=window.getComputedStyle(document.documentElement).getPropertyVal
 game.settings=settings;game.sound=settings.sound;renderer.configure(settings);
 const townUI=new TownUI(game,{save,toast,openPanel,closePanel,enterDungeon,sound});
 const dialogue=new NPCDialogue(game,{project:(x,y)=>renderer.screen(x,y),openPanel,save:()=>{save();setZoneUI();},toast});
-const SKILL_KEYS=['q','w','e','r'];
+let pendingBinding=null;
 Object.assign(game,{primaryHeld:false,secondaryHeld:false,primaryMode:null,combatTarget:null,attackPending:false,walkPhase:0,facing:{x:1,y:0},actionFacing:{x:1,y:0},castLock:0,pointerOverWorld:false,hudWidth:0,moveRefresh:0,combatRefresh:0,act:player.campaign?.act||1,chapter:saved?.chapter??chapterOf(player,saved?.act||1),areas:new Map(),frontScreen:true,supplyKills:-1,playerSlow:0});
 
 function setZoneUI(){
@@ -115,7 +117,7 @@ function setZoneUI(){
   document.querySelector('.map-caption').innerHTML=`<span class="map-dot"></span>${town?' SAFE HAVEN ':' UNCHARTED TERRITORY '}<span class="key-cap">M</span>`;
   $('objective').textContent=town?!player.quests.guideMet?'Speak to Sister Maelin':player.quests.wardenDefeated&&!player.quests.guideRewarded?'Return to Maelin for your reward':player.quests.scholarRescued?'Visit Edrin to identify your relics':'Rescue the archivist beneath the monastery':game.dungeon.bossDead?'Enter the rift to descend deeper':'Find and defeat the Hollow Warden';
   $('quest-progress').textContent=town?'Trade · Rest · Reforge · Prepare':`Explore the crypt · Depth ${game.depth}`;
-  $('journey-button').textContent=town?'Enter the crypt →':'Town portal · T';
+  $('journey-button').textContent=town?'Enter the crypt →':`Town portal · ${keyLabel(activeBindings(settings.controls).portal)}`;
   $('town-services').classList.toggle('hidden',!town);
   document.querySelector('[data-npc="scholar"]').disabled=!player.quests.scholarRescued;
   document.querySelector('[data-npc="scholar"] small').textContent=player.quests.scholarRescued?'IDENTIFY RELICS':'ARCHIVIST · MISSING';
@@ -167,7 +169,7 @@ enterTown(true);
 player.hp=clamp(player.hp||game.stats.maxHp,1,game.stats.maxHp);player.mana=clamp(player.mana,0,game.stats.maxMana);
 
 function persistSettings(){try{saveSettings(localStorage,settings);}catch{}}
-function applySettings(){Object.assign(settings,sanitizeSettings(settings));document.documentElement.dataset.menuFont=settings.menuFont;document.documentElement.style.setProperty('--chosen-font',fontFamily(settings.menuFont));game.sound=settings.sound;game.showLoot=settings.lootLabels;renderer.configure(settings);document.documentElement.classList.toggle('reduced-motion',settings.reducedMotion);$('map-overlay').style.opacity=settings.mapOpacity/100;document.querySelector('.map-panel').style.opacity=settings.mapOpacity/100;$('sound').setAttribute('aria-label',game.sound?'Mute sound':'Enable sound');persistSettings();}
+function applySettings(){Object.assign(settings,sanitizeSettings(settings));document.documentElement.dataset.menuFont=settings.menuFont;document.documentElement.style.setProperty('--chosen-font',fontFamily(settings.menuFont));game.sound=settings.sound;game.showLoot=settings.lootLabels;$('world').setAttribute('aria-label',`Isometric game. ${settings.controls.movement==='wasd'?'WASD or click':'Click'} to move. Aim with the cursor. Click skill boxes to assign abilities. Customize keys in Options. I inventory.`);renderer.configure(settings);document.documentElement.classList.toggle('reduced-motion',settings.reducedMotion);$('map-overlay').style.opacity=settings.mapOpacity/100;document.querySelector('.map-panel').style.opacity=settings.mapOpacity/100;$('sound').setAttribute('aria-label',game.sound?'Mute sound':'Enable sound');persistSettings();}
 applySettings();
 function save(){
   if(!validSave&&!player.campaign)return false;
@@ -312,7 +314,7 @@ function manaPotion(){
 }
 function dodge(){
   if(game.paused||game.dodgeCooldown>0||player.hp<=0)return;
-  const aim=aimPoint(),direction={x:aim.x-player.x,y:aim.y-player.y};let dx=direction.x,dy=direction.y,len=Math.hypot(dx,dy)||1;
+  const aim=aimPoint(),held=movement(),direction=settings.controls.movement==='wasd'&&Math.hypot(held.x,held.y)>.05?held:{x:aim.x-player.x,y:aim.y-player.y};let dx=direction.x,dy=direction.y,len=Math.hypot(dx,dy)||1;
   clearAttackOrder();game.rangedShot=null;game.melee=null;game.path=null;game.attackAnim=0;game.facing={x:dx/len,y:dy/len};game.dodgeVector={x:dx/len,y:dy/len};game.dodgeTime=.28;game.dodgeCooldown=2.8*game.stats.cdr;player.mana=Math.min(game.stats.maxMana,player.mana+rankOf(player,'ward')*6);effect('ring',player.x,player.y,.35,{radius:1,color:'#b5c5a4'});game.target=null;sound(140,.12);
 }
 function potion(){
@@ -356,12 +358,7 @@ function buildFlow(){
   for(let i=0;i<queue.length;i++){const [x,y]=queue[i];for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(d.tiles[ny]?.[nx]&&flow[ny][nx]===Infinity&&Math.abs(nx-player.x)<23&&Math.abs(ny-player.y)<23){flow[ny][nx]=flow[y][x]+1;queue.push([nx,ny]);}}}
   game.flow=flow;game.flowTimer=.65;
 }
-function movement(){
-  let sx=(keys.has('arrowright')?1:0)-(keys.has('arrowleft')?1:0),sy=(keys.has('arrowdown')?1:0)-(keys.has('arrowup')?1:0);
-  // Convert screen-relative input to the isometric world plane.
-  let dx=sx+sy,dy=sy-sx,len=Math.hypot(dx,dy);if(len>1){dx/=len;dy/=len;}
-  return{x:dx,y:dy};
-}
+function movement(){return game.panel?{x:0,y:0}:movementVector(keys,settings.controls);}
 function update(dt){
   game.time+=dt;if((game.paused&&!lan?.active)||game.loading||player.hp<=0||lan?.leaving||lan?.active&&!lan.connected)return;
   updateFlock(game.dungeon,dt);updateChickens(game.dungeon,dt);game.chickenNearby=nearChicken(game.dungeon,player);if(game.chickenNearby){const hen=game.dungeon.chickens.find(c=>distance(c,player)<=6);if(hen)meetChicken(player,game.dungeon.seed+':'+hen.id);}game.actionRecovery=Math.max(0,game.actionRecovery-dt);if(game.queuedSkill){game.queuedSkill.remaining-=dt;if(game.queuedSkill.remaining<=0)game.queuedSkill=null;else if(game.actionRecovery===0){const id=game.queuedSkill.id;game.queuedSkill=null;castSkill(id,true);}}restoreLeech(game,dt);if(game.sandbox.infiniteMana)player.mana=manaCapacity(game.stats,game.auras);if(game.sandbox.god)player.hp=game.stats.maxHp;
@@ -412,7 +409,9 @@ function update(dt){
   if(game.mouseDown||game.primaryHeld&&game.primaryMode==='force')primaryAttack(null,true);
   if(game.zone!=='town'){
     if(game.secondaryHeld)castSkill(player.mouseSkill,true);
-    SKILL_KEYS.forEach((key,slot)=>{if(keys.has(key))castSkill(player.slots[slot],true);});
+    if(!game.panel){const bindings=activeBindings(settings.controls);for(let slot=0;slot<4;slot++)if(bindings['skill'+slot]&&keys.has(bindings['skill'+slot]))castSkill(player.slots[slot],true);
+      if(bindings.primary&&keys.has(bindings.primary))primaryAttack(null,true);
+      if(bindings.secondary&&keys.has(bindings.secondary))castSkill(player.mouseSkill,true);}
   }
   tickPyre(game,dt,(e,damage)=>damageEnemy(e,damage/(game.stats.fire*game.stats.bonus*game.stats.spell),'fire',false),damage=>hurt(damage,'fire',player,true));
   if(game.whirl){game.whirl.remaining-=dt;game.whirl.tick-=dt;if(game.whirl.tick<=0){game.whirl.tick+=.24;game.animationMode='attack';game.attackDuration=.3;game.attackAnim=.3;for(const e of game.dungeon.enemies)if(!e.dead&&distance(e,player)<game.whirl.radius)damageEnemy(e,game.whirl.damage,'physical',true,'whirl');}if(game.whirl.remaining<=0)game.whirl=null;}
@@ -482,7 +481,8 @@ function update(dt){
 let hudTimer=0;
 function updateHud(dt){
   hudTimer+=dt;if(hudTimer<.08)return;hudTimer=0;
-  const s=game.stats;
+  const s=game.stats,bindings=activeBindings(settings.controls);
+  for(const [id,action,label] of [['potion-slot','heal','Life flask'],['mana-potion-slot','mana','Mana flask'],['dodge-slot','dodge','Evade'],['portal-slot','portal','Town portal']]){const button=$(id),key=keyLabel(bindings[action]);button.querySelector('kbd').textContent=bindings[action]?key:'—';button.setAttribute('aria-label',label+' · '+key);if(action==='dodge'||action==='portal')button.title=label+' · '+key;}
   $('channel-progress').classList.toggle('hidden',!game.channel);
   if(game.channel)$('channel-progress').querySelector('b').style.width=`${(1-game.channel.remaining/3)*100}%`;
   const npc=game.zone==='town'?game.dungeon.npcs.filter(n=>distance(n,player)<3).sort((a,b)=>distance(a,player)-distance(b,player))[0]:null;
@@ -498,10 +498,10 @@ function updateHud(dt){
   $('level-text').textContent=`${player.name||'THE LOYALIST'} · LV. ${player.level}`;
   $('xp-caption').textContent=`${Math.floor(player.xp)} / ${xpNeeded(player.level)} XP`;$('gold-text').textContent=`◈ ${player.gold.toLocaleString()}`;
   $('xp-fill').style.width=`${player.xp/xpNeeded(player.level)*100}%`;$('skill-badge').textContent=player.points+(player.passivePoints||0);$('skill-badge').title=`${player.points} mastery · ${player.passivePoints||0} passive points`;$('skill-badge').classList.toggle('hidden',!(player.points+(player.passivePoints||0)));
-  const mf=ensureManaFlask(player);$('mana-potion-text').textContent=`${Math.floor(mf.charges)} / 100`;$('mana-potion-slot').title=`Mana flask · ${Math.floor(mf.charges)} / 100 charges · 20 per use · Key 2`;$('mana-potion-slot').classList.toggle('recovering',mf.remaining>0);$('mana-potion-slot').classList.toggle('empty-flask',mf.charges<20);
+  const mf=ensureManaFlask(player);$('mana-potion-text').textContent=`${Math.floor(mf.charges)} / 100`;$('mana-potion-slot').title=`Mana flask · ${Math.floor(mf.charges)} / 100 charges · 20 per use · Key ${keyLabel(bindings.mana)}`;$('mana-potion-slot').classList.toggle('recovering',mf.remaining>0);$('mana-potion-slot').classList.toggle('empty-flask',mf.charges<20);
   const flask=ensureFlask(player);$('potion-text').textContent=`${Math.floor(flask.charges)} / 100`;$('potion-slot').title=`Life flask · ${Math.floor(flask.charges)} / 100 charges · 20 per use · Recovers over 3 seconds · No cooldown`;$('potion-slot').style.setProperty('--flask-level',flask.charges+'%');$('potion-slot').classList.toggle('recovering',flask.remaining>0);$('potion-slot').classList.toggle('empty-flask',flask.charges<FLASK.cost);
   document.querySelectorAll('[data-slot]').forEach(button=>{
-    const id=player.slots[Number(button.dataset.slot)],skill=getSkill(id),cd=game.cooldowns[id]||0;
+    const slot=Number(button.dataset.slot),id=player.slots[slot],skill=getSkill(id),cd=game.cooldowns[id]||0;button.querySelector('kbd').textContent=bindings['skill'+slot]?keyLabel(bindings['skill'+slot]):'—';button.setAttribute('aria-label',`Skill slot ${slot+1} · ${skill?.name||'Unlearned'} · ${keyLabel(bindings['skill'+slot])}`);
     button.classList.toggle('empty-skill',!skill);button.classList.toggle('mana-starved',!!skill&&!skill.toggle&&player.mana<skillProfile(player,skill,game.stats).cost);button.classList.toggle('sustained-active',id==='inferno'?!!game.pyre:!!game.auras[id]);const skillArt=button.querySelector('.ability-art');if(skillArt.dataset.skill!==(id||'empty')){skillArt.dataset.skill=id||'empty';skillArt.innerHTML=skillIcon(id||'empty');}button.querySelector('.ability-name').textContent=skill?.name||'Unlearned';button.title=skill?`${skill.name} · ${skillProfile(player,skill,game.stats).cost} mana · ${skill.toggle?'toggle · 2s after deactivation':'no cooldown'}`:'Assign an ability in Masteries';
     if(id==='inferno'){const pyre=pyreStats(player,s);button.title=`Martyr’s Pyre · Toggle · ${pyre.dps.toFixed(0)} fire damage / sec · ${pyre.selfDps.toFixed(1)} self fire damage / sec (after resistance)`; }const overlay=button.querySelector('i');overlay.style.display=cd>0&&!skill?.toggle?'flex':'none';overlay.textContent=cd.toFixed(1);button.style.opacity=skill&&player.mana<skill.cost?'.5':'1';
   });
@@ -509,7 +509,7 @@ function updateHud(dt){
   for(const [buttonId,id,label] of [['basic-slot',player.primarySkill,'Left'],['mouse-slot',player.mouseSkill,'Right']]){
     const button=$(buttonId),skill=getSkill(id),name=skill?.name||basicName,art=button.querySelector('.ability-art'),artId=id==='basic'?basicId:id;
     if(art.dataset.skill!==artId){art.dataset.skill=artId;art.innerHTML=skillIcon(artId);}
-    button.querySelector('.ability-name').textContent=name;button.title=`${label} mouse: ${name} · Click this box to assign`;
+    button.querySelector('.ability-name').textContent=name;const alternate=bindings[buttonId==='basic-slot'?'primary':'secondary'];button.querySelector('kbd').textContent=(label==='Left'?'LMB':'RMB')+(alternate?' / '+keyLabel(alternate):'');button.title=`${label} mouse${alternate?' / '+keyLabel(alternate):''}: ${name} · Click this box to assign`;
     const cd=game.cooldowns[id]||0;button.querySelector('i').style.display=cd>0?'flex':'none';button.querySelector('i').textContent=cd.toFixed(1);
     button.classList.toggle('sustained-active',id==='inferno'?!!game.pyre:!!game.auras[id]);
     button.classList.toggle('mana-starved',!!skill&&player.mana<skillProfile(player,skill,game.stats).cost);
@@ -522,7 +522,7 @@ function updateHud(dt){
 }
 
 function openPanel(panel){
-  dialogue.close();
+  pendingBinding=null;dialogue.close();
   if(game.frontScreen)return;
   if(player.hp<=0&&panel!=='death')return;
   if(game.panel===panel&&panel!=='death'){closePanel();return;}
@@ -531,21 +531,23 @@ function openPanel(panel){
   game.panel=panel;game.paused=!HUD_PANELS.includes(panel)&&panel!=='journal';game.mouseDown=false;clearAttackOrder();game.target=null;game.path=null;game.interactTarget=null;keys.clear();$('modal-backdrop').classList.remove('hidden');$('modal').setAttribute('aria-modal',String(game.paused));$('skill-picker').classList.add('hidden');renderPanel();
   setTimeout(()=>$('modal').querySelector('button')?.focus(),0);
 }
-function closePanel(){if(game.panel==='death')return;townUI.cancelIdentify();game.panel=null;game.paused=Boolean(game.frontScreen);game.hudWidth=0;$('modal-backdrop').classList.add('hidden');$('modal-backdrop').classList.remove('hud-mode','death-arrival');townUI.hud.hideTooltip();$('world').focus({preventScroll:true});save();}
+function closePanel(){if(game.panel==='death')return;pendingBinding=null;keys.clear();townUI.cancelIdentify();game.panel=null;game.paused=Boolean(game.frontScreen);game.hudWidth=0;$('modal-backdrop').classList.add('hidden');$('modal-backdrop').classList.remove('hud-mode','death-arrival');townUI.hud.hideTooltip();$('world').focus({preventScroll:true});save();}
 const title=(eyebrow,name)=>`<button class="close" data-action="close" aria-label="Close panel">×</button><span class="eyebrow">${eyebrow}</span><h2 id="modal-title">${name}</h2>`;
 function renderPanel(){
   const modal=$('modal');
-  modal.classList.remove('expanded-modal','campaign-modal','pause-menu','options-menu','quest-book','codex-panel','chronicle-book','online-pause','online-options');
+  modal.classList.remove('expanded-modal','campaign-modal','pause-menu','options-menu','quest-book','codex-panel','chronicle-book','online-pause','online-options','controls-menu');
   if(townUI.render(game.panel))return;
   if(renderChronicle(game))return;
   if(renderCampaignPanel(game,game.panel))return;
   if(renderProgression(game,{attributePanel,respecCost,renderer}))return;
   if(game.panel==='help'){
-    modal.innerHTML=title('YOUR JOURNEY BEGINS','The Kingsroad')+`<p>First protect Elin’s sheep: Hadrin has raised your former comrades to starve the refuge. Then breach Marchgate and stop the officer issuing those orders. Defeat the levy warbands in Widow’s Fields and Reeve Oswen at the Tithe Granary, then silence the thorn choir in Blackthorn Hollow and face Aldren in his redoubt to free Edrin. Read recovered accounts in the journal (J). Each fallen knight opens another road toward Crownfall.</p><div class="help-grid">${[['Move','Click / hold ground'],['Attack a target','Left click enemy'],['Attack in place','Shift + left click'],['Selected spell','Hold right click'],['Assign skills','Click QWER / LMB / RMB boxes'],['Active abilities','Q · W · E · R'],['Evade (invulnerable)','Space'],['Healing flask','1'],['Mana flask','2'],['Talk / loot / use a gate','Click the character, loot label or object'],['Town portal / crypt gate','T'],['Overlay automap','Tab'],['World map / waypoints','G'],['Quest journal','J'],['Achievements / set collection','N'],['Show loot labels','Hold Alt'],['Masteries / inventory','K / I'],['Character / map zoom','C / M'],['Pause / close panel','Esc'],['Release cursor','Ctrl + Esc'],['Capture cursor','⌖ button above the minimap'],['Equip / identify','Right / Alt + click item'],['Sell / transfer','Shift + click at shop / Ctrl + click at stash'],['Arrange inventory','S while inventory open'],['Close automap','Tab or Escape']].map(([n,k])=>`<p><span>${n}</span><kbd>${k}</kbd></p>`).join('')}</div><div class="modal-rule"></div><p>Begin with a basic strike. At each level earn <b>1 mastery point and 1 passive point</b> (K) and <b>5 attribute points</b> (C). Skills unlock at levels 2, 4, 8 and 12. Mix any masteries; invest 3, 7 and 12 points to unlock deeper abilities. Click the QWER, LMB or RMB boxes to assign learned skills. Offensive skills use mana and attack cadence, with no cooldown. Choose a specialization at invested rank 2. The Atlas of Oaths contains 469 connected nodes; explore 18 outer constellations and 12 keystones. Search, pan, zoom or jump to a discipline to plan your build. Act I has six combat quests across three regions; no quest pickups or errands block a gate. Aura reactivation locks briefly after switching off; Guard and Trance reserve mana. Practice controls and dungeon regeneration are in Options. Dodge the Warden’s marked attacks. Life and spirit regenerate continuously. Mana flasks use key 2 and recover mana over three seconds, respecting aura reservations. Both flasks cost 20 charges, recover their resource over three seconds, and have no cooldown. Combat and slow passive recovery replenish their charges.</p><p>Your character, gear, and current dungeon seed save automatically on this device. Reloading preserves your character and town services. An expedition restarts at its saved depth. Speak to Maelin for your first quest. Rescue Edrin to unlock free identification. Visit Orrin to trade and Garran to repair or reforge. No account needed.</p><div class="modal-footer"><small>Free the corrupted knights. Confront the mad king and the Wanderer in Crownfall.</small><button class="primary-button" data-action="close">Return to the journey</button></div>`;
+    modal.innerHTML=title('YOUR JOURNEY BEGINS','The Kingsroad')+`<p>First protect Elin’s sheep: Hadrin has raised your former comrades to starve the refuge. Then breach Marchgate and stop the officer issuing those orders. Defeat the levy warbands in Widow’s Fields and Reeve Oswen at the Tithe Granary, then silence the thorn choir in Blackthorn Hollow and face Aldren in his redoubt to free Edrin. Read recovered accounts in the journal (J). Each fallen knight opens another road toward Crownfall.</p><div class="help-grid">${[['Move',settings.controls.movement==='wasd'?'WASD / click / arrows':'Click / hold ground / arrows'],['Attack a target','Left click enemy'],['Attack in place','Shift + left click'],['Selected spell','Hold right click'],['Assign skills','Click skill / LMB / RMB boxes'],['Active abilities',[0,1,2,3].map(i=>keyLabel(activeBindings(settings.controls)['skill'+i])).join(' · ')],['Evade (invulnerable)',keyLabel(activeBindings(settings.controls).dodge)],['Healing flask',keyLabel(activeBindings(settings.controls).heal)],['Mana flask',keyLabel(activeBindings(settings.controls).mana)],['Talk / loot / use a gate','Click the character, loot label or object'],['Town portal / crypt gate',keyLabel(activeBindings(settings.controls).portal)],['Overlay automap','Tab'],['World map / waypoints','G'],['Quest journal','J'],['Achievements / set collection','N'],['Show loot labels','Hold Alt'],['Masteries / inventory','K / I'],['Character / map zoom','C / M'],['Pause / close panel','Esc'],['Release cursor','Ctrl + Esc'],['Capture cursor','⌖ button above the minimap'],['Equip / identify','Right / Alt + click item'],['Sell / transfer','Shift + click at shop / Ctrl + click at stash'],['Arrange inventory','S while inventory open'],['Close automap','Tab or Escape']].map(([n,k])=>`<p><span>${n}</span><kbd>${k}</kbd></p>`).join('')}</div><div class="modal-rule"></div><p>Begin with a basic strike. At each level earn <b>1 mastery point and 1 passive point</b> (K) and <b>5 attribute points</b> (C). Skills unlock at levels 2, 4, 8 and 12. Mix any masteries; invest 3, 7 and 12 points to unlock deeper abilities. Click the skill, LMB or RMB boxes to assign learned skills. Change movement and keys in Options → Movement &amp; key bindings. Offensive skills use mana and attack cadence, with no cooldown. Choose a specialization at invested rank 2. The Atlas of Oaths contains 469 connected nodes; explore 18 outer constellations and 12 keystones. Search, pan, zoom or jump to a discipline to plan your build. Act I has six combat quests across three regions; no quest pickups or errands block a gate. Aura reactivation locks briefly after switching off; Guard and Trance reserve mana. Practice controls and dungeon regeneration are in Options. Dodge the Warden’s marked attacks. Life and spirit regenerate continuously. Mana flasks recover mana over three seconds, respecting aura reservations. Both flasks cost 20 charges, recover their resource over three seconds, and have no cooldown. Combat and slow passive recovery replenish their charges.</p><p>Your character, gear, and current dungeon seed save automatically on this device. Reloading preserves your character and town services. An expedition restarts at its saved depth. Speak to Maelin for your first quest. Rescue Edrin to unlock free identification. Visit Orrin to trade and Garran to repair or reforge. No account needed.</p><div class="modal-footer"><small>Free the corrupted knights. Confront the mad king and the Wanderer in Crownfall.</small><button class="primary-button" data-action="close">Return to the journey</button></div>`;
   }else if(game.panel==='pause'){
     modal.classList.add('pause-menu');if(game.onlineSession)modal.classList.add('online-pause');modal.innerHTML=title('EMBERFALL CHRONICLES','Rest a moment')+`<p class="pause-location">${escapeText(player.name)} · Level ${player.level}<br>${escapeText($('location').textContent)} · ${player.gold.toLocaleString()} gold carried</p><div class="pause-actions"><button class="primary-button" data-action="close">Resume journey <kbd>Esc</kbd></button><button data-action="options">Options</button><button data-action="lan-menu">Friends / multiplayer</button><button data-action="chronicle">Achievements & collection</button><button data-action="help">Controls & shortcuts</button><button data-action="save-now">Save journey</button>${game.onlineSession?'<button data-action="leave-online">Save & return to lobby</button>':'<button data-action="main-menu">Return to title</button>'}</div><p class="pause-note">${lan?.active?'The company keeps moving while this menu is open.':'Combat is paused.'} ${game.onlineSession?'Your online character saves to your account. Single-player saves stay local.':characterSaves.persistent&&!characterSaves.error?'Your characters are saved in this browser.':'Saving is unavailable. Keep this tab open to retain this session.'}</p>`;save();
   }else if(game.panel==='options'){
     modal.classList.add('options-menu');if(game.onlineSession)modal.classList.add('online-options');modal.innerHTML=title('DESKTOP OPTIONS','Settings')+optionsMarkup(settings,{samples:!game.onlineSession})+(lan?.active?'<p>Practice tools are available in single player.</p>':testingMarkup(game))+`<div class="modal-footer"><button class="text-button" data-action="reset-options">Restore defaults</button><button class="primary-button" data-action="pause">Back to pause</button></div>`;
+  }else if(game.panel==='controls'){
+    modal.classList.add('controls-menu');modal.innerHTML=title('DESKTOP CONTROLS','Movement & key bindings')+controlsMarkup(settings.controls);
   }else if(game.panel==='death'){
     modal.innerHTML=`<div class="death-content"><span class="eyebrow">THE HOLLOW CLAIMS ANOTHER</span><h2 id="modal-title">Not yet forgotten.</h2><p>You fell in depth ${game.depth}. Your equipment and mastery progress endure.<br>Awaken in Emberfall with full life and spirit. Your expedition remains accessible.</p><p>Cost of returning: ${Math.floor(player.gold*.1)} gold</p><button class="primary-button" data-action="revive">Rise from the ashes</button></div>`;
   }else if(game.panel==='descend'){
@@ -585,8 +587,9 @@ $('modal').addEventListener('click',event=>{if(lan?.trading&&!event.target.close
   else if(action==='main-menu'){if(lan?.active)lan.leave().then(()=>frontEnd.showTitle()).catch(e=>toast(e.message,6000));else{closePanel();frontEnd.showTitle();}}
   else if(action==='save-now'){if(game.onlineSession){save();game.onlineSession.archive.flush().then(()=>toast('Online character saved to your account.')).catch(e=>toast(e.message,6000));}else toast(save()?'Journey saved on this browser.':'This browser blocks saving. Your current journey can continue.');}
   else if(action==='regenerate-dungeons'){if(lan?.active){toast('Leave the LAN game before regenerating dungeons.');return;}player.dungeonGeneration=(player.dungeonGeneration||0)+1;for(const key of [...game.areas.keys()])if(key.includes('stronghold'))game.areas.delete(key);game.expedition=null;if(game.dungeon.kind==='stronghold'){closePanel();enterCampaignArea('stronghold',game.act,false,true,game.chapter);}else if(!player.campaign&&game.zone==='dungeon'){closePanel();newFloor(game.depth,dungeonSeed(game.seed,0,0,player.dungeonGeneration));}else renderPanel();save();toast('Dungeon layouts regenerated · character and quest progress kept.');}
-  else if(action==='reset-options'){Object.assign(settings,DEFAULTS);applySettings();renderPanel();}
-  else if(['help','character','new-confirm','options','pause','chronicle'].includes(action))openPanel(action);
+  else if(action==='reset-options'){Object.assign(settings,DEFAULTS,{controls:defaultControls()});keys.clear();applySettings();renderPanel();}
+  else if(action==='reset-bindings'){const mode=settings.controls.movement;settings.controls.profiles[mode]={...defaultControls().profiles[mode]};pendingBinding=null;keys.clear();applySettings();renderPanel();}
+  else if(['help','character','new-confirm','options','pause','chronicle','controls'].includes(action))openPanel(action);
   else if(action==='respec'){
     const cost=respecCost();if(player.gold<cost){toast(`Respec requires ${cost} gold`);return;}
     player.gold-=cost;player.points+=Object.values(player.skills).reduce((a,b)=>a+b,0);player.skills={};player.skillMods={};game.pyre=null;game.auras={};player.slots=[null,null,null,null];player.mouseSkill='basic';player.primarySkill='basic';game.cooldowns={};game.stats=playerStats(player);player.hp=Math.min(player.hp,game.stats.maxHp);player.mana=Math.min(player.mana,game.stats.maxMana);renderPanel();save();
@@ -630,8 +633,8 @@ document.querySelectorAll('[data-npc]').forEach(button=>button.addEventListener(
 }));
 $('sound').addEventListener('click',()=>{game.sound=!game.sound;settings.sound=game.sound;persistSettings();$('sound').textContent=game.sound?'♫':'♪';$('sound').title=game.sound?'Mute sound':'Enable sound';$('sound').setAttribute('aria-label',$('sound').title);toast(game.sound?'Sound enabled':'Sound muted',1200);sound(440,.2,'sine');});
 function showSkillPicker(target){
-  game.bindingTarget=target;clearAttackOrder();game.target=null;game.path=null;
-  const mouse=target==='primary'||target==='mouse',label=target==='primary'?'LMB':target==='mouse'?'RMB':SKILL_KEYS[target].toUpperCase(),current=boundSkill(player,target);
+  game.bindingTarget=target;keys.clear();clearAttackOrder();game.target=null;game.path=null;
+  const mouse=target==='primary'||target==='mouse',label=target==='primary'?'LMB':target==='mouse'?'RMB':keyLabel(activeBindings(settings.controls)['skill'+target]),current=boundSkill(player,target);
   const choices=[{id:mouse?'basic':'',name:mouse?(game.stats.weapon?'Strike':'Punch'):'Unassigned'},...ALL_SKILLS.filter(skill=>skill.active&&rankOf(player,skill.id))];
   $('skill-picker').innerHTML=`<div class="skill-picker-title">Assign ${label}<button data-close-picker aria-label="Close skill selection">×</button></div><div class="skill-picker-options">${choices.map(skill=>{
     const profile=skill.id&&skill.id!=='basic'?skillProfile(player,skill,game.stats):null;
@@ -639,22 +642,67 @@ function showSkillPicker(target){
   }).join('')}</div><div class="skill-picker-hint">${mouse&&target==='primary'?'Click enemies to attack · Ground to move · Shift-click to attack in place.':'Choose a learned ability. Click any skill box to change its assignment.'}</div>`;
   $('skill-picker').classList.remove('hidden');
 }
+// Capture rebinding before chat/company shortcuts. A rejected key must not
+// accidentally open a panel or cast a spell while the key box is listening.
 window.addEventListener('keydown',event=>{
-  const key=event.key.toLowerCase();if(game.frontScreen)return;if(lan?.trading&&!['escape'].includes(key))return;if(['input','select','textarea'].includes(event.target?.tagName?.toLowerCase())&&!['escape','tab'].includes(key))return;
-  if([' ','arrowup','arrowdown','arrowleft','arrowright','alt'].includes(key)||key==='tab'&&game.panel)event.preventDefault();
-  if(key==='tab'&&!game.panel){event.preventDefault();game.largeMap=!game.largeMap;$('map-overlay').classList.toggle('hidden',!game.largeMap);return;}
-  if(key==='tab'&&game.panel){const focusable=[...$('modal').querySelectorAll('button:not(:disabled),select')];const index=focusable.indexOf(document.activeElement);focusable[(index+(event.shiftKey?-1:1)+focusable.length)%focusable.length]?.focus();return;}
-  if(key==='escape'){if(game.onlineSession&&game.panel==='options'){openPanel('pause');return;}if(game.largeMap&&!game.panel){game.largeMap=false;$('map-overlay').classList.add('hidden');return;}if(game.dialogue){dialogue.close();return;}if(!$('skill-picker').classList.contains('hidden'))$('skill-picker').classList.add('hidden');else game.panel?closePanel():openPanel('pause');return;}
-  if(key==='s'&&HUD_PANELS.includes(game.panel)){townUI.handleClick({target:{closest:selector=>selector==='[data-town-action]'?{dataset:{townAction:'sort'}}:null}});return;}
-  if(event.repeat){if(!game.paused)keys.add(key);return;}
-  if(key==='i'||key==='k'||key==='c'||key==='g'||key==='j'||key==='n'){openPanel({i:'inventory',k:'skills',c:'character',g:'worldmap',j:'journal',n:'chronicle'}[key]);return;}
-  if(game.paused||game.loading)return;keys.add(key);
-  if(SKILL_KEYS.includes(key)){cast(SKILL_KEYS.indexOf(key));return;}
-  if(key===' ')dodge();if(key==='1')potion();if(key==='2')manaPotion();if(key==='alt')game.showLoot=true;
-  if(key==='t')townPortal();
+  if(game.panel!=='controls'||!pendingBinding)return;
+  event.preventDefault();event.stopImmediatePropagation();if(event.repeat)return;
+  if(event.key==='Escape'){finishBinding('Binding unchanged.');return;}
+  if(event.ctrlKey||event.metaKey||event.altKey){$('modal').querySelector('.binding-status').textContent='Use a key without Ctrl, Alt or Meta.';return;}
+  const code=['Backspace','Delete'].includes(event.key)?null:eventCode(event),error=bindingError(settings.controls,pendingBinding,code);
+  if(error){$('modal').querySelector('.binding-status').textContent=error;return;}
+  activeBindings(settings.controls)[pendingBinding]=code;applySettings();finishBinding('Binding saved.');
+},true);
+function finishBinding(message){const action=pendingBinding;pendingBinding=null;keys.clear();$('modal').innerHTML=title('DESKTOP CONTROLS','Movement & key bindings')+controlsMarkup(settings.controls,null,message);$('modal').querySelector(`[data-bind-action="${action}"]`)?.focus();}
+$('modal').addEventListener('click',event=>{
+  const key=event.target.closest('[data-bind-action]'),clear=event.target.closest('[data-clear-binding]');
+  if(game.panel!=='controls'||!key&&!clear)return;
+  keys.clear();clearAttackOrder();
+  if(clear){activeBindings(settings.controls)[clear.dataset.clearBinding]=null;applySettings();pendingBinding=null;renderPanel();return;}
+  pendingBinding=key.dataset.bindAction;$('modal').innerHTML=title('DESKTOP CONTROLS','Movement & key bindings')+controlsMarkup(settings.controls,pendingBinding);$('modal').querySelector(`[data-bind-action="${pendingBinding}"]`)?.focus();
+});
+$('modal').addEventListener('change',event=>{
+  const field=event.target.closest('[data-movement-mode]');if(!field)return;
+  settings.controls.movement=field.value==='wasd'?'wasd':'click';pendingBinding=null;keys.clear();clearAttackOrder();game.target=null;game.path=null;applySettings();renderPanel();
+});
+// A held direction must stop when a chat box, search field or native select takes focus.
+document.addEventListener('focusin',event=>{if(event.target.closest('input,select,textarea,[contenteditable="true"]')){keys.clear();clearAttackOrder();game.target=null;game.path=null;}});
+window.addEventListener('keydown',event=>{
+  const key=event.key.toLowerCase(),code=eventCode(event);
+  if(game.frontScreen)return;if(lan?.trading&&key!=='escape')return;
+  if(event.target.closest?.('input,select,textarea,[contenteditable="true"]')&&key!=='escape')return;
+  if(event.ctrlKey||event.metaKey||event.altKey&&key!=='alt')return;
+  if(key==='escape'){
+    event.preventDefault();keys.clear();if(event.repeat)return;
+    if(game.panel==='controls'){openPanel('options');return;}
+    if(game.onlineSession&&game.panel==='options'){openPanel('pause');return;}
+    if(game.largeMap&&!game.panel){game.largeMap=false;$('map-overlay').classList.add('hidden');return;}
+    if(game.dialogue){dialogue.close();return;}
+    if(!$('skill-picker').classList.contains('hidden'))$('skill-picker').classList.add('hidden');else game.panel?closePanel():openPanel('pause');return;
+  }
+  if(key==='tab'){
+    event.preventDefault();if(event.repeat)return;
+    if(!game.panel){game.largeMap=!game.largeMap;$('map-overlay').classList.toggle('hidden',!game.largeMap);}
+    else{const focusable=[...$('modal').querySelectorAll('button:not(:disabled),select,input')];const index=focusable.indexOf(document.activeElement);focusable[(index+(event.shiftKey?-1:1)+focusable.length)%focusable.length]?.focus();}return;
+  }
+  // Pause/options key presses never leak back into movement after closing them.
+  if(game.panel==='controls')return;
+  if(key==='s'&&HUD_PANELS.includes(game.panel)){if(!event.repeat)townUI.handleClick({target:{closest:selector=>selector==='[data-town-action]'?{dataset:{townAction:'sort'}}:null}});return;}
+  if(['i','k','c','g','j','n'].includes(key)){if(!event.repeat)openPanel({i:'inventory',k:'skills',c:'character',g:'worldmap',j:'journal',n:'chronicle'}[key]);return;}
+  if(game.paused||game.panel||game.loading||!$('skill-picker').classList.contains('hidden'))return;
+  const bindings=activeBindings(settings.controls),action=CONTROL_ACTIONS.find(([id])=>bindings[id]===code)?.[0],move=isMovementCode(code,settings.controls);
+  if(action||move||key==='alt')event.preventDefault();
+  if(event.repeat)return;
+  keys.add(code);
+  if(action?.startsWith('skill')){cast(Number(action.slice(5)));return;}
+  if(action==='primary'){game.lootTarget=null;game.interactTarget=null;game.combatTarget=null;game.target=null;game.path=null;primaryAttack();}
+  if(action==='secondary'){game.lootTarget=null;game.interactTarget=null;game.combatTarget=null;game.target=null;game.path=null;castSkill(player.mouseSkill);}
+  if(move){game.lootTarget=null;game.interactTarget=null;game.combatTarget=null;game.attackPending=false;game.target=null;game.path=null;}
+  if(action==='dodge')dodge();if(action==='heal')potion();if(action==='mana')manaPotion();if(action==='portal')townPortal();
+  if(key==='alt')game.showLoot=true;
   if(key==='m'){game.largeMap=!game.largeMap;$('map-overlay').classList.toggle('hidden',!game.largeMap);}
 });
-window.addEventListener('keyup',e=>{keys.delete(e.key.toLowerCase());if(e.key==='Alt')game.showLoot=settings.lootLabels;});
+window.addEventListener('keyup',e=>{keys.delete(eventCode(e));if(e.key==='Alt')game.showLoot=settings.lootLabels;});
 window.addEventListener('blur',()=>{keys.clear();clearAttackOrder();game.mouseDown=false;save();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&!game.paused&&player.hp>0)openPanel('pause');});
 window.addEventListener('beforeunload',save);
@@ -673,7 +721,7 @@ $('world').addEventListener('pointerdown',e=>{
   game.aim=aimPoint();
   if(e.button===2){game.lootTarget=null;game.secondaryHeld=true;game.combatTarget=null;game.target=null;game.path=null;castSkill(player.mouseSkill);return;}
   clearAttackOrder();
-  if(!e.shiftKey&&!keys.has('shift')){const drop=lootLabelAt(renderer.lootLabels||[],e.clientX,e.clientY,game.loot);if(drop){drop.warned=false;game.interactTarget=null;if(distance(player,drop)<1.35)pickup(drop);else if(walkTo(drop))game.lootTarget=drop;return;}}
+  if(!e.shiftKey&&!(keys.has('ShiftLeft')||keys.has('ShiftRight'))){const drop=lootLabelAt(renderer.lootLabels||[],e.clientX,e.clientY,game.loot);if(drop){drop.warned=false;game.interactTarget=null;if(distance(player,drop)<1.35)pickup(drop);else if(walkTo(drop))game.lootTarget=drop;return;}}
   if(game.zone==='town'||player.campaign){
     const targets=[...(game.dungeon.npcs||[]).map(n=>({...n,interaction:n.id,height:91,width:31})),...game.dungeon.props.filter(p=>p.stash||p.exit&&!player.campaign).map(p=>({...p,interaction:p.stash?'stash':'departure',height:p.stash?p.height+10:145,width:p.stash?p.width/2+6:65,x:p.exit?game.dungeon.portal.x:p.x,y:p.exit?game.dungeon.portal.y:p.y})),...campaignTargets()];
     const target=targets.find(t=>{const point=renderer.screen(t.x,t.y);return Math.abs(point.x-e.clientX)<t.width&&e.clientY>point.y-t.height&&e.clientY<point.y+7;});
@@ -684,7 +732,7 @@ $('world').addEventListener('pointerdown',e=>{
   if(!player.campaign&&game.dungeon.bossDead&&Math.hypot(e.clientX-portalScreen.x,e.clientY-portalScreen.y)<65&&distance(player,game.dungeon.portal)<3){openPanel('descend');return;}
   const enemy=enemyUnderPointer();
   game.primaryHeld=true;game.primaryPointer=e.pointerId;
-  if(e.shiftKey||keys.has('shift')){game.primaryMode='force';game.target=null;game.path=null;primaryAttack();return;}
+  if(e.shiftKey||(keys.has('ShiftLeft')||keys.has('ShiftRight'))){game.primaryMode='force';game.target=null;game.path=null;primaryAttack();return;}
   if(enemy&&getSkill(player.primarySkill)?.toggle){game.primaryMode='force';game.target=null;game.path=null;primaryAttack();return;}
   if(enemy){game.primaryMode='attack';game.combatTarget=enemy;game.attackPending=true;game.combatRefresh=0;if(distance(enemy,player)<=primaryRange(player,game.stats)&&primaryAttack(enemy))game.attackPending=false;return;}
   game.primaryMode='move';game.moveRefresh=.16;walkTo(renderer.unproject(e.clientX,e.clientY));
@@ -747,7 +795,7 @@ function setCampaignZoneUI(){
  document.querySelector('.map-heading>span').textContent=name.toUpperCase();document.querySelector('.map-caption').innerHTML='<span class="map-dot"></span> TAB · AUTOMAP <span class="key-cap">G · WORLD</span>';
  document.querySelector('.quest-panel>.eyebrow').innerHTML='<span class="tiny-diamond">◆</span> AN OATH UNBROKEN';document.querySelector('.quest-panel>h2').textContent=a.title;document.querySelector('.quest-panel>p').textContent='Free the Round Table. Break the bargain.';
  $('objective').textContent=campaignObjective(player,town?'town':wild?'wilderness':'stronghold',game.act,game.chapter);$('quest-progress').textContent=(game.act===1?actOneObjective(player,game.chapter):town?'Trade · Rest · Prepare':`Chapter ${game.chapter+1} / ${lastChapter(game.act)+1} · ${wild?ch.task:ch.captain||a.knight}`);
- $('journey-button').textContent=town?game.expedition?'Return to the road →':'Journey to the Kingsroad →':'Town portal · T';$('town-services').classList.toggle('hidden',!town);
+ $('journey-button').textContent=town?game.expedition?'Return to the road →':'Journey to the Kingsroad →':`Town portal · ${keyLabel(activeBindings(settings.controls).portal)}`;$('town-services').classList.toggle('hidden',!town);
  document.querySelector('[data-npc="scholar"]').disabled=!player.quests.scholarRescued;document.querySelector('[data-npc="scholar"] small').textContent=player.quests.scholarRescued?'IDENTIFY RELICS':'ARCHIVIST · MISSING';
  $('seed-label').textContent=`AURETH · ${town?'LAST REFUGE':a.title.toUpperCase()}`;document.querySelector('.zone-intro h1').textContent=name;document.querySelector('.zone-intro .eyebrow').textContent=town?'BENEATH THE LAST FRIENDLY BANNER':`ACT ${game.act} · ${a.title.toUpperCase()}`;document.querySelector('.zone-intro>div').textContent=town?'The loyal gather where the old light burns.':wild?'Beyond these roads lies a kingdom that has forgotten the dawn.':a.knight;
 }
