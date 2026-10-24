@@ -1,3 +1,4 @@
+import {withGearRequirements,activeEquipment} from './gear-requirements.js';
 import {ITEM_SETS} from './set-items.js';
 // Item families drive both combat statistics and visible equipment layers.
 export const BASES=[
@@ -36,30 +37,37 @@ export const BASES=[
 ];
 export const AFFIX_POOL=[
  {id:'stalwart',name:'Stalwart',stat:'life',range:[8,16]},
- {id:'keen',name:'Keen',stat:'crit',range:[1,3]},
+ {id:'keen',name:'of Precision',kind:'suffix',stat:'crit',range:[1,3]},
  {id:'ferocious',name:'Merciless',stat:'bonus',range:[4,8]},
- {id:'warded',name:'Emberward',stat:'fireResist',range:[8,16]},
- {id:'winter',name:'Winterbound',stat:'coldResist',range:[8,16]},
- {id:'storm',name:'Stormward',stat:'lightningResist',range:[8,16]},
- {id:'renewal',name:'Mending',stat:'lifeRegen',range:[.6,1.4],weight:1.1},
+ {id:'warded',name:'of Embers',kind:'suffix',stat:'fireResist',range:[8,16]},
+ {id:'winter',name:'of Rime',kind:'suffix',stat:'coldResist',range:[8,16]},
+ {id:'storm',name:'of Storms',kind:'suffix',stat:'lightningResist',range:[8,16]},
+ {id:'renewal',name:'of Mending',kind:'suffix',stat:'lifeRegen',range:[.6,1.4],weight:1.1},
  {id:'devout',name:'Devout',stat:'fireDamage',range:[7,14]},
- {id:'brimming',name:'Brimming',stat:'flaskGain',range:[10,20]},
+ {id:'brimming',name:'of Bounty',kind:'suffix',stat:'flaskGain',range:[10,20]},
  {id:'sharp',name:'Honed',stat:'damage',range:[2,5],slots:['weapon']},
  {id:'stout',name:'Reinforced',stat:'armor',range:[2,5],slots:['armor','helm','shield','gloves','boots']},
  {id:'scholar',name:'Insightful',stat:'spirit',range:[6,13]},
- {id:'lucid',name:'Lucid',stat:'manaRegen',range:[.35,.8],weight:1.3},
- {id:'meditative',name:'Contemplative',stat:'manaRegenPercent',range:[12,24],weight:1.5},
- {id:'vampiric',name:'Sanguine',stat:'lifeLeech',range:[.5,1.2],weight:.45,minLevel:3,slots:['weapon','ring','gloves','charm']},
- {id:'siphoning',name:'Siphoning',stat:'manaLeech',range:[.4,.9],weight:.55,minLevel:3,slots:['weapon','ring','charm']},
- {id:'channelled',name:'Channelled',stat:'manaOnHit',range:[.3,.7],weight:.7,slots:['weapon','ring','gloves']},
+ {id:'lucid',name:'of Meditation',kind:'suffix',stat:'manaRegen',range:[.35,.8],weight:1.3},
+ {id:'meditative',name:'of Replenishment',kind:'suffix',stat:'manaRegenPercent',range:[12,24],weight:1.5},
+ {id:'vampiric',name:'of the Leech',kind:'suffix',stat:'lifeLeech',range:[.5,1.2],weight:.45,minLevel:3,slots:['weapon','ring','gloves','charm']},
+ {id:'siphoning',name:'of Siphoning',kind:'suffix',stat:'manaLeech',range:[.4,.9],weight:.55,minLevel:3,slots:['weapon','ring','charm']},
+ {id:'channelled',name:'of Channeling',kind:'suffix',stat:'manaOnHit',range:[.3,.7],weight:.7,slots:['weapon','ring','gloves']},
  {id:'erudite',name:'Erudite',stat:'skillRanks',range:[1,1],weight:.2,minLevel:12,slots:['weapon','helm','charm']},
- {id:'economist',name:'Measured',stat:'manaCostReduction',range:[3,6],weight:.6,minLevel:8},
+ {id:'economist',name:'of Conservation',kind:'suffix',stat:'manaCostReduction',range:[3,6],weight:.6,minLevel:8},
  {id:'potent',name:'Potent',stat:'spellPower',range:[3,6],weight:2,slots:['weapon','charm']},
  {id:'invoking',name:'Invoker’s',stat:'spellDamage',range:[6,12],weight:2},
  {id:'rime',name:'Rimed',stat:'coldDamage',range:[7,14],weight:2},
  {id:'charged',name:'Stormwrought',stat:'lightningDamage',range:[7,14],weight:2},
- {id:'cruel',name:'Cruel',stat:'critDamage',range:[8,16],weight:1.2,minLevel:5},
- {id:'quick',name:'Deft',stat:'attackRate',range:[3,7]},
+ {id:'cruel',name:'of Cruelty',kind:'suffix',stat:'critDamage',range:[8,16],weight:1.2,minLevel:5},
+ {id:'recuperation',name:'of Renewal',kind:'suffix',stat:'lifeRegenPercent',range:[12,25],weight:1.2,minLevel:3},
+ {id:'restoration',name:'of Restoration',kind:'suffix',stat:'lifeRegen',range:[1.6,2.8],weight:.6,minLevel:5,slots:['armor','belt','charm']},
+ {id:'clarity',name:'of Clarity',kind:'suffix',stat:'manaRegen',range:[1,1.8],weight:.7,minLevel:5,slots:['helm','ring','charm','weapon']},
+ {id:'slayer',name:'of the Reaper',kind:'suffix',stat:'lifeOnKill',range:[2,5],weight:1.2,minLevel:2},
+ {id:'soulwell',name:'of the Well',kind:'suffix',stat:'manaOnKill',range:[2,4],weight:1.2,minLevel:2},
+ {id:'precise',name:'Accurate',kind:'prefix',stat:'attackRating',range:[15,30],weight:4,slots:['weapon','gloves','ring']},
+ {id:'bulwark',name:'Fortified',kind:'prefix',stat:'armorPercent',range:[12,25],weight:3,slots:['armor','helm','shield','gloves','boots']},
+ {id:'quick',name:'of Alacrity',kind:'suffix',stat:'attackRate',range:[3,7]},
 ];
 const precision=stat=>['speed','lifeRegen','manaRegen','lifeLeech','manaLeech','manaOnHit'].includes(stat)?100:1;
 const scaled=(n,rng,power,step=1)=>Math.round((n[0]+rng()*(n[1]-n[0]))*power*step)/step;
@@ -86,9 +94,9 @@ export function createRelic(rng,depth,guaranteedRare=false){
  if(base.reach)item.reach=base.reach;if(base.attackSpeed)item.attackSpeed=base.attackSpeed;
  item.quality=(item.damage||item.armor)?Math.floor(rng()*(depth<=2?3:6))*2:0;item.baseTier=depth>=12?'elite':depth>=6?'exceptional':'standard';item.baseName=base.name;item.name=(item.baseTier==='elite'?'Royal ':item.baseTier==='exceptional'?'Tempered ':'')+base.name;for(const stat of ['damage','armor'])if(item[stat])item[stat]=Math.round(item[stat]*(1+item.quality/100));
  const pool=AFFIX_POOL.filter(a=>(!a.slots||a.slots.includes(slot))&&depth>=(a.minLevel||1)),count=rarity==='normal'?0:rarity==='magic'?2:rarity==='rare'?4:5;
- for(let i=0;i<count;i++){const selected=weighted(rng,pool.map(a=>[a,a.weight??6])),at=pool.indexOf(selected),affix=pool.splice(at,1)[0],tier=1+Math.floor(rng()*Math.min(5,1+Math.floor(depth/2))),factor=1+(tier-1)*.3,value=scaled(affix.range,rng,factor,precision(affix.stat));item[affix.stat]=(item[affix.stat]||0)+value;item.affixes.push({id:affix.id,stat:affix.stat,value,tier,min:Math.round(affix.range[0]*factor*precision(affix.stat))/precision(affix.stat),max:Math.round(affix.range[1]*factor*precision(affix.stat))/precision(affix.stat),kind:i%2?'suffix':'prefix'});}
+ for(let i=0;i<count&&pool.length;i++){const limit=rarity==='magic'?1:3;for(let j=pool.length-1;j>=0;j--)if(item.affixes.filter(a=>a.kind===(pool[j].kind||'prefix')).length>=limit)pool.splice(j,1);if(!pool.length)break;const selected=weighted(rng,pool.map(a=>[a,a.weight??6])),at=pool.indexOf(selected),affix=pool.splice(at,1)[0],tier=1+Math.floor(rng()*Math.min(5,1+Math.floor(depth/2))),factor=1+(tier-1)*.3,value=scaled(affix.range,rng,factor,precision(affix.stat));item[affix.stat]=(item[affix.stat]||0)+value;item.affixes.push({id:affix.id,stat:affix.stat,value,tier,min:Math.round(affix.range[0]*factor*precision(affix.stat))/precision(affix.stat),max:Math.round(affix.range[1]*factor*precision(affix.stat))/precision(affix.stat),kind:affix.kind||'prefix',name:affix.name});for(let j=pool.length-1;j>=0;j--)if(pool[j].stat===affix.stat)pool.splice(j,1);}
  if(rarity==='rare'||rarity==='legendary')item.life=(item.life||0)+Math.round(10*power);
- if(count)item.name=`${AFFIX_POOL.find(a=>a.id===item.affixes[0].id).name} ${item.name}`;
+ if(count){const prefix=item.affixes.find(a=>a.kind==='prefix'),suffix=item.affixes.find(a=>a.kind==='suffix');item.name=`${prefix?prefix.name+' ':''}${item.name}${suffix?' '+suffix.name:''}`;}
  if(rarity==='legendary'){
   if(slot==='weapon'&&['staff','wand'].includes(base.look)){item.unique='whispering-well';item.name='The Whispering Well';item.manaRegen=(item.manaRegen||0)+2;item.skillRanks=(item.skillRanks||0)+1;item.manaCostReduction=(item.manaCostReduction||0)+10;}
   else if(slot==='weapon'&&['bow','crossbow'].includes(base.id)){item.unique='last-hunt';item.name='The Last Hunt';item.critDamage=(item.critDamage||0)+30;item.manaOnHit=(item.manaOnHit||0)+1;}
@@ -99,10 +107,10 @@ export function createRelic(rng,depth,guaranteedRare=false){
   else{item.unique=slot==='armor'||slot==='helm'?'ember-vow':'pilgrim-vow';if(item.unique==='ember-vow'){item.name='The Cinderbound Oath';item.fireResist=(item.fireResist||0)+20;item.lifeRegen=(item.lifeRegen||0)+1.5;}else{item.name='The Long Vigil';item.flaskGain=(item.flaskGain||0)+25;item.life=(item.life||0)+20;}}
  }
 
- return item;
+ return withGearRequirements(item);
 }
 export function itemLook(item,slot=item?.slot){if(!item)return 'none';if(item.look)return item.look;if(slot==='armor'&&(item.id==='starter-armor'||item.name==='Weathered Hauberk'))return 'original';const name=item.name?.toLowerCase()||'';return slot==='weapon'?/axe/.test(name)?'axe':/mace|hammer/.test(name)?'mace':/spear|pike/.test(name)?'spear':'sword':slot==='armor'?/vest|robe/.test(name)?'robe':/cuirass|plate|brigand/.test(name)?'plate':/leather|jerkin/.test(name)?'leather':'chain':slot==='helm'?/hood|cowl/.test(name)?'hood':/great|crown/.test(name)?'greathelm':'sallet':slot==='shield'?/kite|tower/.test(name)?'kite':'round':slot==='boots'||slot==='gloves'?/iron|steel|sabat|greave|gaunt/.test(name)?'steel':'leather':'leather';}
-export function appearanceOf(p){const out={sex:'male',surcoat:p.appearance||'crimson',twoHanded:isTwoHanded(p.equipment.weapon),setParts:Object.fromEntries(Object.entries(p.equipment).filter(([,i])=>i?.setId&&i.identified!==false).map(([slot,i])=>[slot,ITEM_SETS.findIndex(s=>s.id===i.setId)]))};for(const slot of ['armor','helm','weapon','shield','boots','gloves','belt','charm','ring','ring2']){const item=p.equipment[slot];out[slot]=itemLook(item,slot);if(slot==='weapon'&&item)out.weaponIcon=weaponIconIndex(item);out[slot+'Rarity']=item?.rarity||'none';}return out;}
+export function appearanceOf(p){p={...p,equipment:activeEquipment(p)};const out={sex:'male',surcoat:p.appearance||'crimson',twoHanded:isTwoHanded(p.equipment.weapon),setParts:Object.fromEntries(Object.entries(p.equipment).filter(([,i])=>i?.setId&&i.identified!==false).map(([slot,i])=>[slot,ITEM_SETS.findIndex(s=>s.id===i.setId)]))};for(const slot of ['armor','helm','weapon','shield','boots','gloves','belt','charm','ring','ring2']){const item=p.equipment[slot];out[slot]=itemLook(item,slot);if(slot==='weapon'&&item)out.weaponIcon=weaponIconIndex(item);out[slot+'Rarity']=item?.rarity||'none';}return out;}
 
 export function weaponIconIndex(item){return item.weaponIcon??({sword:0,greatsword:1,dagger:2,axe:3,warhammer:4,mace:5,flail:6,spear:7,staff:8,wand:10,bow:12,crossbow:13})[itemLook(item)]??0;}
 

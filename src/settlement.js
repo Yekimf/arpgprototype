@@ -1,3 +1,4 @@
+import {withGearRequirements,requirementChecks} from './gear-requirements.js';
 import {recordFeat,ensureChronicle} from './achievements.js';
 import {discoverSetItems} from './set-items.js';
 import {isTwoHanded} from './itemization.js';
@@ -9,7 +10,7 @@ import {getSkill,generateItem, random, requiresIdentification} from './game.js';
 
 export const BAG={width:12,height:6}, STASH={width:10,height:10};
 export const EQUIPMENT={helm:'Head',charm:'Amulet',weapon:'Main hand',armor:'Body armor',shield:'Off hand',gloves:'Hands',belt:'Belt',ring:'Left ring',ring2:'Right ring',boots:'Feet'};
-export const AFFIXES={damage:'Weapon damage',armor:'Armour',life:'Life',crit:'Critical chance',bonus:'All damage',spirit:'Spirit',fireResist:'Fire resistance',coldResist:'Cold resistance',lightningResist:'Storm resistance',lifeRegen:'Life regeneration',fireDamage:'Fire damage',flaskGain:'Flask charge recovery',attackRate:'Attack speed',manaRegen:'Mana per second',manaRegenPercent:'Mana regeneration',lifeLeech:'Life leech',manaLeech:'Mana leech',manaOnHit:'Mana gained on hit',skillRanks:'Active skill ranks',spellPower:'Spell power',spellDamage:'Spell damage',coldDamage:'Cold damage',lightningDamage:'Lightning damage',manaCostReduction:'Reduced mana cost',critDamage:'Critical damage',physicalDamage:'Physical damage',block:'Block chance'};
+export const AFFIXES={damage:'Weapon damage',armor:'Defense',life:'Life',crit:'Critical chance',bonus:'All damage',spirit:'Spirit',fireResist:'Fire resistance',coldResist:'Cold resistance',lightningResist:'Storm resistance',lifeRegen:'Life regeneration',fireDamage:'Fire damage',flaskGain:'Flask charge recovery',attackRate:'Attack speed',manaRegen:'Mana per second',manaRegenPercent:'Mana regeneration',lifeLeech:'Life leech',manaLeech:'Mana leech',manaOnHit:'Mana gained on hit',skillRanks:'Active skill ranks',spellPower:'Spell power',spellDamage:'Spell damage',coldDamage:'Cold damage',lightningDamage:'Lightning damage',manaCostReduction:'Reduced mana cost',critDamage:'Critical damage',physicalDamage:'Physical damage',attackRating:'Attack rating',armorPercent:'Enhanced defense',lifeRegenPercent:'Increased life regeneration',manaOnKill:'Mana on kill',lifeOnKill:'Life on kill',block:'Block chance'};
 // Shared camp footprint; the campaign places this layout at (+16, +18).
 export const TOWN_BOUNDS={x1:16,y1:16,x2:50,y2:51};
 export const NPCS=[
@@ -38,7 +39,7 @@ export function findSpace(items,item,dimensions=BAG){
   for(let y=0;y<dimensions.height;y++)for(let x=0;x<dimensions.width;x++)if(cellsFree(items,item,x,y,dimensions))return {x,y};
   return null;
 }
-export function addToContainer(items,item,dimensions=BAG){
+export function addToContainer(items,item,dimensions=BAG){withGearRequirements(item);
   if(isInsightScroll(item)){
     let left=scrollQuantity(item);const merges=[],trial=[...items],newStacks=[];
     for(const stack of items.filter(isInsightScroll)){const n=Math.min(left,SCROLL_STACK-scrollQuantity(stack));if(n>0){merges.push([stack,n]);left-=n;}}
@@ -72,10 +73,10 @@ export function migratePlayer(player){
   player.attributes??={might:0,vitality:0,will:0,dexterity:0};player.attributePoints??=Math.max(0,(player.level-1)*5);player.name??='The Loyalist';
   player.bankGold=Math.max(0,Math.floor(player.bankGold||0));player.goldEarned??=0;player.stash??=[];player.shards??=0;migrateScrolls(player);player.buyback??=[];
   player.quests={guideMet:false,scholarRescued:false,wardenDefeated:false,guideRewarded:false,...player.quests};
-  for(const slot of Object.keys(EQUIPMENT))player.equipment[slot]??=null;
-  for(const item of [...player.inventory,...player.stash,...Object.values(player.equipment).filter(Boolean)]){
+  for(const slot of Object.keys(EQUIPMENT)){player.equipment[slot]??=null;if(player.equipment[slot])player.equipment[slot].slot??=slot==='ring2'?'ring':slot;}
+  for(const item of [...player.inventory,...player.stash,...player.buyback,...(player.shopStock||[]),...Object.values(player.equipment).filter(Boolean)]){
     item.id??=`legacy-${Math.random().toString(36).slice(2)}`;
-    item.durability??=100;if(!['magic','rare','legendary','set'].includes(item.rarity))item.identified=true;item.identified??=true;item.reforges??=0;
+    withGearRequirements(item);item.durability??=100;if(!['magic','rare','legendary','set'].includes(item.rarity))item.identified=true;item.identified??=true;item.reforges??=0;
   }
   ensureFlask(player);arrange(player.inventory);arrange(player.stash,STASH);return player;
 }
@@ -85,7 +86,7 @@ export function equipItem(player,id,targetSlot=null){
   if(!item)return result(false,'Choose an item first.');
   if(!Object.hasOwn(EQUIPMENT,item.slot))return result(false,item.slot==='scroll'?'Right click a scroll, then choose an unidentified item.':'This quest item cannot be equipped.');
   if(requiresIdentification(item))return result(false,'Identify this relic before equipping it.');
-  if(item.requiredLevel>player.level)return result(false,`Requires level ${item.requiredLevel}.`);
+  const unmet=requirementChecks(player,item).filter(r=>!r.met);if(unmet.length)return result(false,unmet.map(r=>`Requires ${r.name} ${r.need} (you have ${r.have})`).join(' · ')+'.');
   const slot=targetSlot||((item.slot==='ring'&&player.equipment.ring&&!player.equipment.ring2)?'ring2':item.slot);
   if(slot!==item.slot&&!(item.slot==='ring'&&slot==='ring2'))return result(false,'That item belongs in a different slot.');
   const conflicts=[];if(player.equipment[slot])conflicts.push({slot,item:player.equipment[slot]});
@@ -179,7 +180,7 @@ export function reforgeItem(player,id,affix,rng=Math.random){
   const cost=reforgeCost(item);if(player.gold<cost.gold||player.shards<cost.shards)return result(false,`Reforging needs ${cost.gold} gold and ${cost.shards} ember shards.`);
   const old=item[affix],metadata=item.affixes?.find(a=>a.stat===affix),baseValue=metadata?old-metadata.value:0,scale=(1+(item.level||1)*.18)*({normal:1,magic:1.35,rare:1.8,legendary:2.5}[item.rarity]||1);
   const range=affix==='life'?[5,22]:affix==='crit'?[1,5]:affix==='bonus'?[2,9]:affix==='lifeRegen'?[.5,1.8]:affix==='attackRate'?[2,8]:[5,18];
-  const precision=affix==='lifeRegen'?100:1,min=metadata?.min!==undefined?Math.round(metadata.min*precision):Math.max(1,Math.round(range[0]*scale*precision)),max=metadata?.max!==undefined?Math.round(metadata.max*precision):Math.round(range[1]*scale*precision);
+  const precision=['lifeRegen','manaRegen','lifeLeech','manaLeech','manaOnHit'].includes(affix)?100:1,min=metadata?.min!==undefined?Math.round(metadata.min*precision):Math.max(1,Math.round(range[0]*scale*precision)),max=metadata?.max!==undefined?Math.round(metadata.max*precision):Math.round(range[1]*scale*precision);
   let next=Math.round(min+rng()*(max-min));if(next===Math.round((metadata?.value??old)*precision))next=next<max?next+1:Math.max(min,next-1);next/=precision;
   player.gold-=cost.gold;player.shards-=cost.shards;item[affix]=Math.round((baseValue+next)*100)/100;const roll=item.affixes?.find(a=>a.stat===affix);if(roll)roll.value=next;item.reforges=(item.reforges||0)+1;item.durability=100;recordFeat(player,'reforges');
   return result(true,`${AFFIXES[affix]} reforged: ${old} → ${item[affix]}.`,{old,value:item[affix]});

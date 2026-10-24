@@ -1,0 +1,6 @@
+.gear-requirements{border-block:1px solid #6d5a354a;margin:8px 0;padding:6px 0;font:12px/1.6 Georgia;color:#b9b196}
+.gear-requirements .unmet,.inactive-equipment{color:#d38368}
+.gear-requirements span{opacity:.72;font-size:11px}
+.paper-slot.gear-unusable{box-shadow:inset 0 0 0 2px #823b2a,inset 0 0 16px #62271d66!important}
+.paper-slot.gear-unusable .item-art{opacity:.45}
+.defense-note{font:11px/1.5 Georgia;color:#af9b75;border-block:1px solid #67563566;padding:6px 0;margin:6px 0}

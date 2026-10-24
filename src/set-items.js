@@ -1,3 +1,4 @@
+import {withGearRequirements,canUseGear} from './gear-requirements.js';
 export const SET_SLOTS=['helm','armor','boots','gloves','weapon','shield'];
 export const ITEM_SETS=[
  {id:'kingsguard',name:'The Last Kingsguard',minDepth:2,color:'#c7a564',lore:'Bronze lion plates and a blood-red oath. The old king’s guard did not all kneel.',look:'plate',helm:'sallet',weapon:'sword',icon:0,pieces:['The Unbowed Crown','Lionheart Cuirass','The Last March','Oathkeeper’s Grasp','The King’s Answer','A Lion Still Stands'],bonuses:[{count:2,text:'+30 life · +8 armor',stats:{life:30,armor:8}},{count:4,text:'+15% physical damage · +6% block',stats:{physicalDamage:15,block:6}},{count:6,text:'+25% all damage · +1 life/sec',stats:{bonus:25,lifeRegen:1}}]},
@@ -11,9 +12,9 @@ export function makeSetItem(setId,piece,level=1){const set=setDefinition(setId);
  if(slot==='weapon'){item.damage=Math.round(10*power);item.weaponIcon=set.icon;item.reach=set.weapon==='spear'?2.5:1.85;item.attackSpeed=set.weapon==='mace'?.9:1;}
  else item.armor=Math.round(({armor:12,helm:5,boots:4,gloves:3,shield:7}[slot]||2)*power);
  const props=set.id==='kingsguard'?[['life',Math.round(9*power)],['physicalDamage',4]]:set.id==='ashen'?[['fireDamage',7],['lifeRegen',.3]]:set.id==='gravebloom'?[['attackRate',3],['life',Math.round(6*power)]]:[['spirit',Math.round(7*power)],['manaRegen',.4]];
- for(const [i,[stat,value]]of props.entries()){item[stat]=(item[stat]||0)+value;item.affixes.push({id:setId+'-'+stat,stat,value,tier:1,kind:i?'suffix':'prefix',min:Math.round(value*.7*10)/10,max:Math.round(value*1.3*10)/10});}return item;
+ for(const [i,[stat,value]]of props.entries()){item[stat]=(item[stat]||0)+value;item.affixes.push({id:setId+'-'+stat,stat,value,tier:1,kind:i?'suffix':'prefix',min:Math.round(value*.7*10)/10,max:Math.round(value*1.3*10)/10});}return withGearRequirements(item);
 }
 export function rollSetItem(rng,depth,{boss=false,elite=false}={}){if(depth<2||rng()>=(boss?.18:elite?.04:.012))return null;const sets=ITEM_SETS.filter(s=>depth>=s.minDepth),set=sets[Math.floor(rng()*sets.length)];return makeSetItem(set.id,Math.floor(rng()*6),depth);}
-export function equippedSetPieces(p,id){return [...new Set(Object.entries(p.equipment||{}).filter(([slot,i])=>i?.setId===id&&i.identified!==false&&(i.durability??100)>0&&SET_SLOTS[i.setPiece]===slot).map(([,i])=>i.setPiece))];}
+export function equippedSetPieces(p,id){return [...new Set(Object.entries(p.equipment||{}).filter(([slot,i])=>i?.setId===id&&canUseGear(p,i)&&i.identified!==false&&(i.durability??100)>0&&SET_SLOTS[i.setPiece]===slot).map(([,i])=>i.setPiece))];}
 export function setBonuses(p){const out={};for(const s of ITEM_SETS){const count=equippedSetPieces(p,s.id).length;for(const b of s.bonuses)if(count>=b.count)for(const [stat,value]of Object.entries(b.stats))out[stat]=(out[stat]||0)+value;}return out;}
 export function discoverSetItems(p){p.setCollection??=[];for(const i of [...(p.inventory||[]),...(p.stash||[]),...Object.values(p.equipment||{}).filter(Boolean)]){if(setDefinition(i.setId)&&SET_SLOTS[i.setPiece]===i.slot){const key=i.setId+':'+i.setPiece;if(!p.setCollection.includes(key))p.setCollection.push(key);}}return p.setCollection;}

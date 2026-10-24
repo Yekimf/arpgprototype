@@ -150,7 +150,7 @@ export class InventoryHUD {
     if(panel==='inventory'){
       const stats=playerStats(p);
       toolbar=`<span class="inventory-inscription">THE LOYALIST’S BELONGINGS</span>${button('sort','Arrange')}${o.isTown?button('stash','Stash'):''}`;
-      contents=`<div class="hud-content hud-inventory-content"><section class="hud-section hud-doll-section"><div class="hud-section-title ornate-rule">ARMS OF THE ROYAL GUARD</div>${o.equipment()}<div class="gear-readout"><span>Damage <b>${Math.round(stats.damage)}</b></span><span>Armor <b>${Math.round(stats.armor)}</b></span><span>Life <b>${stats.maxHp}</b></span></div></section>${pack}</div>`;
+      contents=`<div class="hud-content hud-inventory-content"><section class="hud-section hud-doll-section"><div class="hud-section-title ornate-rule">ARMS OF THE ROYAL GUARD</div>${o.equipment()}<div class="gear-readout"><span>Damage <b>${Math.round(stats.damage)}</b></span><span>Defense <b>${Math.round(stats.defense)}</b></span><span>Life <b>${stats.maxHp}</b></span></div></section>${pack}</div>`;
     }else{
       toolbar=button('identify-all','Identify all · Free',!p.quests.scholarRescued||!p.inventory.some(i=>requiresIdentification(i)));
       contents=`<div class="hud-content hud-service-content"><section class="hud-section hud-scholar"><div class="service-portrait portrait-scholar"></div><h3>Every relic remembers.</h3><p>${p.quests.scholarRescued?'In gratitude for his rescue, Edrin reveals your relics freely.':'Defeat the Hollow Warden to rescue Edrin.'}</p></section>${pack}</div>`;

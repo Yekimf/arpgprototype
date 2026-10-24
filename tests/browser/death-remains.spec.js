@@ -10,8 +10,8 @@ test('kills collapse into persistent corpses, retain loot, and pause their anima
  await page.keyboard.press('Escape');await page.locator('[data-action=options]').click();await page.locator('[data-test-option=god]').check();await page.keyboard.press('Escape');
  let s=await state(page);const dungeon=generateDungeon(s.seed,s.depth),nearest=dungeon.enemies.filter(e=>e.type!=='warden').sort((a,b)=>distance(a,s.position)-distance(b,s.position))[0];await followPath(page,dungeon,nearest);
  s=await state(page);const target=s.visibleEnemies.find(e=>distance(e,s.position)<2&&e.screen.y>80&&e.screen.y<820);expect(target).toBeTruthy();const before=s.enemies;
- await page.mouse.click(target.screen.x,target.screen.y);
- await expect.poll(()=>state(page).then(s=>s.remains.corpses.length)).toBeGreaterThan(0);
+ await page.mouse.move(target.screen.x,target.screen.y);await page.mouse.down();
+ try{await expect.poll(()=>state(page).then(s=>s.remains.corpses.length)).toBeGreaterThan(0);}finally{await page.mouse.up();}
  s=await state(page);expect(s.enemies).toBeLessThan(before);expect(s.visibleEnemies.some(e=>e.id===target.id)).toBe(false);expect(s.remains.stains).toBeGreaterThan(0);
  await page.keyboard.press('Escape');const paused=await state(page);await page.waitForTimeout(300);expect((await state(page)).remains.corpses).toEqual(paused.remains.corpses);await page.keyboard.press('Escape');
  await expect.poll(()=>state(page).then(s=>s.remains.corpses.every(c=>c.age>=c.duration))).toBe(true);await page.screenshot({path:'test-results/v351-corpses.png'});
