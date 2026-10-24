@@ -40,6 +40,7 @@ export class LanClient{
   if(type==='export'){const record=this.characterSaves.characters.find(r=>r.id===this.root.querySelector('#lan-character')?.value)||this.characterSaves.active;if(!record)throw Error('Choose a character first.');ensureLanIdentity(record.save.player);if(!this.characterSaves.importCharacter(record.save,record.id))throw Error(this.characterSaves.error);downloadCharacter(record.save);return;}
   if(type==='import-confirm'){const {save,matching}=this.importing;if(!this.characterSaves.importCharacter(save,matching?.id))throw Error(this.characterSaves.error||'Could not import this character.');this.importing=null;this.onRosterChange?.();return this.openLobby();}
   if(type==='host'||type==='join'){
+   if(this.onlineSelectionPending?.())throw Error('Cancel the online join request before starting Classic LAN.');
    button.disabled=true;try{const record=this.characterSaves.characters.find(r=>r.id===this.root.querySelector('#lan-character').value);if(!record)throw Error('Choose a character first.');ensureLanIdentity(record.save.player);this.characterSaves.importCharacter(record.save,record.id);const result=await this.api(type==='host'?'/api/create':'/api/join',{roomId:button.dataset.room,name:this.root.querySelector('#lan-name').value,password:this.root.querySelector(type==='host'?'#lan-password':'#lan-join-password').value,player:record.save.player,identity:record.save.player.lanIdentity});await this.startSession(result,record);}finally{button.disabled=false;}return;
   }
   if(type==='social')return this.openSocial();
@@ -56,6 +57,7 @@ export class LanClient{
   if(type==='trade-offer'){await this.command({type,items:this.tradeDraft.items,gold:this.tradeDraft.gold});return;}
  }
  async startSession(result,record,transport=null){
+  if(this.active)throw Error('Leave the current company before connecting to another.');
   this.transport=transport;this.queue=Promise.resolve();this.pendingHits=[];this.remote.clear();this.token=result.token;this.id=result.id;this.room=result.room;this.revision=result.revision;this.appliedRevision=result.revision;this.messages=result.chat.filter(m=>m.channel!=='party');this.active=true;this.connected=true;this.latest=null;this.area='wilderness:0';this.lastAssets=JSON.stringify(assets(result.player));
   try{await this.onStart(result,record);this.root.classList.add('hidden');this.hud.classList.remove('hidden');this.paintChat();
    if(transport)this.events=transport.subscribe(e=>{try{this.receive(e);}catch(error){this.error(error);}});
@@ -94,11 +96,11 @@ export class LanClient{
  hit(event){this.pendingHits.push({type:'hit',...event});}
  async pickup(loot){if(this.lootPending.has(loot.id))return;this.lootPending.add(loot.id);try{await this.flushCharacter();await this.command({type:'pickup',id:loot.id});}finally{this.lootPending.delete(loot.id);}}
  async drop(item){await this.flushCharacter();await this.command({type:'drop',id:item.id});}
- tick(dt){if(!this.active||!this.connected)return;this.game.lanActive=true;for(const b of this.game.lanCastProjectiles||[]){b.life-=dt;b.x+=b.dx*b.speed*dt;b.y+=b.dy*b.speed*dt;if(!isWalkable(this.game.dungeon,b.x,b.y))b.life=0;}this.game.lanCastProjectiles=(this.game.lanCastProjectiles||[]).filter(b=>b.life>0);this.moves+=dt;this.syncClock+=dt;
+ tick(dt){if(!this.active||!this.connected||this.leaving)return;this.game.lanActive=true;for(const b of this.game.lanCastProjectiles||[]){b.life-=dt;b.x+=b.dx*b.speed*dt;b.y+=b.dy*b.speed*dt;if(!isWalkable(this.game.dungeon,b.x,b.y))b.life=0;}this.game.lanCastProjectiles=(this.game.lanCastProjectiles||[]).filter(b=>b.life>0);this.moves+=dt;this.syncClock+=dt;
   if(this.area!==this.areaKey&&!this.game.loading){this.area=this.areaKey;this.command({type:'enter',area:this.area,x:this.player.x,y:this.player.y}).catch(e=>this.error(e));}
   if(this.moves>=.1&&!this.game.loading){this.moves=0;this.command({type:'batch',actions:[{type:'move',area:this.area,x:this.player.x,y:this.player.y,hp:this.player.hp,facing:this.game.facing,moving:this.game.moving,walkPhase:this.game.walkPhase,attackAnim:this.game.attackAnim,dodgeTime:this.game.dodgeTime,pyre:!!this.game.pyre},...this.pendingHits.splice(0,80)]}).catch(e=>this.error(e));for(const l of this.game.loot)if(l.gold&&Math.hypot(l.x-this.player.x,l.y-this.player.y)<1.25)this.pickup(l).catch(e=>this.error(e));}
   if(this.syncClock>=.6){this.syncClock=0;if(!this.trading)this.flushCharacter().catch(e=>this.error(e));}
   const visible=[];for(const peer of this.peers.filter(p=>p.area===this.areaKey)){let p=this.remote.get(peer.id);if(!p){p={...peer,skills:{},_hp:peer.hp};this.remote.set(peer.id,p);}const x=p.x,y=p.y,hp=p.hp;Object.assign(p,peer,{x:x+(peer.x-x)*Math.min(1,dt*14),y:y+(peer.y-y)*Math.min(1,dt*14),skills:{}});if(hp>0&&peer.hp<=0)leaveCorpse(this.game.dungeon,p,null,{player:true,time:this.game.time});if(p.hp>0)visible.push(p);}this.game.lanPeers=visible;
  }
- async leave(){if(!this.active)return;try{if(this.trade)await this.command({type:'trade-cancel'});await this.flushCharacter();await this.command({type:'leave'});}catch(e){this.error(e);}this.events?.close();this.transport?.close();this.transport=null;this.active=false;this.connected=false;this.onNetworkLeave?.();this.game.lanActive=false;this.game.lanPeers=[];this.game.lanProjectiles=[];this.hud.classList.add('hidden');this.remote.clear();this.save();this.onLeave();}
+ async leave(){if(!this.active||this.leaving)return;this.leaving=true;this.stopInput();try{try{if(this.trade)await this.command({type:'trade-cancel'});await this.flushCharacter();await this.command({type:'leave'});}catch(e){this.error(e);}this.save();await this.beforeLeave?.();this.events?.close();this.transport?.close();this.transport=null;this.active=false;this.connected=false;this.onNetworkLeave?.();this.game.lanActive=false;this.game.lanPeers=[];this.game.lanProjectiles=[];this.hud.classList.add('hidden');this.remote.clear();this.onLeave();}finally{this.leaving=false;}}
 }

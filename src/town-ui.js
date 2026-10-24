@@ -40,7 +40,7 @@ export class TownUI {
   cancelIdentify(){this.identifying=null;document.body.classList.remove('identifying-item');const hint=document.querySelector('.inventory-controls');if(hint&&this.identifyHint)hint.innerHTML=this.identifyHint;this.identifyHint=null;}
   identifyTarget(id){const result=identifyItem(this.player,id,false,this.identifying);if(result.ok)this.cancelIdentify();return this.apply(result);}
   get player(){return this.game.player;}
-  get stashItems(){const tab=this.game.panel==='stash'?Number(this.hud.storageTab?.split('-')[1]):0;return tab?this.game.characterSaves.sharedStashes[tab-1]:this.player.stash;}
+  get stashItems(){if(this.game.onlineSession)return this.player.stash;const tab=this.game.panel==='stash'?Number(this.hud.storageTab?.split('-')[1]):0;return tab?this.game.characterSaves.sharedStashes[tab-1]:this.player.stash;}
   get isTown(){return this.game.zone==='town';}
   get selected(){
     const p=this.player;if(this.source==='stock')return p.shopStock?.find(i=>i.id===this.selection);

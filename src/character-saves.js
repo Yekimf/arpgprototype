@@ -11,7 +11,7 @@ export class CharacterSaves{
   if(raw){try{const archive=JSON.parse(raw);if(archive.version!==1||!Array.isArray(archive.characters)||archive.characters.some(c=>!c.id||!validCharacterSave(c.save)))throw Error();this.state=archive;this.state.sharedStashes=Array.from({length:3},(_,i)=>Array.isArray(archive.sharedStashes?.[i])?archive.sharedStashes[i]:[]);if(!this.state.characters.some(c=>c.id===archive.activeId))this.state.activeId=this.state.characters[0]?.id||null;}catch{this.error='The character archive could not be read. It has been kept untouched.';this.readOnly=true;}}
   else if(legacy){try{const save=JSON.parse(legacy);if(validCharacterSave(save)&&!this.create(save)){const record={id:id(),createdAt:Date.now(),updatedAt:Date.now(),save:clone(save)};this.state.characters=[record];this.state.activeId=record.id;}}catch{}}
  }
- importCharacter(save,replaceId=null){if(!validCharacterSave(save))return null;if(!replaceId)return this.create(save);const next=clone(this.state),record=next.characters.find(c=>c.id===replaceId);if(!record)return null;record.save=clone(save);record.updatedAt=Date.now();next.activeId=record.id;return this.commit(next)?this.active:null;}
+ importCharacter(save,replaceId=null){if(save?.player?.onlineCharacterId||!validCharacterSave(save))return null;if(!replaceId)return this.create(save);const next=clone(this.state),record=next.characters.find(c=>c.id===replaceId);if(!record)return null;record.save=clone(save);record.updatedAt=Date.now();next.activeId=record.id;return this.commit(next)?this.active:null;}
  get characters(){return this.state.characters;}
  get active(){return this.characters.find(c=>c.id===this.state.activeId)||null;}
  get sharedStashes(){return this.state.sharedStashes;}
@@ -24,8 +24,8 @@ export class CharacterSaves{
   try{if(this.active)this.storage?.setItem(LEGACY_SAVE_KEY,JSON.stringify(this.active.save));else this.storage?.removeItem(LEGACY_SAVE_KEY);}catch{}
   return true;
  }
- create(save){if(!validCharacterSave(save))return null;const record={id:id(),createdAt:Date.now(),updatedAt:Date.now(),save:clone(save)},next=clone(this.state);next.characters.push(record);next.activeId=record.id;return this.commit(next)?record:null;}
- save(save){if(!validCharacterSave(save))return false;if(!this.active)return !!this.create(save);const next=clone(this.state),record=next.characters.find(c=>c.id===next.activeId);record.save=clone(save);record.updatedAt=Date.now();return this.commit(next);}
+ create(save){if(save?.player?.onlineCharacterId||!validCharacterSave(save))return null;const record={id:id(),createdAt:Date.now(),updatedAt:Date.now(),save:clone(save)},next=clone(this.state);next.characters.push(record);next.activeId=record.id;return this.commit(next)?record:null;}
+ save(save){if(save?.player?.onlineCharacterId||!validCharacterSave(save))return false;if(!this.active)return !!this.create(save);const next=clone(this.state),record=next.characters.find(c=>c.id===next.activeId);record.save=clone(save);record.updatedAt=Date.now();return this.commit(next);}
  select(characterId){if(characterId&&characterId===this.state.activeId)return true;if(!this.characters.some(c=>c.id===characterId))return false;return this.commit({...this.state,activeId:characterId});}
  remove(characterId){if(!this.characters.some(c=>c.id===characterId))return false;const next=clone(this.state);next.characters=next.characters.filter(c=>c.id!==characterId);if(next.activeId===characterId)next.activeId=next.characters[0]?.id||null;return this.commit(next);}
 }

@@ -11,7 +11,7 @@ export class CharacterStage{
    this.sprite(b,7,x-220,y-95,240,280);this.sprite(b,9,x+160,y-80,230,220);this.sprite(b,13,x+220,y+20,115,100);this.sprite(b,7,x+310,y-150,210,280);
    b.save();b.translate(x,y-40);b.scale(1,.55);const radius=Math.max(w,h)*.6,shade=b.createRadialGradient(0,0,30,0,0,radius);shade.addColorStop(0,'#08070500');shade.addColorStop(.5,'#08070566');shade.addColorStop(.85,'#080705ee');shade.addColorStop(1,'#080705');b.fillStyle=shade;b.fillRect(-w*2,-h*2,w*4,h*4);b.restore();this.background=bg;
   }
-  c.drawImage(this.background,0,0);c.fillStyle='#050403a0';c.beginPath();c.ellipse(x,y+3,42,15,0,0,Math.PI*2);c.fill();const frame=this.guard.frame(this.player,false,0);if(frame)c.drawImage(frame,x-80,y-160,160,180);
+  c.drawImage(this.background,0,0);c.fillStyle='#050403a0';c.beginPath();c.ellipse(x,y+3,42,15,0,0,Math.PI*2);c.fill();const frame=this.guard.frame(this.player,false,0),heroScale=Math.min(1,Math.max(.3,(y-8)/160),Math.max(.3,(w-24)/160));if(frame)c.drawImage(frame,x-80*heroScale,y-160*heroScale,160*heroScale,180*heroScale);
   const fx=x-110,fy=y+32;c.fillStyle='#21160d';c.fillRect(fx-18,fy,36,5);for(let i=0;i<5;i++){const t=now/180+i,flame=19+Math.sin(t)*6;c.fillStyle=i%2?'#af7138b0':'#cca460a0';c.beginPath();c.moveTo(fx-13+i*6,fy);c.quadraticCurveTo(fx-8+i*5,fy-flame*.4,fx-9+i*5+Math.sin(t)*3,fy-flame);c.quadraticCurveTo(fx-5+i*5,fy-9,fx-7+i*6,fy);c.fill();}
   this.raf=requestAnimationFrame(time=>this.draw(time));
  }

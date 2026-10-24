@@ -1,0 +1,14 @@
+import {validCharacterSave} from '../character-saves.js';
+// Account-scoped, in-memory working copies. Solo archives and their compatibility
+// save key are never read or written here. Supabase is the source of truth.
+export class OnlineCharacters{
+ constructor(service){this.service=service;this.characters=[];this.sharedStashes=[[],[],[]];this.persistent=true;this.error='';this.lease=crypto.randomUUID();this.queue=Promise.resolve();}
+ async refresh(){const records=await this.service.onlineRoster();if(this.active){const active=this.active;this.characters=records.map(r=>r.id===active.id?active:r);}else this.characters=records;return this.characters;}
+ async create(name){const record=await this.service.createOnline(name);this.characters.push(record);return record;}
+ async open(id){if(this.releasing)await this.releasing;if(this.active&&this.active.id!==id)throw Error('Leave the current character before selecting another.');const record=await this.service.openOnline(id,this.lease);if(!validCharacterSave(record.save)||record.save.player.onlineCharacterId!==record.id)throw Error('The online character record is invalid.');this.active={...record,online:true};this.dirty=false;this.characters=this.characters.map(r=>r.id===id?this.active:r);return this.active;}
+ save(save){if(!this.active||!validCharacterSave(save)||save.player.onlineCharacterId!==this.active.id)return false;this.active.save=structuredClone(save);this.dirty=true;if(!this.timer)this.timer=setTimeout(()=>this.flush().catch(e=>this.onError?.(e)),1200);return true;}
+ async flush(){clearTimeout(this.timer);this.timer=null;const task=this.queue.catch(()=>{}).then(async()=>{if(!this.active||!this.dirty)return;const active=this.active,snapshot=structuredClone(active.save);await this.service.openOnline(active.id,this.lease);const record=await this.service.saveOnline(active.id,this.lease,active.revision,snapshot);if(this.active!==active)return;active.revision=record.revision;this.dirty=JSON.stringify(active.save)!==JSON.stringify(snapshot);this.error='';});this.queue=task;try{await task;}catch(e){this.error='Online save failed: '+e.message;this.onError?.(Error(this.error));throw e;}}
+ async heartbeat(){if(!this.active)return;await this.flush();await this.service.openOnline(this.active.id,this.lease);}
+ async release(){if(this.releasing)return this.releasing;if(!this.active)return;const active=this.active;this.releasing=(async()=>{await this.flush();await this.service.releaseOnline(active.id,this.lease);if(this.active===active)this.active=null;clearTimeout(this.timer);await this.refresh();})().finally(()=>this.releasing=null);return this.releasing;}
+ async remove(id,name){if(this.active)throw Error('Leave your company before deleting a character.');await this.service.deleteOnline(id,name);await this.refresh();}
+}

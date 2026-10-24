@@ -1,34 +1,25 @@
 # Browser hosting and display-name friends
 
 Players only need the HTTPS game page. The host browser runs the shared world;
-Supabase carries friends, presence and connection messages, never gameplay or
-character files. Existing single-player saves, chat, private loot, parties and
-trading work through the same simulation used by the classic LAN server.
+Supabase stores accounts, friends, presence, connection messages and online
+character snapshots. Live gameplay travels through WebRTC. Chat, private loot,
+parties and trading use the same simulation as Classic LAN; single-player saves
+remain separate and local.
 
-The repository includes the implementation and database migration. **There is no
-live Supabase project configured yet.** The game says “awaiting setup” until the
-following one-time owner setup is completed. Players do not perform this setup.
+The repository includes the implementation and database migration. Public service settings are supplied by the repository owner. The game says
+“awaiting setup” if they have not been configured. Players do not perform this setup.
 
-## 1. Create the friends service
+## 1. Create or update the account service
 
-1. Create a Supabase project at https://supabase.com/dashboard. Choose a region
-   near your players. Save your database password privately.
-2. In **Authentication → Sign In / Providers**, enable **Anonymous Sign-Ins**.
-   This creates an authenticated identity without an email or password. Leave
-   other sign-in providers disabled if they are unnecessary.
-3. Open **SQL Editor**, paste the complete contents of
-   `supabase/migrations/001_browser_friends.sql`, and run it once. It creates
-   private tables and checked RPCs; do not disable row-level security or grant
-   direct table access.
-4. From **Project Settings → API / API Keys**, copy the **project URL** and
-   **public publishable key** (the legacy `anon` key also works). These two
-   values belong in the game. **Never use a secret or service-role key.**
+For the current username/password version, follow [online account setup](online-accounts.md).
+Create the Supabase project, enable Email/password with signups allowed and email
+confirmation disabled, then run **001_browser_friends.sql** followed by
+**002_accounts_online_characters.sql**. Existing installations run only 002.
+The game now requires separate online characters; single-player imports remain
+local. Anonymous sign-ins are no longer created by the game.
 
-The service enforces friendship before joining, requires approval by the named
-host of the current room, expires negotiation after two minutes and limits
-request/message counts. Only the intended recipient can read connection
-messages. Direct database access from game clients is denied. Friend codes are
-random 12-character codes; display names can repeat.
+Copy the project URL and public publishable/anon key from Project Settings → API.
+Never use a secret or service-role key in the game.
 
 ## 2. Publish the browser game
 
@@ -65,35 +56,23 @@ makes no friends-service requests. HTTPS is required for browser hosting;
 localhost works for development. Opening the file directly still supports solo
 and the existing character export/import flow.
 
-## 3. Play with display names
+## 3. Sign in and play online
 
-1. Open **Friends · Browser multiplayer**, choose a display name and enter the
-   ledger. Your account and friend code are remembered in that browser.
-2. Share your friend code. Your friend enters it, presses **Add friend**, and you
-   accept their friend request.
-3. Choose a character and press **Host browser game**. Your friend sees you as
-   hosting and presses **Request to join**.
-4. A request badge appears even with your ledger closed. Open it and press
-   **Accept**. The browsers exchange connection details automatically.
-5. **Enter** opens chat; **P** opens your company, parties and town trading.
-   The host keeps the game tab open and active. Menus do not pause the world.
+1. Open **Online realm · Accounts & friends**. Create an account with a username,
+   password and display name, or sign in to an existing account.
+2. **Create online character**, select it in the online roster, and **Host online
+   game**. Local characters stay in Single player / Classic LAN.
+3. Open **Friends & companies**. Share a friend code, send a friend request and
+   accept it. Friends can then **Request to join**; the host presses **Accept**.
+4. **Enter** opens chat and **P** opens parties/trading. Keep the host tab open and
+   active. **Save & leave company** saves online progress before returning to
+   the local title screen.
 
-Up to eight players can join a company. Host saves use IndexedDB; characters
-continue to save locally. The online service does not receive equipment or
-character exports. Removing a friend prevents new join requests; an already
-established game connection lasts until either player leaves.
-
-To move a downloaded character to the new website, use **Classic LAN / Character
-transfer → Export character** in the original HTML, and import it at the website.
-After playing you can export back. Keep the original HTML at its existing path
-and filename to access its browser saves. Different website addresses have
-separate local saves and display-name identities.
-
-Names alone do not recover an account: clearing site data or switching browsers
-creates a new identity and code. Existing exported characters still import. This
-first version deliberately has no email/password recovery or cloud character
-saves. Duplicate display names are allowed; use the friend code to identify the
-right person.
+Online characters, progression and personal stashes save to the account. Friends
+and account identities are stored by the service. Single-player characters,
+shared storage and options stay in the browser. See [account details and save
+rules](online-accounts.md). Character export/import is for local Single player /
+Classic LAN characters and cannot promote them into the online realm.
 
 ## 4. Relay support for difficult networks (recommended before a wider release)
 
@@ -134,7 +113,7 @@ day. For a larger public service schedule deletion of `social_joins` older than
 one day; their signal rows cascade automatically. Friend records remain.
 
 `npm test` checks the shared simulation, trade safety, transfer files, transport
-framing, anonymous identity refresh, and SQL participant/approval rules. SQL
+framing, username/session refresh, and SQL participant/approval rules. SQL
 checks use PostgreSQL via PGlite with Supabase Auth boundaries supplied locally.
 `GAME_URL=http://127.0.0.1:5174 npx playwright test tests/browser/friends-webrtc.spec.js`
 checks the complete two-browser flow with the actual database migration behind

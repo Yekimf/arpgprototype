@@ -10,6 +10,15 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer or public hosted preview. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.42.0 — Accounts and the online realm
+
+- Username/password account registration, login, remembered sessions and sign-out. Passwords are handled by Supabase Auth; the browser stores session tokens, never passwords. Existing anonymous friends identities can secure the same identity with a username/password.
+- Separate account-backed online character roster: fresh creation, level/equipment portraits, live character preview, eight entries per page, up to 20 characters, name-confirmed deletion and a dedicated friends/company tab.
+- Hosting or joining a browser online company requires an owned online character. The host loads an approved guest's canonical account character. Local character imports cannot become online characters.
+- Online progress, gear, skills, quests, gold and personal stash save to the account. Owner checks, revision checks and a session lease prevent stale writes and opening the same character twice. Leaving waits for the latest account save; failed saves retain the working character in the tab for retry.
+- Single-player/Classic LAN characters and options stay local. Online play uses a separate save route and personal stash; local shared pages and local imports cannot transfer online equipment. Leaving online play restores the previous local character without replacing it.
+- **Existing Supabase projects need migration 002 and Email/password settings updated before deployment.** Follow [online account setup](docs/online-accounts.md). Keep the existing public GitHub variables, run `002_accounts_online_characters.sql`, enable Email/password and signups, and disable email confirmation for this username-only design. Then redeploy `main`.
+
 ## Version 0.41.0 — Display names and browser-hosted friends
 
 - Added a friends ledger with display names, unique friend codes, incoming requests, online/hosting status, rename and remove controls. Friends request to join a host; an on-screen badge leads to Accept/Decline. No invitation text needs to be exchanged.
