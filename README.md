@@ -10,6 +10,14 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer or public hosted preview. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.43.0 — Online character screens and the company hall
+
+- Online entry follows account sign-in → the shared single-player character selection/creation screens → a dedicated online lobby. Clicking a saved online character or finishing online creation enters the lobby; it does not start a game or load a local character.
+- The online roster uses the existing eight-character, two-column selection screen, equipment preview, deletion confirmation and full-screen camp creation scene. A compact region badge sits beside the roster. Region is a local preference shown to friends, not a dedicated regional server or character shard; gameplay still runs in the host browser.
+- The company hall has separate Friends and Create/Join panes, friend codes/requests, host approvals and a small selected-character panel in the bottom corner. In-game settings, character creation controls and the large roster preview do not occupy the lobby. Joining remains restricted to accepted friends and host approval.
+- Fixed online Escape/settings sizing and overlay order, compacted the online options sheet, and made Escape return from Settings to the pause menu before resuming. Save & return to lobby waits for the online save. Single-player options retain their font samples and practice tools.
+- No additional database migration is needed beyond the existing account migration 002. Redeploy `main` through Publish browser game to update the website.
+
 ## Version 0.42.0 — Accounts and the online realm
 
 - Username/password account registration, login, remembered sessions and sign-out. Passwords are handled by Supabase Auth; the browser stores session tokens, never passwords. Existing anonymous friends identities can secure the same identity with a username/password.

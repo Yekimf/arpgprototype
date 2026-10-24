@@ -35,12 +35,21 @@ legacy users have secured their accounts.
 
 - **Single player and Classic LAN:** existing characters, their shared stash and
   options stay local. Signing in/out never replaces them or uploads their saves.
-- **Online realm:** choose **Create online character**. Characters start at level
+- **Online realm:** choose **Create new character** after signing in. Characters start at level
   one with the normal sword/shield and no armour. The database creates the fresh
   save; it does not accept a single-player import as character creation.
-- The online roster is separate, with equipment portraits, a live preview, eight
-  entries per page, and up to 20 characters per account. Deleting requires the
+- After sign-in, the online roster uses the same two-column selection screen and
+  full-screen camp creation scene as single player, with equipment portraits, a
+  live preview, eight entries per page and up to 20 characters per account. Deleting requires the
   exact character name and cannot delete a character currently in use.
+- Clicking a saved character or completing creation opens the **company hall**.
+  Your selected character appears in its bottom corner. Create a named company,
+  or use **Join** to request admission to an accepted friend’s company. Friend
+  codes and pending friend requests are in the Friends pane.
+- The roster’s **Realm region** badge stores a local location preference such as
+  US East, US West or Europe and shows it alongside hosted companies. This does
+  not provision regional servers, change connection routing, or split characters
+  into regional shards. The host browser runs the game.
 - Host and join both require an owned online character. The host loads an approved
   guest's character from the account service, rather than trusting an imported
   character payload. Classic LAN remains available for local characters.
@@ -53,7 +62,7 @@ legacy users have secured their accounts.
 - Online saves use ownership checks, revision checks and a 90-second session
   lease. A second tab/device cannot open the same active character. After a crash,
   allow up to 90 seconds for the previous session to expire.
-- Use **P → Save & leave company** before closing. Leaving waits for the latest
+- Use **Escape → Save & return to lobby**, or **P → Save & leave company**, before closing. Leaving waits for the latest
   account save; a failed cloud save keeps the working character in the tab so it
   can retry. Reloading/closing during an unsaved connection outage can lose the
   most recent progress. The online realm needs internet for account saves.
@@ -75,3 +84,6 @@ password handling, logout and signing back into the same roster in a fresh
 browser. The managed cloud browser uses the documented RTC test bridge because
 it blocks non-proxied UDP. Real Supabase Auth settings and live ICE connectivity
 must be checked on the deployed project and a normal browser.
+
+The v0.43 menu update requires no new SQL. Keep migrations 001 and 002 and the
+existing public project settings, then rerun Publish browser game on `main`.

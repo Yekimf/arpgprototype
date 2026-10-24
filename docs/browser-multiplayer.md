@@ -60,9 +60,10 @@ and the existing character export/import flow.
 
 1. Open **Online realm · Accounts & friends**. Create an account with a username,
    password and display name, or sign in to an existing account.
-2. **Create online character**, select it in the online roster, and **Host online
-   game**. Local characters stay in Single player / Classic LAN.
-3. Open **Friends & companies**. Share a friend code, send a friend request and
+2. **Create new character** uses the single-player camp creation scene. Create or
+   click a saved online loyalist to enter the company hall; **Create → Host online
+   game** starts a company. Local characters stay in Single player / Classic LAN.
+3. In the company hall’s **Friends** pane, share a friend code, send a request and
    accept it. Friends can then **Request to join**; the host presses **Accept**.
 4. **Enter** opens chat and **P** opens parties/trading. Keep the host tab open and
    active. **Save & leave company** saves online progress before returning to
