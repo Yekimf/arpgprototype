@@ -1,3 +1,4 @@
+import {oneHandedMelee,oneHandedPose} from './one-handed-pose.js';
 // Original key poses in the guard painting's coordinate space. These are sampled
 // into fixed frames once, then shared by body, gloves, shield and weapon layers.
 // Combat timing selects frames; equipment never runs its own animation clock.
@@ -24,6 +25,7 @@ export function layerOrder(direction,mode=null){
  return ['legs',far,'torso','head','accessories',near,'weapon','primaryForearm','offForearm','primaryHand','offHand','shield'];
 }
 export function poseFrame(face,look,state,heading={x:0,y:1}){
+ if(oneHandedMelee(look)&&state.mode!=='cast'&&['idle','walk','attack'].includes(state.action))return oneHandedPose(face,look,state,heading);
  const mode=state.mode||weaponMode(look),frames=POSE_FRAMES[mode],sampled=state.action==='idle'||state.action==='walk'?[0,0,0]:frames[Math.min(frames.length-1,state.frame)]||frames[0],reach=sampled[0],lift=sampled[1],sweep=sampled[2],dx=heading.x,dy=heading.y*.5,length=Math.hypot(dx,dy)||1,aim={x:dx/length,y:dy/length},back=face.hand[0]>.5;
  const primary={x:face.hand[0]*320+aim.x*reach,y:face.hand[1]*320+aim.y*reach*.55+lift};
  let angle=(look.twoHanded?-.95:back?1:2.12)+sweep;

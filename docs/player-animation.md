@@ -34,6 +34,20 @@ cache has a 32 MiB pixel budget per guard instance. Padded frames allow long
 weapons and raised hands to extend beyond the body; portraits and creation use
 the same compositor and adjusted frame anchors.
 
+## One-handed reference stance
+
+`one-handed-pose.js` supplies the carry and melee transitions for the existing
+one-handed swords, axes, maces, flails, daggers and spears. The weapon hand rests
+beside the hip with a gentle bend at the elbow; the blade or head points outward
+and upward, matching the supplied knight reference. The shield hand is raised to
+hold its shield beside the torso. Without a shield the off hand stays relaxed.
+Walking adds a small carry motion; slash/thrust clips return to the same ready
+pose. Weapon angles take the shortest turn toward the aimed strike.
+
+The profile is selected before the existing pose generator. Ranged weapons,
+casting, fists and all two-handed weapons continue through their original paths.
+The existing staves remain two-handed. No one-handed staff item was introduced.
+
 ## Artwork limitation
 
 The existing equipment paintings supply **front and back source views**, not
