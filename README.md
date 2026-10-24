@@ -8,7 +8,15 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 2. [Download the game ZIP](https://github.com/Yekimf/arpgprototype/archive/refs/heads/main.zip) and extract it.
 3. Open **`forgotten-kingdom.html`** in a current desktop browser. To continue an existing offline character, keep using **`ashen-reliquary.html`** at its previous location; it is an identical updated copy.
 
-The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer or public hosted preview. An optional local server hosts LAN multiplayer; solo play still works directly from the HTML file.
+The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. There is no executable installer or public hosted preview. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
+
+## Version 0.41.0 — Display names and browser-hosted friends
+
+- Added a friends ledger with display names, unique friend codes, incoming requests, online/hosting status, rename and remove controls. Friends request to join a host; an on-screen badge leads to Accept/Decline. No invitation text needs to be exchanged.
+- Browser hosts run the shared simulation and save host records in IndexedDB. Real WebRTC data channels carry characters, combat, chat, parties, private loot and atomic town trading. The classic Node LAN launcher remains available.
+- Added private Supabase database tables and checked RPCs for identity, friends, presence and signaling, plus an optional short-lived TURN credentials function and a manual GitHub Pages deployment workflow.
+- **The online service is not configured yet.** Complete the one-time [browser multiplayer setup](docs/browser-multiplayer.md) to enable it. After setup, players only open the HTTPS website. This repository contains no provisioned Supabase project or TURN relay.
+- Display-name identities and characters stay in the current browser; no email/password is required. Different browser/site addresses have separate identities. Character export/import remains available under Classic LAN / Character transfer.
 
 ## Version 0.40.0 — Local multiplayer
 
