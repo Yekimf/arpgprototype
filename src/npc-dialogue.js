@@ -1,21 +1,51 @@
-import {openingStage,claimHerdReward,claimProvisionsReward} from './opening-quests.js';
+import {claimHerdReward,claimProvisionsReward} from './opening-quests.js';
 import {playerStats} from './game.js';
 import {refillManaFlask,ensureFlask,refillFlask} from './flasks.js';
 import {acceptGuideQuest,claimGuideReward,identifyAll} from './settlement.js';
-export function guideStory(p){if(!p.campaign)return 'Edrin was taken beneath the old monastery. Defeat the Hollow Warden and bring the archivist home. You will find the crypt gate beyond the last lantern.';if(p.quests.scholarRescued)return 'Edrin remembers the oath you kept. Aldren’s binding is broken, and the freed families are coming home. These were our soldiers once. Remember them as they were.';if(!p.campaign?.records?.includes('field-1-0'))return 'You wore Alaric’s colours. Then you know the men in Elin’s pasture: our own soldiers, raised after death. Hadrin has ordered them to butcher the sheep that feed this refuge. Elin got her children out, but the flock is still inside the fence. Take the southern lane after the camp gate. Save what you can; then we will speak of Marchgate.';if(!p.campaign?.defeated?.includes('captain-1-0'))return 'Elin’s children ate tonight because of you. The levy seal on those dead men is Hadrin’s. He commanded your regiment once; now he raises your comrades to starve the villages that shelter loyalists. Marchgate is his stronghold. Edrin saw the stranger bind the first knight, and Hadrin sent him east in chains. Stop Hadrin before another pasture burns.';if(!p.campaign?.defeated?.includes('captain-1-1'))return 'Hadrin’s confession names Reeve Oswen. He seizes both harvest and seed grain, then feeds Aldren’s prison garrison with it. The farmers in Widow’s Fields are not rebels; they are hungry. Break the enforcers and cross the granary fields to Oswen’s counting yard. Free the captives before the next convoy leaves.';return 'The freed captives heard a choir inside Blackthorn Hollow. Those chanters use living prisoners to bind dead soldiers to Sir Aldren. You served beside him before the thorns took him. Silence the choir, then break his hold on the redoubt. Edrin is still alive inside.';}
-const words={
- guide:'You bear Alaric’s colours. Hadrin has sent dead patrols to choke the Kingsroad. Break their three officers, then force your way through Ruined Marchgate. Beyond it, the levy is starving Widow’s Fields. Edrin’s convoy went into Blackthorn Hollow; Aldren holds him in the redoubt.',
- merchant:'I buy what you can carry. Check the condition before you spend; Garran charges to mend another man’s work. Keep some gold for supplies.',
- smith:'Your edge is chipped. Your straps will not last another march. Repairs restore worn gear. Tempering improves base quality. Reforging costs gold and embers to change one rolled property; it can come back worse.',
- scholar:'The patrols took me through Marchgate and the grain fields to Aldren’s redoubt. I heard the thorn choir through the cell walls. Bring me any enchanted gear. I can read their marks, and I owe you that much.'
-};
+import {npcGreeting,npcTalk,npcTopics,guideQuestStory,guideQuestLabel} from './npc-story.js';
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+export const guideStory=guideQuestStory;
 export class NPCDialogue{
- constructor(game,{project,openPanel,save,toast}){Object.assign(this,{game,project,openPanel,save,toast});this.root=document.createElement('section');this.root.id='npc-dialogue';this.root.className='npc-conversation hidden';this.root.setAttribute('aria-label','Conversation');document.getElementById('app').append(this.root);this.root.addEventListener('click',e=>{const action=e.target.closest('[data-talk]')?.dataset.talk;if(action)this.choose(action);});}
- openSign(sign){Object.assign(this.game,{target:null,path:null,interactTarget:null,primaryHeld:false,secondaryHeld:false,moving:false});this.npc=sign;this.game.dialogue='sign:'+sign.id;this.root.classList.add('sign-reading');this.root.classList.remove('hidden');this.root.setAttribute('aria-label','Road sign');this.root.replaceChildren();const text=document.createElement('div');text.className='npc-spoken';text.textContent=sign.text;this.root.append(text);this.position();}
- open(npc){this.root.classList.remove('sign-reading');this.root.setAttribute('aria-label','Conversation');Object.assign(this.game,{target:null,path:null,interactTarget:null,primaryHeld:false,secondaryHeld:false,moving:false});this.npc=npc;this.game.dialogue=npc.id;this.speech=false;this.root.classList.remove('hidden');this.render();this.position();}
- close(){this.root.classList.add('hidden');this.npc=null;this.game.dialogue=null;}
+ constructor(game,{project,openPanel,save,toast}){
+  Object.assign(this,{game,project,openPanel,save,toast});this.root=document.createElement('section');this.root.id='npc-dialogue';this.root.className='npc-conversation hidden';this.root.setAttribute('aria-label','Conversation');document.getElementById('app').append(this.root);
+  this.root.addEventListener('click',e=>{const action=e.target.closest('[data-talk]')?.dataset.talk;if(action)this.choose(action);});
+ }
+ openSign(sign){
+  Object.assign(this.game,{target:null,path:null,interactTarget:null,primaryHeld:false,secondaryHeld:false,moving:false});this.npc=sign;this.page='main';this.game.dialogue='sign:'+sign.id;this.root.classList.remove('story-reading');this.root.classList.add('sign-reading');this.root.classList.remove('hidden');this.root.setAttribute('aria-label','Road sign');this.root.replaceChildren();const text=document.createElement('div');text.className='npc-spoken';text.textContent=sign.text;this.root.append(text);this.position();
+ }
+ open(npc){
+  this.root.classList.remove('sign-reading','story-reading');this.root.setAttribute('aria-label','Conversation with '+npc.name);Object.assign(this.game,{target:null,path:null,interactTarget:null,primaryHeld:false,secondaryHeld:false,moving:false});this.npc=npc;this.game.dialogue=npc.id;this.page='main';this.speech=npcGreeting(this.game.player,npc.id);this.root.classList.remove('hidden');this.render();
+ }
+ close(){this.root.classList.add('hidden');this.npc=null;this.page='main';this.game.dialogue=null;}
  position(){if(!this.npc)return;const at=this.project(this.npc.x,this.npc.y),r=this.root.getBoundingClientRect();this.root.style.left=Math.max(8,Math.min(innerWidth-r.width-8,at.x-r.width/2))+'px';this.root.style.top=Math.max(42,Math.min(innerHeight-r.height-140,at.y-130-r.height))+'px';}
- render(){const n=this.npc,p=this.game.player;if(!n)return;const btn=(id,text,quest=false)=>`<button data-talk="${id}"><span class="npc-quest-mark" ${quest?'aria-label="Quest"':'aria-hidden="true"'}>${quest?'!':''}</span><span class="npc-topic">${text}</span></button>`;let topics=btn('talk','Talk');if(n.id==='guide')topics+=btn(p.quests.guideMet?'quest':'accept',p.quests.scholarRescued?'The road ahead':p.quests.guideMet?(p.campaign?.records?.includes('field-1-0')?'The road to Edrin':'Elin’s last herd'):'Elin’s last herd',true)+btn('heal','Heal')+(p.quests.wardenDefeated&&!p.quests.guideRewarded?btn('reward','Claim reward',true):'');if(n.id==='merchant')topics+=btn('merchant','Trade');if(n.id==='smith')topics+=btn('smith','Repair / Reforge');if(n.id==='scholar')topics+=btn('identify','Identify items')+btn('inventory','Examine belongings');
- this.root.innerHTML=`<header>${n.name}</header>${this.speech?`<div class="npc-spoken" aria-live="polite">${this.speech}</div>`:''}<nav>${topics}${p.campaign?btn('journal','Quest log',n.id==='guide'&&!p.quests.guideMet):''}${btn('leave','Leave')}</nav>`;this.position();}
- choose(action){const p=this.game.player;if(action==='leave')return this.close();if(['merchant','smith','inventory','journal'].includes(action)){this.close();this.openPanel(action);return;}if(action==='talk'||action==='quest')this.speech=this.npc.id==='guide'&&p.quests.scholarRescued?'Edrin is safe, and Emberfall owes you its future. Bring your enchanted gear to him. The remaining patrols still threaten our roads; every officer you break gives another family a chance to get out.':words[this.npc.id];if((action==='talk'||action==='quest')&&this.npc.id==='guide'&&openingStage(p)==='done'&&!p.quests.scholarRescued)this.speech=words.guide;if(action==='accept'){const result=acceptGuideQuest(p);this.toast(result.message);this.speech=result.ok?words.guide:result.message;this.save();}if(action==='herd-reward'||action==='provisions-reward'){const result=action==='herd-reward'?claimHerdReward(p):claimProvisionsReward(p);this.speech=result.message;this.toast(result.message);this.game.stats=playerStats(p);this.save();}if(action==='reward'){const result=claimGuideReward(p);this.toast(result.message);this.save();}if(action==='heal'){p.hp=this.game.stats.maxHp;p.mana=this.game.stats.maxMana;refillFlask(p,Math.max(0,60-ensureFlask(p).charges));refillManaFlask(p,Math.max(0,60-(p.manaFlask?.charges||0)));this.toast('Life and spirit restored.');this.speech='Clean bandages and a full flask. Stay on the road until you reach the old gate.';this.save();}if(action==='identify'){const result=identifyAll(p);this.toast(result.message);this.speech=result.message;this.save();}if(this.npc.id==='guide'&&['talk','quest','accept'].includes(action))this.speech=guideStory(p);this.render();}
+ render(){
+  const n=this.npc,p=this.game.player;if(!n)return;
+  const btn=(id,text,quest=false)=>`<button data-talk="${esc(id)}"><span class="npc-quest-mark" ${quest?'aria-label="Quest"':'aria-hidden="true"'}>${quest?'!':''}</span><span class="npc-topic">${esc(text)}</span></button>`;
+  let topics='';
+  if(this.page==='stories'){
+   topics=npcTopics(p,n.id).map(t=>btn('lore:'+t.id,t.label)).join('')+btn('topics','Back');
+  }else{
+   topics=btn('talk','Talk');
+   if(n.id==='guide')topics+=btn(p.quests.guideMet?'quest':'accept',guideQuestLabel(p),true)+btn('heal','Heal')+(p.quests.wardenDefeated&&!p.quests.guideRewarded?btn('reward','Claim reward',true):'');
+   if(n.id==='merchant')topics+=btn('merchant','Trade');
+   if(n.id==='smith')topics+=btn('smith','Repair / Reforge');
+   if(n.id==='scholar')topics+=btn('identify','Identify items')+btn('inventory','Examine belongings');
+   if(p.campaign)topics+=btn('journal','Quest log',n.id==='guide'&&!p.quests.guideMet);
+  }
+  this.root.innerHTML=`<header>${esc(n.name)}</header>${this.speech?`<div class="npc-spoken" aria-live="polite">${esc(this.speech)}</div>`:''}<nav>${topics}${btn('leave','Leave')}</nav>`;this.root.scrollTop=0;this.position();
+ }
+ choose(action){
+  const p=this.game.player;if(!this.npc)return;if(action==='leave')return this.close();
+  if(['merchant','smith','inventory','journal'].includes(action)){if(action==='journal')this.game.storyBookTab='quests';this.close();this.openPanel(action);return;}
+  if(action==='talk'){this.page='stories';this.speech=npcTalk(p,this.npc.id);}
+  else if(action==='topics'){this.page='main';this.speech=npcGreeting(p,this.npc.id);}
+  else if(action.startsWith('lore:')){const entry=npcTopics(p,this.npc.id).find(t=>t.id===action.slice(5));if(!entry)return;this.speech=entry.text;}
+  else if(action==='quest'){this.page='main';this.speech=this.npc.id==='guide'?guideStory(p):npcTalk(p,this.npc.id);}
+  else if(action==='accept'){const result=acceptGuideQuest(p);this.toast(result.message);this.speech=result.ok?guideStory(p):result.message;this.save();}
+  else if(action==='herd-reward'||action==='provisions-reward'){const result=action==='herd-reward'?claimHerdReward(p):claimProvisionsReward(p);this.speech=result.message;this.toast(result.message);this.game.stats=playerStats(p);this.save();}
+  else if(action==='reward'){const result=claimGuideReward(p);this.speech=result.ok?'A pouch from the people who could spare it. Edrin is home. I will not pretend gold makes a fair payment for that. Thank you.':result.message;this.toast(result.message);this.save();}
+  else if(action==='heal'){p.hp=this.game.stats.maxHp;p.mana=this.game.stats.maxMana;refillFlask(p,Math.max(0,60-ensureFlask(p).charges));refillManaFlask(p,Math.max(0,60-(p.manaFlask?.charges||0)));this.toast('Life and spirit restored.');this.speech='Clean bandages. A full flask. Sit until your hands stop shaking; nobody here needs you to look brave.';this.save();}
+  else if(action==='identify'){const result=identifyAll(p);this.toast(result.message);this.speech=result.message;this.save();}
+  this.render();
+ }
 }

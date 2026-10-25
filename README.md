@@ -10,6 +10,14 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.47.0 — Voices of the broken oath
+
+- The six Act I quests now connect the sheep raids, hunger levies and corrupted garrison to the people of Emberfall. Maelin, Orrin, Garran and Edrin have progress-sensitive greetings and optional conversation topics.
+- Brief field memories and boss exchanges add context without pausing combat. Disable automatic dialogue in Options → Story observations and boss dialogue.
+- Six optional field accounts can be inspected along the journey. Read them again in J → Accounts; each character keeps their own discoveries. They never block an entrance or take inventory space.
+- Revised the prologue’s narration around the king’s betrayal and the loyalist’s return. Later quest revelations stay concealed until their region is reached.
+- Calibrated enemy death sprites against their living silhouettes so they retain their size as the fall begins. Corpses keep the same grounded anchors throughout the animation.
+
 ## Version 0.46.0 — Combat contact, reactions and spell effects
 
 - Basic attacks and offensive skills land at their animation contact point. Late presses during the last 220 ms of recovery buffer one intended action with its aimed point; held attacks do not replace that explicit choice. Daggers, unarmed attacks and ranged weapons have distinct basic attack cadences. Movement can resume after contact while the legs walk under the finishing upper-body pose.

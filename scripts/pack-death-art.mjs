@@ -1,5 +1,6 @@
 import sharp from 'sharp';
 import fs from 'node:fs/promises';
+import {writeDeathSpriteMetrics} from './death-sprite-metrics.mjs';
 // Six independently painted anatomical poses per enemy, packed at native game scale.
 const input='src/art/enemy-deaths.png',{data,info}=await sharp(input).ensureAlpha().raw().toBuffer({resolveWithObject:true}),cw=info.width/6;
 const count=(column,y)=>{let n=0;for(let x=Math.floor(column*cw);x<Math.floor((column+1)*cw);x++)if(data[(y*info.width+x)*4+3]>40)n++;return n;};
@@ -24,3 +25,5 @@ const bossScale=Math.min(138/bossRects[0].height,154/Math.max(...bossRects.map(r
 for(let frame=0;frame<6;frame++){const rect=bossRects[frame],width=Math.round(rect.width*bossScale),height=Math.round(rect.height*bossScale);bossTiles.push({input:await sharp(bossInput).extract(rect).resize(width,height).png().toBuffer(),left:frame*160+Math.floor((160-width)/2),top:146-height});}
 await sharp({create:{width:960,height:160,channels:4,background:'#00000000'}}).composite(bossTiles).webp({quality:91,alphaQuality:100,effort:6}).toFile('src/art/runtime/boss-death.webp');
 console.log('Packed six thornbound knight death frames.');
+
+await writeDeathSpriteMetrics();

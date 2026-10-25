@@ -247,6 +247,7 @@ export class Renderer {
       else if(o.type==='frontier'||o.type==='livestock-fence')this.frontier(o);
       else if(o.type==='road-lantern')this.roadPost(o,true);
       else if(o.type==='signpost')this.roadPost(o,false);
+      else if(o.type==='story-marker'){if(o.style==='arms')drawDungeonDressing(this,{...o,kind:'fallen-arms'});else this.roadPost(o,false);}
       else if(o.type==='palisade')this.palisade(o);
       else if(o.type==='brazier')this.brazier(o);
       else if(o.type==='pillar')this.pillar(o);

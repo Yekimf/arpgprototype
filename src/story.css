@@ -1,0 +1,10 @@
+#app .story-caption{position:fixed;z-index:15;left:50%;bottom:clamp(178px,20vh,232px);transform:translateX(-50%);width:min(640px,calc(100vw - 80px));padding:12px 28px 15px;text-align:center;pointer-events:none;color:#d1c4a5;background:linear-gradient(90deg,transparent,rgba(8,7,5,.83) 18%,rgba(8,7,5,.83) 82%,transparent);text-shadow:0 2px 3px #000,1px 0 #000;animation:story-caption-in .35s ease-out both}
+#app .story-caption[hidden]{display:none}
+#app .story-caption-speaker{font-size:11px;letter-spacing:.13em;color:#a99a76;text-transform:uppercase;margin-bottom:5px}
+#app .story-caption-line{font-size:16px;line-height:1.5;font-style:italic}
+#app .story-caption.reduced-motion{animation:none}
+#app #npc-dialogue.story-reading{width:min(390px,calc(100vw - 32px));max-height:calc(100dvh - 180px);overflow:auto}
+#app #npc-dialogue.story-reading .npc-spoken{white-space:pre-line;text-align:left}
+@keyframes story-caption-in{from{opacity:0}to{opacity:1}}
+@media(max-height:740px){#app .story-caption{bottom:170px;padding-top:9px;padding-bottom:10px}#app .story-caption-line{font-size:14px}}
+@media(prefers-reduced-motion:reduce){#app .story-caption{animation:none}}

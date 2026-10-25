@@ -112,12 +112,12 @@ export function generateStronghold(seed,act=1,chapter=0){
 }
 
 export const PROLOGUE=[
- {title:'A kingdom worth defending',text:'King Alaric was beloved by his people. One winter night, a hooded stranger came to his court, offering riches and power beyond imagining. Alaric heard the corruption beneath the promise. He refused.',image:0},
- {title:'A son’s hunger',text:'Prince Vaelor heard the bargain from the shadows. Blinded by greed, he conspired with the visitor. Before dawn, the king lay dead. His son wore the crown—and accepted the bargain.',image:1},
- {title:'The price of a crown',text:'The Wanderer’s magic flowed through the royal army. The knights of the Round Table became monstrous vessels for it. Harvests failed. Roads emptied. The kingdom sank into despair.',image:2},
- {title:'The soldier who returned',text:'You served in Alaric’s royal guard. By his leave, you had gone home to visit your family. You returned to a stolen throne and a country that no longer knew the light.',image:3},
- {title:'Those who remain',text:'At Emberfall, the survivors tend their wounded and count their missing. Maelin tells you that risen soldiers are slaughtering Elin’s sheep, the refuge’s last source of food. They wear the colours of men you once served beside. No army remains to help. You take the southern pasture lane.',image:4},
- {title:'The road to Crownfall',text:'Beyond Emberfall lie the Kingsroad wilds and the sealed gates of the kingdom. Each fallen knight holds a road forward. At the end waits the mad king—and the shadow that bought his soul.',image:5},
+ {title:'A kingdom worth defending',text:'When frost took the barley, King Alaric opened his granaries and told the collectors to leave the seed. A hooded visitor later offered him riches without limit and power beyond any crown. Alaric heard the price beneath the promise. He refused.',image:0},
+ {title:'A son’s hunger',text:'Prince Vaelor listened outside the chamber. His father had refused everything he wanted. That night, the prince and the stranger made their own arrangement. Before dawn, Alaric lay murdered, and Vaelor accepted the bargain with his father’s crown still warm in his hands.',image:1},
+ {title:'The price of a crown',text:'The royal patrols came back without their wounded. Then the wounded came back without their names. The Wanderer’s magic ran through the army, twisting the knights of the Round Table inside their armour. The collectors took the seed grain too.',image:2},
+ {title:'The soldier who returned',text:'You remember the third bell, cold hands on a spear, and Alaric asking after the men on the wall. You served in his royal guard. By his leave, you had gone home to visit your family. You returned to blackened milestones and your own regiment’s colours nailed to a warning post.',image:3},
+ {title:'Those who remain',text:'At Emberfall, Maelin boils the same bandages twice. Elin’s children sleep beside the fire while risen soldiers butcher the sheep that feed the refuge. You recognise the stitching on their tabards. You once stood watch beside these men.',image:4},
+ {title:'The road to Crownfall',text:'There is no army waiting to set this right. There are the people at the fire, the soldiers wearing familiar colours, and the road into the kingdom. Before you can reach Vaelor and the Wanderer, you must face the men who once held that road beside you.',image:5},
 ];
 
 function dressBlackthorn(d){
