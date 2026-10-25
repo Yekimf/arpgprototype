@@ -1,3 +1,5 @@
+import {CHICKEN_BREEDS_ART} from './assets.js';
+import {breedOf,wildIdentity} from './chicken-pets.js';
 import {PaintedSkills} from './skill-sprites.js';
 import {paintedFireField} from './painted-skills.js';
 import {visibleTownPortals,drawTownPortal} from './town-portals.js';
@@ -29,7 +31,7 @@ export class Renderer {
   constructor(canvas, minimap) {
     this.canvas=canvas; this.ctx=canvas.getContext('2d'); this.map=minimap; this.mc=minimap.getContext('2d');
     this.w=0;this.h=0;this.camera={x:0,y:0};this.time=0;this.zoom=1;
-    this.skillArt=new PaintedSkills();this.deaths=new DeathSprites();this.enemySprites=new EnemySprites();this.columnArt=new Image();this.columnArt.src=STONE_COLUMN_ART;this.chickenArt=new Image();this.chickenArt.src=CHICKEN_ART;this.stashArt=new Image();this.stashArt.src=STASH_CHEST_ART;this.fountainArt=new Image();this.fountainArt.src=WAYPOINT_FOUNTAIN_ART;this.forestGroundArt=new Image();this.forestGroundArt.src=FOREST_GROUND_ART;this.forestArt=new Image();this.forestArt.src=FOREST_LIFE_ART;this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;this.farmArt=new Image();this.farmArt.src=FARM_ART;
+    this.skillArt=new PaintedSkills();this.deaths=new DeathSprites();this.enemySprites=new EnemySprites();this.columnArt=new Image();this.columnArt.src=STONE_COLUMN_ART;this.chickenArt=new Image();this.chickenArt.src=CHICKEN_BREEDS_ART;this.stashArt=new Image();this.stashArt.src=STASH_CHEST_ART;this.fountainArt=new Image();this.fountainArt.src=WAYPOINT_FOUNTAIN_ART;this.forestGroundArt=new Image();this.forestGroundArt.src=FOREST_GROUND_ART;this.forestArt=new Image();this.forestArt.src=FOREST_LIFE_ART;this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;this.farmArt=new Image();this.farmArt.src=FARM_ART;
     this.innerGateArt=new Image();this.innerGateArt.src=MARCHGATE_INNER_ART;this.gateArt=new Image();this.gateArt.src=MARCHGATE_ART;this.campaignArt=new Image();this.campaignArt.src=CAMPAIGN_ART;this.heroFrame={row:0,column:0,action:'idle'};
     this.remainsArt=new WeakMap();this.corpseArt=new Map();this.stainArt=new Map();this.contactShadows=new Map();this.artKeys=new WeakMap();this.artSerial=0;this.guard=new GuardSprites();this.groundCache=new Map();this.glowCache=new Map();this.wallCache=new Map();this.spriteCache=new Map();this.tileCache=new Map();this.artLoaded=false;
     for(const art of [...this.skillArt.images,...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons])art.addEventListener('load',()=>{this.artLoaded=[...this.skillArt.images,...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
@@ -194,7 +196,8 @@ export class Renderer {
     if(this.indexedObjects!==this.staticObjects){this.indexedObjects=this.staticObjects;this.staticBins=new Map();this.largeObjects=[];for(const o of this.staticObjects){if(o.type.startsWith('kingdom-gate')){this.largeObjects.push(o);continue;}const key=Math.floor(o.x/8)+','+Math.floor(o.y/8);if(!this.staticBins.has(key))this.staticBins.set(key,[]);this.staticBins.get(key).push(o);}}
     const worldX=(this.camera.x/34+this.camera.y/17)/2,worldY=(this.camera.y/17-this.camera.x/34)/2,reach=(viewW/34+viewH/17)/2+8,objects=this.largeObjects.filter(visible);
     for(let by=Math.floor((worldY-reach)/8);by<=Math.floor((worldY+reach)/8);by++)for(let bx=Math.floor((worldX-reach)/8);bx<=Math.floor((worldX+reach)/8);bx++)for(const o of this.staticBins.get(bx+','+by)||[])if(visible(o))objects.push(o);
-    for(const hen of d.chickens||[])if(visible(hen))objects.push({...hen,type:'chicken'});
+    for(const hen of d.chickens||[])if((!hen.capturing||game.chickenUI?.capture?.time<.65)&&!p.pets?.captured?.includes(wildIdentity(d,hen))&&visible(hen))objects.push({...hen,type:'chicken'});
+    if(game.chickenUI?.vendor)objects.push({...game.chickenUI.vendor,type:'npc'});
     for(const sheep of d.livestock||[])if(visible(sheep))objects.push(sheep);
     for(const animal of d.critters||[])objects.push({...animal,...passivePosition(animal,d,this.time),type:'critter'});
     for(const loot of game.loot)objects.push({...loot,type:'loot',loot});
@@ -542,7 +545,7 @@ export class Renderer {
     for(const b of this.lootLabels){const color=b.loot.item?{normal:'#d4c5aa',magic:'#8faed7',rare:'#d6bb68',legendary:'#e5a16c',set:'#8fc57b'}[b.loot.item.rarity]||'#d4c5aa':'#c3ac68';c.fillStyle='#0c0906ed';c.fillRect(b.x,b.y,b.w,b.h);c.strokeStyle=game.lootTarget===b.loot?'#ead1a0':color+'88';c.strokeRect(b.x,b.y,b.w,b.h);c.fillStyle=color;c.fillText(b.name,b.x+b.w/2,b.y+b.h/2);}
     c.restore();
   }
-  chicken(o){const c=this.ctx,art=this.chickenArt;if(!art.complete||!art.naturalWidth)return;const frame=o.moving?Math.floor(o.gait)%4:0,flip=Math.cos(o.heading)-Math.sin(o.heading)<0;this.ellipse(0,2,8,3,'#08060466');c.save();if(flip)c.scale(-1,1);c.drawImage(art,frame*art.naturalWidth/4,o.coat*art.naturalHeight/2,art.naturalWidth/4,art.naturalHeight/2,-19,-27,38,38);c.restore();}
+  chicken(o){const c=this.ctx,art=this.chickenArt;if(!art.complete||!art.naturalWidth)return;const i=breedOf(o).art,flip=Math.cos(o.heading)-Math.sin(o.heading)<0;this.ellipse(0,2,8,3,'#08060466');c.save();if(flip)c.scale(-1,1);c.translate(0,o.moving?Math.sin(o.gait)*1.5:0);c.drawImage(art,i%4*256,Math.floor(i/4)*256,256,256,-20,-31,40,40);c.restore();}
   worldLabel(name,role,y){const c=this.ctx;c.textAlign='center';c.shadowColor='#000';c.shadowBlur=5;c.font='10px Georgia';c.fillStyle='#d5c295';c.fillText(name,0,y);if(role){c.font='6px Inter,sans-serif';c.fillStyle='#a18d6b';c.fillText(role,0,y+12);}c.shadowBlur=0;}
   npc(n,game){
     this.ellipse(0,2,17,7,'#08050388');this.sprite(n.sprite,n.id==='smith'?65:64,n.id==='smith'?88:91);

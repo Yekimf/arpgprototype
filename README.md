@@ -10,6 +10,14 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.50.0 — The Quiet Coop
+
+- Orrin sells unexplained Wooden Crates for 18 gold. Right-click a crate in your pack, then right-click a nearby chicken. The thrown crate shakes five times, releases stars and turns grey. Your first catch earns **I choose** and unlocks the **Chickendex**.
+- Collect twelve painted chicken breeds across six elements. Choose a lead pet and right-click a wild chicken for a turn-based battle: move uses, elemental strengths, speed, status effects, switching, provisions, withdrawal, XP and levels up to 50. Moves unlock at levels 3, 6 and 12. Battles are against wild chickens, not other players.
+- Merrit appears in a quiet corner of Emberfall after discovery. Wins and new breeds earn chicken points; his shop accepts only those points. Three of nine cosmetic hats rotate every two hours, alongside three battle supplies. Resting the flock is free. Hats appear on collection and battle portraits.
+- All locked achievements hide their names, requirements and rewards behind question marks. Pet progress belongs to each character and travels with its existing saves/backups. Interrupted captures are recovered on reload. Captured birds are replaced when you leave their vicinity; defeated birds rest for two minutes in the current area.
+- The collection holds 120 chickens. The normal single-player world pauses during poultry battles. Cooperative sessions continue for other players; pets and their battles are personal.
+
 ## Version 0.49.0 — Painted combat animations
 
 - Replaced the primary skill shapes with 108 original painted poses across 18 animation styles: molten firebolts, fire eruptions, ice lances and nova, rock ruptures, lightning arcs and strikes, steel cuts, blood rending, spectral blades, defensive shields and ember auras.

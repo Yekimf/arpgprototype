@@ -1,3 +1,4 @@
+import {isChickenCrate} from './chicken-pets.js';
 import {requirementChecks,canUseGear} from './gear-requirements.js';
 import {guideStory} from './npc-dialogue.js';
 import {setDefinition,equippedSetPieces} from './set-items.js';
@@ -28,7 +29,7 @@ export class TownUI {
     const modal=document.getElementById('modal');
     this.hud=new InventoryHUD(this);
     let held=null,ghost=null;
-    modal.addEventListener('contextmenu',e=>{if(game.lan?.trading){e.preventDefault();return;}const node=e.target.closest('[data-pack-id],[data-equip-slot]');if(!node)return;e.preventDefault();const {item,source}=this.hud.resolve(node);if(!item)return;if(source==='stash'){this.apply(moveItem(game.player,item.id,false,this.stashItems));}else if(source==='pack'){if(isInsightScroll(item))this.beginIdentify(item);else if(this.identifying)this.identifyTarget(item.id);else this.apply(equipItem(game.player,item.id));}else if(source==='equipped')this.apply(unequipItem(game.player,node.dataset.equipSlot));});
+    modal.addEventListener('contextmenu',e=>{if(game.lan?.trading){e.preventDefault();return;}const node=e.target.closest('[data-pack-id],[data-equip-slot]');if(!node)return;e.preventDefault();const {item,source}=this.hud.resolve(node);if(!item)return;if(isChickenCrate(item)&&source==='pack')return;if(source==='stash'){this.apply(moveItem(game.player,item.id,false,this.stashItems));}else if(source==='pack'){if(isInsightScroll(item))this.beginIdentify(item);else if(this.identifying)this.identifyTarget(item.id);else this.apply(equipItem(game.player,item.id));}else if(source==='equipped')this.apply(unequipItem(game.player,node.dataset.equipSlot));});
     modal.addEventListener('pointerdown',e=>{const node=e.target.closest('[data-pack-id],[data-equip-slot]');if(e.button!==0||!node||e.ctrlKey||e.shiftKey||e.altKey)return;const {item,source}=this.hud.resolve(node);if(!item)return;held={id:item.id,source,slot:node.dataset.equipSlot,x:e.clientX,y:e.clientY,node,pointer:e.pointerId};});
     window.addEventListener('pointermove',e=>{if(!held)return;if(!ghost&&Math.hypot(e.clientX-held.x,e.clientY-held.y)>6){ghost=held.node.cloneNode(true);ghost.removeAttribute('data-pack-id');ghost.className='drag-item';document.body.append(ghost);document.body.classList.add('dragging-item');this.hud.hideTooltip();}if(ghost){ghost.style.left=e.clientX+12+'px';ghost.style.top=e.clientY+12+'px';}});
     window.addEventListener('pointerup',e=>{if(!held)return;const data=held;held=null;if(ghost){const target=document.elementFromPoint(e.clientX,e.clientY);ghost.remove();ghost=null;document.body.classList.remove('dragging-item');this.suppressClick=true;this.drop({target,clientX:e.clientX,clientY:e.clientY,preventDefault(){},dataTransfer:{getData:()=>JSON.stringify(data)}});setTimeout(()=>this.suppressClick=false,0);}});
@@ -61,6 +62,7 @@ export class TownUI {
   }).join('')}</div>`;}
   detail(){
     const item=this.selected;if(!item)return `<div class="empty-detail"><span>✧</span><p>Select a relic to inspect its properties.</p><small>Drag items to rearrange. Double-click to equip.<br>Shift-click to equip; Ctrl-click to trade or transfer.</small></div>`;
+    if(isChickenCrate(item))return `<div class="relic-heading normal">${icon(item)}<h3>Wooden Crate</h3></div>`;
     if(item.slot==='scroll'||item.quest)return `<div class="relic-heading normal">${icon(item)}<div><span class="eyebrow">${item.quest?'QUEST ITEM':'CONSUMABLE · '+scrollQuantity(item)+' / '+SCROLL_STACK+' · ONE SPACE'}</span><h3>${escape(item.name)}</h3></div></div><p class="consumable-description">${escape(item.description||'A recovered quest item.')}</p>`;
     const p=this.player,unknown=requiresIdentification(item),equipped=p.equipment[item.slot],pack=this.source==='pack',panel=this.game.panel;
     const set=setDefinition(item.setId),count=set?equippedSetPieces(p,set.id).length:0;
@@ -113,7 +115,7 @@ export class TownUI {
       if(action!=='inventory'&&!this.isTown){this.toast('Visit Emberfall to use town services.');return true;}
       this.openPanel(action);return true;
     }
-    const inTown=['buy','sell','buyback','buy-flask','buy-scroll','restock','repair','temper','deposit','withdraw-gold','reforge','salvage','store','withdraw','identify-all','scholar-identify','heal','claim-reward','accept-quest','depart','guide-depart'];
+    const inTown=['buy','sell','buyback','buy-flask','buy-scroll','buy-crate','restock','repair','temper','deposit','withdraw-gold','reforge','salvage','store','withdraw','identify-all','scholar-identify','heal','claim-reward','accept-quest','depart','guide-depart'];
     if(inTown.includes(action)&&!this.isTown){this.toast('This service is only available in Emberfall.');return true;}
     if(action==='sort'){if(this.game.panel==='stash')arrange(this.stashItems,STASH,true);else arrange(p.inventory,BAG,true);this.refresh();}
     else if(action==='equip')this.apply(equipItem(p,this.selection));
@@ -126,6 +128,7 @@ export class TownUI {
     else if(action==='buyback')this.apply(buyBack(p,p.buyback.findIndex(i=>i.id===this.selection)));
     else if(action==='buy-flask')this.apply(buySupply(p,'flask'));
     else if(action==='restock'){this.selection=null;this.source='pack';this.shopTab='stock';this.apply(restockShop(p));}
+    else if(action==='buy-crate'){if(this.game.chickenUI.buyCrate())this.render(this.game.panel);}
     else if(action==='buy-scroll')this.apply(buySupply(p,'scroll'));
     else if(action==='salvage')this.apply(salvageItem(p,this.selection));
     else if(action==='favorite'&&item){item.favorite=!item.favorite;this.refresh();}

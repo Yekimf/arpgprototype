@@ -1,3 +1,4 @@
+import {poultryIcon} from './chicken-art.js';
 import {isInsightScroll} from './scrolls.js';
 import {ARMOR_BOUNDS} from './armor-bounds.js';
 import weaponBounds from './art/weapon-bounds.json';
@@ -8,6 +9,7 @@ import {ITEM_BOUNDS} from './item-bounds.js';
 const slots={weapon:4,armor:6,helm:7,gloves:8,boots:9,belt:10,ring:11,charm:12,shield:13};
 let serial=0;
 export function itemArt(item){
+ if(item.consumable==='chicken-crate')return poultryIcon(0,true,'item-art');
  if(item.setId){const row=ITEM_SETS.findIndex(s=>s.id===item.setId);if(row>=0&&Number.isInteger(item.setPiece)){const x=item.setPiece*128,y=row*128,id='set-art-'+(++serial);return `<svg class="item-art natural-item-art set-item-art" data-set-piece="${item.setId}:${item.setPiece}" viewBox="${x} ${y} 128 128" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><defs><clipPath id="${id}"><rect x="${x}" y="${y}" width="128" height="128"/></clipPath></defs><image clip-path="url(#${id})" href="${SET_ITEMS_ART}" width="768" height="512"/></svg>`;}}
 
  const equipmentIndex=({helm:{hood:0,sallet:1,greathelm:2},gloves:{leather:3,steel:4},boots:{leather:5,steel:6},shield:{round:7,kite:8}})[item.slot]?.[itemLook(item)];

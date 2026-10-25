@@ -5,6 +5,9 @@ export function meetChicken(p,id){const c=ensureChronicle(p);if(!c.seenChickens.
 const stat=(p,key)=>p.chronicle?.stats?.[key]||0,items=p=>[...(p.inventory||[]),...(p.stash||[]),...Object.values(p.equipment||{}).filter(Boolean)];
 const a=(id,name,category,goal,description,title,icon,value,renown=10)=>({id,name,category,goal,description,title,icon,value,renown});
 export const ACHIEVEMENTS=[
+ a('i-choose','I choose','Oddities',1,'Catch your first chicken. The kingdom can wait a moment.','The Featherbound','phoenix',p=>p.pets?.roster?.length||0,25),
+ a('coop-champion','Pecking Order','Oddities',10,'Win ten chicken battles.','Lord of the Coop','vigor',p=>p.pets?.wins||0,25),
+ a('chickendex','A Complete Breakfast','Collection',12,'Collect every chicken breed.','Keeper of Feathers','phoenix',p=>p.pets?.seen?.length||0,50),
  a('inventory','Taking Inventory. Again.','Oddities',1,'Open your pack. A tradition older than the kingdom’s tax code.','Pocket Dimension Enthusiast','ward',p=>stat(p,'inventoryOpens')),
  a('listen','Hey! Listen!','Journey',1,'Speak to Maelin and accept help. The advice is mercifully unvoiced.','The Attentive','spirit',p=>+!!p.quests?.guideMet),
  a('upgrade','Getting an Upgrade','Journey',5,'Reach level 5. Stone tools were never going to settle a succession crisis.','A Promising Problem','basic',p=>p.level),

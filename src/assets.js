@@ -126,3 +126,8 @@ import skillElements from './art/runtime/skill-elements.webp?inline';
 import skillForces from './art/runtime/skill-forces.webp?inline';
 import skillWards from './art/runtime/skill-wards.webp?inline';
 export const SKILL_EFFECT_ART={elements:localAsset(skillElements),forces:localAsset(skillForces),wards:localAsset(skillWards)};
+
+import chickenBreeds from './art/runtime/chicken-breeds.webp?inline';
+import chickenTreasures from './art/runtime/chicken-treasures.webp?inline';
+export const CHICKEN_BREEDS_ART=localAsset(chickenBreeds);
+export const CHICKEN_TREASURES_ART=localAsset(chickenTreasures);
