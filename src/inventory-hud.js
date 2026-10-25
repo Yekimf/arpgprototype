@@ -1,3 +1,5 @@
+import {VENDOR_SUPPLIES,VENDOR_GRID,vendorPages} from './vendor-inventory.js';
+import {itemSize} from './settlement.js';
 import {itemArt} from './item-art.js';
 import {playerStats,requiresIdentification} from './game.js';
 import {BAG,STASH,arrange,restockCost,EQUIPMENT,itemName,buyPrice,repairCost,SLOT_ART} from './settlement.js';
@@ -16,19 +18,21 @@ export class InventoryHUD {
     this.modal.addEventListener('pointerout',e=>{const item=e.target.closest('[data-pack-id],[data-equip-slot],[data-stock-id],[data-smith-equipped]');if(item&&!item.contains(e.relatedTarget)&&!this.pinned)this.hideTooltip();});
     this.modal.addEventListener('focusin',e=>{const item=e.target.closest('[data-pack-id],[data-equip-slot],[data-stock-id],[data-smith-equipped]');if(item)this.showTooltip(item);});
     this.modal.addEventListener('dragstart',()=>this.hideTooltip());
+    this.modal.addEventListener('contextmenu',e=>{const node=e.target.closest('[data-stock-id]');if(!node||this.game.panel!=='merchant')return;e.preventDefault();const {item,source}=this.resolve(node);if(item){this.owner.selection=item.id;this.owner.source=source;this.owner.buyVendorSelection();}});
     document.addEventListener('pointerdown',e=>{if(!e.target.closest('[data-pack-id],[data-equip-slot],[data-stock-id],[data-smith-equipped],#item-tooltip'))this.hideTooltip();});
   }
   resolve(element){
     const p=this.owner.player;
     if(element.dataset.packId){const source=element.dataset.container;return {source,item:(source==='stash'?this.owner.stashItems:p.inventory).find(i=>i.id===element.dataset.packId)};}
-    if(element.dataset.stockId){const source=element.dataset.stockSource;return {source,item:(source==='stock'?p.shopStock:p.buyback)?.find(i=>i.id===element.dataset.stockId)};}
+    if(element.dataset.stockId){const source=element.dataset.stockSource;return {source,item:(source==='supply'?VENDOR_SUPPLIES:source==='stock'?p.shopStock:p.buyback)?.find(i=>i.id===element.dataset.stockId)};}
     return {source:'equipped',item:p.equipment[element.dataset.equipSlot||element.dataset.smithEquipped]};
   }
   detailFor(item,source){
+    if(source==='supply')return `<div class="relic-heading normal"><h3>${esc(item.name)}</h3></div><p>${item.description?esc(item.description):''}</p><p class="vendor-price">${item.price} gold · Right click to buy</p>`;
     const o=this.owner,old={selection:o.selection,source:o.source,affix:o.affix};o.selection=item.id;o.source=source;
     const node=document.createElement('div');node.innerHTML=o.detail();Object.assign(o,old);
     node.querySelectorAll('.item-actions,.forge-controls,.smith-note,button,input,select').forEach(n=>n.remove());
-    return node.innerHTML;
+    return node.innerHTML+(['stock','buyback'].includes(source)?`<p class="vendor-price">${buyPrice(item)} gold · Right click to buy</p>`:'');
   }
   showTooltip(element,pinned=false){
     if(!HUD_PANELS.includes(this.game.panel))return;
@@ -55,12 +59,13 @@ export class InventoryHUD {
   actionDock(){
     if(this.game.panel==='inventory')return '';
     const item=this.owner.selected;
+    if(this.owner.source==='supply'&&item)return `<div class="hud-selected-name">${esc(item.name)} · ${item.price} gold</div>${button('buy-'+item.supply,'Buy · '+item.price+' gold',this.game.player.gold<item.price||item.supply==='flask'&&this.game.player.flask?.charges>=100)}`;
     if(!item)return '<div class="hud-selection-hint">Hover · Inspect & compare<br><span>Right click: equip · Shift: sell at shop · Alt: identify</span></div>';
     const node=document.createElement('div');node.innerHTML=this.owner.detail();node.querySelectorAll('[data-town-action=equip],[data-town-action=favorite],[data-town-action=unequip]').forEach(button=>button.remove());
     return `<div class="hud-selected-name ${item.rarity}">${esc(itemName(item))}</div>${node.querySelector('.item-actions')?.outerHTML||''}${node.querySelector('[data-town-action=temper]')?.outerHTML||''}${node.querySelector('.forge-controls')?.outerHTML||''}${node.querySelector('.smith-note')?.outerHTML||''}`;
   }
   updateDock(){
-    const dock=this.modal.querySelector('#hud-item-actions');if(dock)dock.innerHTML=this.actionDock();this.fit();
+    const dock=this.modal.querySelector('#hud-item-actions');if(dock)dock.innerHTML=this.actionDock()+(this.game.panel==='merchant'?button('restock',`New stock · ${restockCost(this.game.player)} gold`,this.game.player.gold<restockCost(this.game.player)):'');this.fit();
   }
   select(element){
     const {item,source}=this.resolve(element);if(!item)return;
@@ -123,13 +128,17 @@ export class InventoryHUD {
     const count=Math.max(1,Math.ceil(items.length/6)),page=Math.max(0,Math.min(count-1,this.pages[key]||0));this.pages[key]=page;
     return `<div class="service-gallery" aria-label="${key==='forge'?'Equipped items':'Merchant items'}">${items.slice(page*6,page*6+6).map(renderItem).join('')||'<p class="empty-ledger">No items in this ledger.</p>'}</div><nav class="service-pagination" aria-label="Item pages"><button data-page-key="${key}" data-service-page="${page-1}" aria-label="Previous item page" ${page===0?'disabled':''}>‹</button><span aria-live="polite">Page ${page+1} / ${count} <small>· ${items.length} items</small></span><button data-page-key="${key}" data-service-page="${page+1}" aria-label="Next item page" ${page===count-1?'disabled':''}>›</button></nav>`;
   }
+  vendorInventory(items,key){
+    const pages=vendorPages(items),page=Math.max(0,Math.min(pages.length-1,this.pages[key]||0));this.pages[key]=page;
+    return `<div class="vendor-inventory" aria-label="Vendor inventory" style="--vendor-cols:${VENDOR_GRID.width};--vendor-rows:${VENDOR_GRID.height}">${pages[page].map(i=>{const size=itemSize(i),source=i.supply?'supply':key;return `<button class="vendor-grid-item ${i.rarity} ${this.owner.selection===i.id?'selected':''}" data-stock-id="${esc(i.id)}" data-stock-source="${source}" aria-label="${esc(itemName(i))} · ${buyPrice(i)} gold" style="grid-column:${i.bagX+1}/span ${size.w};grid-row:${i.bagY+1}/span ${size.h}">${icon(i)}</button>`;}).join('')}</div><nav class="service-pagination" aria-label="Vendor inventory pages"><button data-page-key="${key}" data-service-page="${page-1}" aria-label="Previous item page" ${page===0?'disabled':''}>‹</button><span>Page ${page+1} / ${pages.length}</span><button data-page-key="${key}" data-service-page="${page+1}" aria-label="Next item page" ${page===pages.length-1?'disabled':''}>›</button></nav>`;
+  }
   renderService(panel){
     const o=this.owner,p=o.player,merchant=panel==='merchant',title=merchant?'Orrin’s wares':'Garran’s forge';
-    const toolbar=merchant?`${button('buy-flask','Flask · 8 gold',p.gold<8||p.flask?.charges>=100)}${button('buy-scroll','Scroll · 12 gold',p.gold<12)}${button('buy-crate','Wooden Crate · 18 gold',p.gold<18)}${button('restock',`Restock · ${restockCost(p)} gold`,p.gold<restockCost(p))}`:button('repair',`Repair all · ${repairCost(p)} gold`,!repairCost(p));
+    const toolbar=merchant?`<span class="vendor-wallet">${p.gold.toLocaleString()} gold carried</span>`:button('repair',`Repair all · ${repairCost(p)} gold`,!repairCost(p));
     const tabs=merchant?`<div class="shop-tabs">${button('shop-stock','For sale',o.shopTab==='stock')}${button('shop-buyback','Buyback',o.shopTab==='buyback')}</div>`:'<div class="forge-inscription">EQUIPPED ARMS · THE REFORGING FIRE</div>';
-    const gallery=merchant?this.pagedGallery(o.shopTab==='stock'?p.shopStock:p.buyback,o.shopTab,i=>`<button data-stock-id="${esc(i.id)}" data-stock-source="${o.shopTab}" class="service-item shop-item ${i.rarity} ${o.selection===i.id?'selected':''}" aria-label="${esc(itemName(i))}"><span class="service-socket">${icon(i)}</span><span class="service-item-name">${esc(itemName(i))}</span><small>${o.shopTab==='stock'?buyPrice(i):i.price} gold</small></button>`):this.pagedGallery(Object.entries(p.equipment).filter(([,i])=>i),'forge',([slot,i])=>`<button data-smith-equipped="${slot}" class="service-item smith-item ${i.rarity} ${o.selection===i.id?'selected':''}" aria-label="${esc(itemName(i))}"><span class="service-socket">${icon(i)}</span><span class="service-item-name">${esc(itemName(i))}</span><small>${Math.ceil(i.durability??100)}% condition</small></button>`);
+    const gallery=merchant?this.vendorInventory(o.shopTab==='stock'?[...VENDOR_SUPPLIES,...(p.shopStock||[])]:p.buyback,o.shopTab):this.pagedGallery(Object.entries(p.equipment).filter(([,i])=>i),'forge',([slot,i])=>`<button data-smith-equipped="${slot}" class="service-item smith-item ${i.rarity} ${o.selection===i.id?'selected':''}" aria-label="${esc(itemName(i))}"><span class="service-socket">${icon(i)}</span><span class="service-item-name">${esc(itemName(i))}</span><small>${Math.ceil(i.durability??100)}% condition</small></button>`);
     const rivets='<i class="corner-rivet tl"></i><i class="corner-rivet tr"></i><i class="corner-rivet bl"></i><i class="corner-rivet br"></i>';
-    this.modal.innerHTML=`<div class="inventory-sheet service-sheet" data-trade-target="sell">${rivets}${this.header(title,merchant?'TRADER OF EMBERFALL':'BLACKSMITH OF EMBERFALL')}<div class="hud-toolbar">${toolbar}</div><div class="service-ledger">${tabs}${gallery}</div><p class="service-instruction">${merchant?'Select a ware to buy. Select an item in your pack to sell.':'Select equipped or carried gear to temper, reforge or salvage.'}</p><footer id="hud-item-actions" class="hud-item-actions">${this.actionDock()}</footer></div><div class="inventory-sheet player-sheet">${rivets}<header class="hud-heading"><h2>Inventory</h2></header><div class="hud-toolbar">${button('sort','Arrange')}</div><div class="hud-content hud-inventory-content"><section class="hud-section hud-doll-section">${o.equipment()}</section><section class="hud-section hud-bag-section">${o.grid(p.inventory)}</section></div>${o.wallet()}<div class="inventory-trade-hint">${merchant?'Shift + click · Sell &nbsp; Drag to trader · Sell':'Right click · Equip / unequip'}<br><span>Hover · Inspect & compare &nbsp; Esc · Close both</span></div></div>`;
+    this.modal.innerHTML=`<div class="inventory-sheet service-sheet ${merchant?'merchant-grid-sheet':''}" data-trade-target="sell">${rivets}${this.header(title,merchant?'TRADER OF EMBERFALL':'BLACKSMITH OF EMBERFALL')}<div class="hud-toolbar">${toolbar}</div><div class="service-ledger">${tabs}${gallery}</div><p class="service-instruction">${merchant?'Hover to inspect · Right click to buy · Shift-click your items to sell.':'Select equipped or carried gear to temper, reforge or salvage.'}</p><footer id="hud-item-actions" class="hud-item-actions">${this.actionDock()}${merchant?button('restock',`New stock · ${restockCost(p)} gold`,p.gold<restockCost(p)):""}</footer></div><div class="inventory-sheet player-sheet">${rivets}<header class="hud-heading"><h2>Inventory</h2></header><div class="hud-toolbar">${button('sort','Arrange')}</div><div class="hud-content hud-inventory-content"><section class="hud-section hud-doll-section">${o.equipment()}</section><section class="hud-section hud-bag-section">${o.grid(p.inventory)}</section></div>${o.wallet()}<div class="inventory-trade-hint">${merchant?'Shift + click · Sell &nbsp; Drag to trader · Sell':'Right click · Equip / unequip'}<br><span>Hover · Inspect & compare &nbsp; Esc · Close both</span></div></div>`;
     for(const el of this.modal.querySelectorAll('[title]'))el.removeAttribute('title');
     this.modal.scrollTop=0;this.fitService();requestAnimationFrame(()=>this.hideTooltip());return true;
   }

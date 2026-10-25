@@ -5,7 +5,7 @@ export async function speak(page,id,service=null){
  let npc=await page.evaluate(id=>window.__reliquary.snapshot().npcs.find(n=>n.id===id),id);expect(npc,`NPC ${id} is present`).toBeTruthy();
  const viewport=page.viewportSize();if(npc.x<12||npc.x>viewport.width-12||npc.y-35<40||npc.y>viewport.height-130){const s=await page.evaluate(()=>window.__reliquary.snapshot());const {generateTown}=await import('../../src/settlement.js');const {generateWilderness}=await import('../../src/campaign.js');const d=s.campaign?generateWilderness(s.areaSeed,s.act,{quests:s.quests}):generateTown({quests:s.quests});const result=await followPath(page,d,{x:npc.worldX,y:npc.worldY});expect(result.i).toBe(result.length);await page.waitForTimeout(250);npc=await page.evaluate(id=>window.__reliquary.snapshot().npcs.find(n=>n.id===id),id);}
  await page.mouse.click(npc.x,npc.y-35);await expect.poll(()=>page.evaluate(()=>window.__reliquary.snapshot().dialogue),{timeout:12000}).toBe(id);
- if(service)await page.locator(`[data-talk="${service}"]`).click();
+ if(service){for(let i=0;i<8&&!await page.locator(`[data-talk="${service}"]`).isVisible();i++){if(await page.locator('.npc-reading-hint').isVisible()){await page.keyboard.press('Space');await page.keyboard.press('Space');}else await page.waitForTimeout(100);}await page.locator(`[data-talk="${service}"]`).click();}
 }
 export async function closeConversationOrPanel(page){if(await page.locator('#npc-dialogue').isVisible())await page.locator('[data-talk="leave"]').click();else await page.locator('[data-action="close"]').last().click();}
 export async function followPath(page,dungeon,target=dungeon.portal){

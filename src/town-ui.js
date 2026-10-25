@@ -1,3 +1,4 @@
+import {VENDOR_SUPPLIES} from './vendor-inventory.js';
 import {isChickenCrate} from './chicken-pets.js';
 import {requirementChecks,canUseGear} from './gear-requirements.js';
 import {guideStory} from './npc-dialogue.js';
@@ -44,7 +45,7 @@ export class TownUI {
   get stashItems(){if(this.game.onlineSession)return this.player.stash;const tab=this.game.panel==='stash'?Number(this.hud.storageTab?.split('-')[1]):0;return tab?this.game.characterSaves.sharedStashes[tab-1]:this.player.stash;}
   get isTown(){return this.game.zone==='town';}
   get selected(){
-    const p=this.player;if(this.source==='stock')return p.shopStock?.find(i=>i.id===this.selection);
+    const p=this.player;if(this.source==='supply')return VENDOR_SUPPLIES.find(i=>i.id===this.selection);if(this.source==='stock')return p.shopStock?.find(i=>i.id===this.selection);
     if(this.source==='buyback')return p.buyback.find(i=>i.id===this.selection);
     if(this.source==='equipped')return Object.values(p.equipment).find(i=>i?.id===this.selection);
     return (this.source==='stash'?this.stashItems:p.inventory).find(i=>i.id===this.selection);
@@ -146,7 +147,14 @@ export class TownUI {
     else if(action==='depart'){this.closePanel();this.enterDungeon();}
     return true;
   }
-  quickAction(element,event){const {item,source}=this.hud.resolve(element);if(!item)return false;this.selection=item.id;this.source=source;if(this.game.panel==='stash'&&(event.ctrlKey||event.shiftKey)&&['pack','stash'].includes(source)){this.apply(moveItem(this.player,item.id,source==='pack',this.stashItems));return true;}if(event.altKey&&source==='pack')this.apply(identifyItem(this.player,item.id));else if(event.shiftKey&&source==='pack'&&this.game.panel==='merchant')this.apply(sellItem(this.player,item.id));else if(event.shiftKey&&source==='pack')this.apply(equipItem(this.player,item.id));else if(event.shiftKey&&source==='equipped')this.apply(unequipItem(this.player,Object.keys(this.player.equipment).find(s=>this.player.equipment[s]?.id===item.id)));else if(event.ctrlKey&&source==='stock')this.apply(buyItem(this.player,this.player.shopStock.findIndex(i=>i.id===item.id)));else if(event.ctrlKey&&source==='buyback')this.apply(buyBack(this.player,this.player.buyback.findIndex(i=>i.id===item.id)));else if(event.ctrlKey&&source==='pack'&&this.game.panel==='merchant')this.apply(sellItem(this.player,item.id));else if(event.ctrlKey&&['pack','stash'].includes(source)&&this.isTown)this.apply(moveItem(this.player,item.id,source==='pack',this.stashItems));else return false;return true;}
+  quickAction(element,event){const {item,source}=this.hud.resolve(element);if(!item)return false;this.selection=item.id;this.source=source;if(source==='supply'&&(event.ctrlKey||event.shiftKey))return this.buyVendorSelection();if(this.game.panel==='stash'&&(event.ctrlKey||event.shiftKey)&&['pack','stash'].includes(source)){this.apply(moveItem(this.player,item.id,source==='pack',this.stashItems));return true;}if(event.altKey&&source==='pack')this.apply(identifyItem(this.player,item.id));else if(event.shiftKey&&source==='pack'&&this.game.panel==='merchant')this.apply(sellItem(this.player,item.id));else if(event.shiftKey&&source==='pack')this.apply(equipItem(this.player,item.id));else if(event.shiftKey&&source==='equipped')this.apply(unequipItem(this.player,Object.keys(this.player.equipment).find(s=>this.player.equipment[s]?.id===item.id)));else if(event.ctrlKey&&source==='stock')this.apply(buyItem(this.player,this.player.shopStock.findIndex(i=>i.id===item.id)));else if(event.ctrlKey&&source==='buyback')this.apply(buyBack(this.player,this.player.buyback.findIndex(i=>i.id===item.id)));else if(event.ctrlKey&&source==='pack'&&this.game.panel==='merchant')this.apply(sellItem(this.player,item.id));else if(event.ctrlKey&&['pack','stash'].includes(source)&&this.isTown)this.apply(moveItem(this.player,item.id,source==='pack',this.stashItems));else return false;return true;}
+  buyVendorSelection(){
+    if(this.game.lan?.trading||!this.isTown||this.game.panel!=='merchant')return false;
+    const item=this.selected;if(!item)return false;
+    if(this.source==='supply'){if(item.supply==='crate'){if(this.game.chickenUI.buyCrate()){this.refresh();return true;}return false;}return this.apply(buySupply(this.player,item.supply));}
+    if(this.source==='stock')return this.apply(buyItem(this.player,this.player.shopStock.findIndex(i=>i.id===item.id)));
+    if(this.source==='buyback')return this.apply(buyBack(this.player,this.player.buyback.findIndex(i=>i.id===item.id)));return false;
+  }
   handleChange(event){if(event.target.matches('[data-forge-affix]')){this.affix=event.target.value;return true;}return false;}
   drop(event){
     if(this.game.lan?.trading){this.toast('Finish the trade before moving items.');return;}

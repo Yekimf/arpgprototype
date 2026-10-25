@@ -10,6 +10,13 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.52.0 — Merchant inventory
+
+- Orrin displays equipment, insight scrolls, life-flask refills and wooden crates together in a gothic 10×10 inventory grid. Items occupy their actual inventory dimensions; larger stocks use pages without scrolling.
+- Hover for item details and prices. Right-click a vendor item to purchase it, or select it and use Buy. Supplies remain available for repeat purchases. A flask purchase still replenishes the existing flask immediately.
+- Your equipment and backpack remain beside the vendor. Shift-click or drag your belongings to sell; buyback uses the same vendor grid. Stock refresh stays a separate service control.
+- Checked purchasing, buyback, forge controls and both sheets at desktop sizes down to 1024×720.
+
 ## Version 0.51.1 — Rough stick crates
 
 - Capture crates now use square, roughly lashed stick-cage artwork with thin bars, both in your inventory and in the throwing/catching animation. The caught state uses matching grey wood.

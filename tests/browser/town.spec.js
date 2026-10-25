@@ -33,7 +33,7 @@ test('town guide, identification scroll, merchant, buyback, repairs, and reforgi
   expect((await snapshot(page)).gold).toBeGreaterThan(afterBuy);
   await page.locator('[data-town-action="shop-buyback"]').click();await page.locator(`[data-stock-id="${stock.id}"]`).click();await page.locator('[data-town-action="buyback"]').click();
   expect((await snapshot(page)).gold).toBe(afterBuy);
-  await page.locator('[data-town-action="buy-scroll"]').click();await close(page);
+  await page.locator('[data-town-action="shop-stock"]').click();await page.locator('[data-stock-id=supply-scroll]').click({button:'right'});await close(page);
   await talk(page,'smith','Garran’s forge');
   await page.locator('[data-smith-equipped="charm"]').click();
   await expect(page.locator('[data-forge-affix]')).toHaveValue('life');
