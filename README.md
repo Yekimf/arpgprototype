@@ -10,6 +10,14 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.53.0 — Treasure classes and Magic Find
+
+- Regular solo monsters first roll a 62.5% chance to drop nothing. Living players in the same area reduce this chance, with nearby party members counting more. Gold is part of the drop roll instead of guaranteed on every kill.
+- Monster level determines eligible base items and standard / exceptional / elite tiers. Magic Find never unlocks higher treasure classes or changes which base drops.
+- Magic Find affixes now appear on gear and in the character ledger. They improve Magic, Rare, Set and Legendary quality, with diminishing returns on the higher qualities. Early equipment remains mostly common; jewellery stays scarce.
+- Solo and both multiplayer hosts use the same rules. Multiplayer retains private loot; each recipient uses their own equipped Magic Find.
+- See [drop rules and probabilities](docs/treasure-classes.md) for the exact tables and boss exceptions.
+
 ## Version 0.52.0 — Merchant inventory
 
 - Orrin displays equipment, insight scrolls, life-flask refills and wooden crates together in a gothic 10×10 inventory grid. Items occupy their actual inventory dimensions; larger stocks use pages without scrolling.

@@ -1,10 +1,9 @@
-import {createPlayer,playerStats,distance,isWalkable,moveEntity,findPath,generateItem,random,makeEnemy} from '../game.js';
+import {rollMonsterLoot,nearbyLootPopulation,baseTreasureLevel} from '../treasure.js';
+import {createPlayer,playerStats,distance,isWalkable,moveEntity,findPath,random,makeEnemy} from '../game.js';
 import {createCampaign,generateWilderness,generateStronghold,inSanctuary} from '../campaign.js';
 import {migratePlayer,addToContainer,arrange,BAG} from '../settlement.js';
 import {dungeonSeed} from '../combat-rules.js';
 import {actOneLootLevel} from '../act-one-balance.js';
-import {goldReward} from '../economy.js';
-import {rollSetItem} from '../set-items.js';
 import {bossRelic} from '../boss-relics.js';
 import {enemyCombatStats,rollWeaponHit,weaponAttack} from '../defense.js';
 import {bossPlan,bossSweepHits,bossWaveHits} from '../boss-abilities.js';
@@ -120,8 +119,8 @@ export class LanWorld{
   if(weaponAttack(a.element,a.skill,a.direct!==false)&&!rollWeaponHit(stats,enemyCombatStats(e,w.d.areaLevel))){this.send(s,{type:'miss',enemyId:e.id});return;}
   const dealt=Math.min(e.hp,Math.max(1,Math.round(damage)));e.hp-=dealt;e.aggro=true;e.hit=.16;if(a.element==='cold'||a.skill==='quake')e.slow=2.5;if(a.element==='lightning'&&a.direct!==false){e.shock=3;e.shockPower=Math.min(.4,.1+(stats.shockEffect||0)/100);}if(a.direct!==false){e.dots??=[];if(a.element==='fire'&&a.skill==='bolt')e.dots=[...e.dots.filter(v=>v.kind!=='fire'),{kind:'fire',owner:s.id,power:dealt*.12,remaining:3,tick:.7}];if(a.element==='physical'&&(stats.bleed>0||a.skill==='rend'))e.dots=[...e.dots.filter(v=>v.kind!=='physical'),{kind:'physical',owner:s.id,power:dealt*((stats.bleed||0)/100+(a.skill==='rend'?.2:0))/3,remaining:3,tick:.5}];}
   const died=e.hp<=0;if(died){e.dead=true;e.hp=0;if(e.type==='warden')w.d.bossDead=true;}
-  const eligible=died?[...s.room.players.values()].filter(p=>p.area===s.area&&distance(p.pos,e)<30&&(p===s||s.party&&p.party===s.party)).map(p=>p.id):[];
-  if(died)for(const id of eligible){const p=s.room.players.get(id),boss=e.type==='warden',rng=random(Math.floor(Math.random()*1e9)),level=actOneLootLevel(w.d.areaLevel||1);this.drop(p,{x:e.x+.2,y:e.y,gold:goldReward(w.d.areaLevel,{boss,elite:e.elite})});if(boss||e.elite||rng()<.3)this.drop(p,{x:e.x-.3,y:e.y+.3,item:rollSetItem(rng,level,{boss,elite:e.elite})||generateItem(rng,level,boss)});if(boss)this.drop(p,{x:e.x+.5,y:e.y+.4,item:bossRelic(e,level),manual:true});}
+  const eligible=died?[...s.room.players.values()].filter(p=>p.player.hp>0&&p.area===s.area&&distance(p.pos,e)<30&&(p===s||s.party&&p.party===s.party)).map(p=>p.id):[];
+  if(died)for(const id of eligible){const p=s.room.players.get(id),rng=random(Math.floor(Math.random()*1e9)),population=nearbyLootPopulation(s.room.players.values(),p,e);for(const loot of rollMonsterLoot(rng,e,{...population,magicFind:playerStats(p.player).magicFind}))this.drop(p,loot);if(e.type==='warden'){const trophy=bossRelic(e,actOneLootLevel(e.level||1));if(baseTreasureLevel(trophy.base)<=e.level)this.drop(p,{x:e.x+.5,y:e.y+.4,item:trophy,manual:true});}}
   const event={type:'hit',area:s.area,enemy:copy(e),damage:dealt,element:a.element,crit:!!a.crit,attacker:s.id,eligible,dead:died,skill:a.skill,direct:a.direct!==false};if(died)for(const id of eligible){const peer=s.room.players.get(id),key=s.area+':'+e.id;(peer.killQueue??={})[key]={...event,key};}this.broadcast(s.room,event,s.area);
  }
  tick(dt=.05){for(const s of [...this.sessions.values()])if(this.now()-s.seen>25000){this.send(s,{type:'session-ended',reason:'The connection expired. Press P to save and rejoin.'});this.leave(s);}for(const [id,r]of this.rooms){if(!r.players.size&&this.now()-r.emptyAt>300000){this.rooms.delete(id);continue;}r.invites=r.invites.filter(i=>this.now()-i.at<60000&&r.players.has(i.from));for(const w of r.worlds.values())this.tickArea(r,w,dt);for(const s of r.players.values())this.send(s,this.snapshot(s));}}

@@ -1,3 +1,4 @@
+import {rollMonsterLoot,baseTreasureLevel} from './treasure.js';
 import {ChickenUI} from './chicken-ui.js';
 import {CHICKEN_TREASURES_ART,CHICKEN_BREEDS_ART} from './assets.js';
 import './chicken-pets.css';
@@ -27,7 +28,6 @@ import './stash-pages.css';
 import {CharacterSaves} from './character-saves.js';
 import {recordActOneKill,actOneObjective,ensureQuestFlow,currentActOneQuest,questGiver,questGiverCue} from './act-one.js';
 import {assignSkill,boundSkill,primaryRange} from './skill-bindings.js';
-import {rollSetItem} from './set-items.js';
 import {checkAchievements,recordFeat,meetChicken,selectHonorific} from './achievements.js';
 import {renderChronicle,announceAchievements} from './chronicle-ui.js';
 import {seedChickens,updateChickens,nearChicken,chickenDamage,chickenRegen} from './chickens.js';
@@ -55,7 +55,7 @@ import {planWalk} from './navigation.js';
 import {bossPlan,bossSweepHits,bossWaveHits} from './boss-abilities.js';
 import {CHAPTERS,chapterFor,lastChapter} from './campaign-content.js';
 import {DEFAULTS,loadSettings,saveSettings,sanitizeSettings,optionsMarkup} from './settings.js';
-import {collectGold,goldReward} from './economy.js';
+import {collectGold} from './economy.js';
 import {itemArt} from './item-art.js';
 import {skillIcon} from './skill-icons.js';
 import {ensureManaFlask,refillManaFlask,drinkManaFlask,tickManaFlask,ensureFlask,refillFlask,drinkFlask,tickFlask,combatFlaskCharges,FLASK} from './flasks.js';
@@ -89,7 +89,7 @@ import {FrontEnd} from './front-end.js';
 import {actOneLevel,encounterXP,actOneLootLevel} from './act-one-balance.js';
 import {ACTS,actFor,createCampaign,ensureCampaign,discoverLocation,attuneWaypoint,canTravel,locationId,defeatCampaignBoss,chapterOf,captainId,fieldKey,completeField,nextChapter,campaignObjective,generateWilderness,generateStronghold,inSanctuary} from './campaign.js';
 import {renderCampaignPanel} from './campaign-ui.js';
-import {generateDungeon,makeEnemy,grantExperience,spendAttribute,skillLevel,ORIGINS,random,distance,moveEntity,isWalkable,findPath,createPlayer,playerStats,mitigateDamage,MASTERIES,ALL_SKILLS,getSkill,rankOf,masteryPoints,learnSkill,canLearn,clamp,xpNeeded,generateItem} from './game.js';
+import {generateDungeon,makeEnemy,grantExperience,spendAttribute,skillLevel,ORIGINS,random,distance,moveEntity,isWalkable,findPath,createPlayer,playerStats,mitigateDamage,MASTERIES,ALL_SKILLS,getSkill,rankOf,masteryPoints,learnSkill,canLearn,clamp,xpNeeded} from './game.js';
 import {Renderer} from './renderer.js';
 import {migratePlayer,generateTown,generateStock,addToContainer,itemName} from './settlement.js';
 import {TownUI,HUD_PANELS} from './town-ui.js';
@@ -254,9 +254,7 @@ function kill(e,credit=true){
   e.dead=true;e.hp=0;storyteller?.bossDeath(e);if(!credit)return;combatFlaskCharges(player,game.stats,{elite:e.elite,boss:e.type==='warden'});if(lan?.active)e.lanRewarded=true;player.kills++;const questReward=recordActOneKill(player,e);if(questReward){toast(questReward.message,3500);setZoneUI();save();}if(game.act!==1&&recordHerdKill(player,e)){toast(openingObjective(player)||'The herd is safe · return to Maelin');save();setZoneUI();}const boss=e.type==='warden';if(boss)recordFeat(player,'bossKills');if(!game.stats.weapon)recordFeat(player,'unarmedKills');
   const xp=encounterXP(e,player.level)+(questReward?.xp||0);const levels=grantExperience(player,xp);
   if(boss)effect('impact',e.x,e.y,.5,{color:'#d1b971'});
-  if(!lan?.active)game.loot.push({x:e.x+.2,y:e.y,gold:goldReward(game.depth,{boss,elite:e.elite})});
-  const rng=random(Math.floor(Math.random()*1e9));
-  if(!lan?.active&&(boss||e.elite||rng()<.3))game.loot.push({x:e.x-.3,y:e.y+.3,item:rollSetItem(rng,actOneLootLevel(game.depth),{boss,elite:e.elite})||generateItem(rng,actOneLootLevel(game.depth),boss)});
+  if(!lan?.active)game.loot.push(...rollMonsterLoot(random(Math.floor(Math.random()*1e9)),e,{magicFind:game.stats.magicFind}));
   if(boss&&player.campaign){campaignBossKilled(e);}else if(boss){game.dungeon.bossDead=true;player.quests.wardenDefeated=true;player.quests.scholarRescued=true;player.points+=2;refillFlask(player,40);$('objective').textContent='Return to Maelin · or descend deeper';$('quest-progress').textContent='Archivist rescued · +2 mastery points';toast('EDRIN IS FREE · The archivist awaits you in Emberfall. Press T.',5500);sound(560,.7,'sine');}
   player.hp=Math.min(game.stats.maxHp,player.hp+rankOf(player,'phoenix')*6+game.stats.lifeOnKill);player.mana=Math.min(manaCapacity(game.stats,game.auras),player.mana+rankOf(player,'phoenix')*3+game.stats.manaOnKill);
   if(levels){game.stats=playerStats(player);effect('ring',player.x,player.y,1.2,{radius:3,color:'#cbd69c'});toast(`LEVEL ${player.level} · +${levels} mastery · +${levels} passive · +${levels*5} attributes · K / C`,4500);sound(680,.45,'sine');document.querySelectorAll('.level-up-notice').forEach(n=>n.remove());const notice=document.createElement('div');notice.className='level-up-notice';notice.innerHTML=`<strong>LEVEL ${player.level}</strong><span>+${levels} MASTERY · +${levels} PASSIVE · +${levels*5} ATTRIBUTES</span>`;document.getElementById('app').append(notice);setTimeout(()=>notice.remove(),4100);}
@@ -917,7 +915,7 @@ function handleCampaignClick(event){
 function campaignBossKilled(e){
  player.inventory=player.inventory.filter(i=>i.id!==questRelic(game.act,game.chapter).id);
  if(!defeatCampaignBoss(player,e.bossId))return;
- if(!lan?.active)game.loot.push({x:e.x+.5,y:e.y+.4,item:bossRelic(e,actOneLootLevel(game.depth)),manual:true});
+ if(!lan?.active){const trophy=bossRelic(e,actOneLootLevel(e.level||game.depth));if(baseTreasureLevel(trophy.base)<=e.level)game.loot.push({x:e.x+.5,y:e.y+.4,item:trophy,manual:true});}
  player.shards+=2;refillFlask(player,40);
  if(game.act===1&&e.bossId==='knight-1'){player.quests.scholarRescued=true;player.quests.wardenDefeated=true;}
  game.dungeon.bossDead=true;toast(e.bossId==='knight-1'?'ACT I COMPLETE · Edrin is free. Return to Emberfall or finish the remaining warbands.':`${e.name} has fallen. Continue at the stronghold exit.`,5000);

@@ -14,7 +14,7 @@ async function readyTrade({w,a,b}){await w.action(a.token,{type:'trade-request',
 
 test('LAN parties share nearby kill credit and receive private, independently claimable loot',async()=>{
  const c=await company(),{w,a,b,sa,sb}=c;await w.action(a.token,{type:'party-invite',to:b.id});const invite=w.snapshot(sb).invites[0];await w.action(b.token,{type:'party-accept',id:invite.id});assert.equal(sa.party,sb.party);
- const area=w.area(sa.room),enemy=area.d.enemies.find(e=>e.herdId);for(const s of [sa,sb])await w.action(s.token,{type:'enter',area:'wilderness:0',x:enemy.x,y:enemy.y+1});
+ const area=w.area(sa.room),enemy=area.d.enemies.find(e=>e.herdId);enemy.type='warden';enemy.hp=1;for(const s of [sa,sb])await w.action(s.token,{type:'enter',area:'wilderness:0',x:enemy.x,y:enemy.y+1});
  await w.action(a.token,{type:'hit',enemyId:enemy.id,damage:100,element:'fire',skill:'test',direct:false});assert.equal(enemy.dead,true);const left=w.snapshot(sa),right=w.snapshot(sb);assert.equal(left.kills.length,1);assert.equal(right.kills.length,1);assert.ok(left.loot.length);assert.ok(right.loot.length);assert.notEqual(left.loot[0].id,right.loot[0].id);
  const gold=sb.player.gold;await w.action(b.token,{type:'pickup',id:left.loot[0].id});assert.equal(sb.player.gold,gold);await w.action(a.token,{type:'pickup',id:left.loot[0].id});assert.ok(sa.player.gold>500);assert.equal(w.snapshot(sb).loot.length,right.loot.length);
  await w.action(a.token,{type:'kill-ack',key:left.kills[0].key});assert.equal(w.snapshot(sa).kills.length,0);assert.equal(w.snapshot(sb).kills.length,1);
