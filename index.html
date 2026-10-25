@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-boot="loading">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -7,9 +7,39 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="description" content="A desktop isometric action RPG. Follow the Kingsroad, build your equipment and skills, and confront the usurper." />
     <title>The Forgotten Kingdom — The Broken Oath</title>
+
+    <!-- Critical first-paint screen: deliberately independent of the game bundle. -->
+    <style id="boot-style">
+      html,body{margin:0;background:#080706}html[data-boot] #app{visibility:hidden}
+      #boot-screen{position:fixed;inset:0;z-index:2147483646;display:grid;place-items:center;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#30251b66,transparent 53%),repeating-linear-gradient(93deg,#b39b6a03 0 1px,transparent 1px 4px),#080706;color:#b6a17b;font-family:Georgia,'Times New Roman',serif;text-align:center}
+      #boot-screen[hidden]{display:none}#boot-screen:before{content:'';position:absolute;inset:22px;border:1px solid #74604466;outline:1px solid #292218;outline-offset:5px;pointer-events:none}#boot-screen:after{content:'';position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 130px 40px #000}
+      .boot-arch{position:absolute;height:min(96vh,960px);width:min(94vw,950px);opacity:.45;color:#695741}.boot-copy{position:relative;z-index:1;padding:30px 25px;max-width:90vw}.boot-oath{font-size:10px;letter-spacing:.33em;color:#968568;margin:0 0 38px}.boot-title{font-weight:normal;line-height:1.02;margin:0;text-shadow:0 2px 0 #120e09,0 -1px #bfb39c55,0 7px 22px #000;letter-spacing:.07em}.boot-title small{display:block;font-size:15px;letter-spacing:.55em;margin:0 0 14px}.boot-title span{display:block;font-size:clamp(29px,5.5vw,76px);color:#ab9670}.boot-title strong{display:block;font-weight:normal;font-size:clamp(42px,7vw,96px);color:#c6b28a;letter-spacing:.1em}.boot-divider{display:flex;gap:18px;align-items:center;justify-content:center;margin:28px auto;color:#8b7351;font-size:14px}.boot-divider:before,.boot-divider:after{content:'';width:100px;height:1px;background:linear-gradient(90deg,transparent,#8b735177)}.boot-divider:after{transform:scaleX(-1)}
+      #boot-status{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#b3a284;margin:32px 0 16px}.boot-track{width:190px;height:3px;margin:auto;border:1px solid #534530;padding:3px;background:#050504}.boot-track i{display:block;height:3px;width:40%;background:linear-gradient(90deg,transparent,#a4844c,transparent);animation:boot-glow 2.4s ease-in-out infinite alternate}.boot-note{font-size:11px;color:#756a56;margin:20px 0 0;line-height:1.6}.boot-retry{margin:18px auto 0;padding:10px 28px;border:3px ridge #756146;background:#201a13;color:#c5b18a;font:14px Georgia;cursor:pointer}.boot-retry[hidden]{display:none}#boot-screen[data-failed] .boot-track{display:none}.boot-footer{position:absolute;bottom:45px;font-size:9px;letter-spacing:.25em;color:#736448;z-index:1}
+      @keyframes boot-glow{to{transform:translateX(150%)}}@media(prefers-reduced-motion:reduce){.boot-track i{animation:none;width:100%;background:#8a7046}}@media(max-height:600px){.boot-oath{margin-bottom:16px}.boot-title span{font-size:36px}.boot-title strong{font-size:48px}.boot-divider{margin:15px auto}.boot-footer{bottom:30px}}
+    </style>
   </head>
   <body>
-    <div id="app">
+
+    <section id="boot-screen" aria-label="Loading The Forgotten Kingdom" aria-busy="true">
+      <svg class="boot-arch" viewBox="0 0 600 760" fill="none" aria-hidden="true">
+        <defs><linearGradient id="boot-iron" x2="0" y2="1"><stop stop-color="#a58b60"/><stop offset="1" stop-color="#30281d"/></linearGradient></defs>
+        <path d="M70 735V310Q70 150 300 22Q530 150 530 310V735M86 735V312Q86 161 300 42Q514 161 514 312V735M105 735V320Q105 180 300 66Q495 180 495 320V735" stroke="url(#boot-iron)" stroke-width="3"/>
+        <path d="M49 735V310H105M495 310H551V735M56 332H100M500 332H544M56 697H100M500 697H544M300 67V132M268 102L300 132L332 102M300 132L275 159L300 190L325 159Z" stroke="currentColor" stroke-width="2"/>
+        <path transform="translate(0 -55)" d="M220 237L208 177L251 204L269 164L300 207L334 164L349 204L392 177L379 237ZM223 249H378M248 263H352" stroke="#8b7452" stroke-width="3"/>
+        <path d="M75 367L60 386L75 407L91 386ZM524 367L509 386L524 407L540 386ZM75 620L60 639L75 660L91 639ZM524 620L509 639L524 660L540 639Z" stroke="currentColor"/>
+      </svg>
+      <div class="boot-copy"><p class="boot-oath">THE KING IS DEAD. THE OATH REMAINS.</p><h1 class="boot-title"><small>THE</small><span>FORGOTTEN</span><strong>KINGDOM</strong></h1><div class="boot-divider" aria-hidden="true">◆</div><p id="boot-status" role="status">Opening the kingdom</p><div class="boot-track" aria-hidden="true"><i></i></div><p class="boot-note">The road to Emberfall awaits.</p><button type="button" class="boot-retry" hidden>Try again</button><noscript><p>Enable JavaScript to enter the kingdom.</p></noscript></div>
+      <div class="boot-footer">ACT I · THE BROKEN OATH</div>
+    </section>
+    <script>
+      (()=>{const root=document.getElementById('boot-screen');
+        const fail=()=>{if(!document.documentElement.hasAttribute('data-boot'))return;root.dataset.failed='true';root.setAttribute('aria-busy','false');document.getElementById('boot-status').textContent='The kingdom could not be opened';root.querySelector('.boot-note').textContent='Check your connection, then try again. Your saved characters are kept.';root.querySelector('button').hidden=false;};
+        root.querySelector('button').addEventListener('click',()=>location.reload());
+        window.addEventListener('error',event=>{if(event.target instanceof HTMLScriptElement||event.target instanceof HTMLLinkElement&&event.target.rel==='stylesheet'||event.target===window)fail();},true);
+        window.addEventListener('unhandledrejection',fail);
+      })();
+    </script>
+    <div id="app" inert>
       <canvas id="world" aria-label="Isometric game. Click ground to move, click enemies to attack, right click to cast, QWER skills, Space evade, click characters and objects to interact, I inventory." tabindex="0"></canvas>
       <div class="vignette"></div>
       <header class="topbar">

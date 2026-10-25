@@ -1,3 +1,4 @@
+import {finishBoot} from './boot-screen.js';
 import {Storyteller} from './story-ui.js';
 import {ensureStory,readStoryRecord} from './story-state.js';
 import {dressStoryArea,storyRecordById} from './story-world.js';
@@ -820,6 +821,7 @@ const friends=new Friends({lan,characterSaves,toast,frontEnd});
 offlineSupport=new OfflineSupport();
 const localSaves=new LocalSavesMenu({characters:characterSaves,offline:offlineSupport,frontEnd,toast,canOpen:()=>!lan.active&&!friends.joining,onImport:()=>{if(characterSaves.active)loadCharacter(characterSaves.active);frontEnd.showTitle();}});
 game.lan=lan;game.onLanDrop=item=>lan.drop(item).catch(e=>lan.error(e));
+finishBoot();
 
 function attributePanel(){
  const descriptions={might:'+0.4 weapon damage',vitality:'+6 life, +0.25 defense',will:'+4 spirit, +regeneration',dexterity:'+5 attack rating, +0.4% critical chance'};

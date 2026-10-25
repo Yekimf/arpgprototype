@@ -10,6 +10,10 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.47.1 — Gothic startup screen
+
+The website and offline game now show an immediate dark archway and title while loading. The unfinished game HUD stays hidden until the main menu and its painted artwork are ready. Failed downloads show a retry button while preserving character saves.
+
 ## Version 0.47.0 — Voices of the broken oath
 
 - The six Act I quests now connect the sheep raids, hunger levies and corrupted garrison to the people of Emberfall. Maelin, Orrin, Garran and Edrin have progress-sensitive greetings and optional conversation topics.
