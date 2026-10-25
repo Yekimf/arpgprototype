@@ -10,6 +10,11 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.51.1 — Rough stick crates
+
+- Capture crates now use square, roughly lashed stick-cage artwork with thin bars, both in your inventory and in the throwing/catching animation. The caught state uses matching grey wood.
+- The first chicken remains a guaranteed catch; no failure roll is applied. Existing capture odds are unchanged.
+
 ## Version 0.51.0 — Feathered companions and selling trips
 
 - The selected chicken follows your character through outdoor areas and dungeons, navigates walkable paths and displays its hat. Choose a companion or send it back to the coop from the Pets tab.
