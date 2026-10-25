@@ -10,6 +10,13 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.49.0 — Painted combat animations
+
+- Replaced the primary skill shapes with 108 original painted poses across 18 animation styles: molten firebolts, fire eruptions, ice lances and nova, rock ruptures, lightning arcs and strikes, steel cuts, blood rending, spectral blades, defensive shields and ember auras.
+- The 18 active skills use these animated paintings with frame interpolation, aligned ground contacts and projectile tips. Spear and dagger attacks retain thrust impacts. Frost, earth and persistent ground effects render beneath characters and walls; warnings retain their explicit targeting outlines.
+- Damage, mana, contact timing, projectile collision and skill areas are unchanged. Both flask recovery effects and bow shots also use painted sprites.
+- Performance quality limits painted draw calls and fire clusters; reduced motion uses a steady readable pose. All animation sheets are embedded in the offline HTML, adding about 1.4 MiB of compressed artwork with no extra network requests during combat.
+
 ## Version 0.48.0 — Quests, conversations and return portals
 
 - Quests are assigned one at a time. Finish the objectives, then return to the giver to receive gold and experience and unlock the next assignment. Maelin gives the first two quests, Orrin the next two, and Garran the final two. Previously paid quests remain paid on older saves.

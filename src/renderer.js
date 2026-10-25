@@ -1,3 +1,5 @@
+import {PaintedSkills} from './skill-sprites.js';
+import {paintedFireField} from './painted-skills.js';
 import {visibleTownPortals,drawTownPortal} from './town-portals.js';
 import {DeathSprites} from './death-sprites.js';
 import {advanceRemains,paintStain,drawRemainsParticles} from './death-remains.js';
@@ -20,16 +22,17 @@ import {pyreStats} from './devotion.js';
 import {clamp, distance} from './game.js';
 import {STONE_COLUMN_ART,CHICKEN_ART,STASH_CHEST_ART,WAYPOINT_FOUNTAIN_ART,WORLD_ART,ITEM_ART,CAMPAIGN_ART,MARCHGATE_ART,MARCHGATE_INNER_ART,FARM_ART,FOREST_LIFE_ART,FOREST_GROUND_ART} from './assets.js';
 import {itemName} from './settlement.js';
+const PAINTED_GROUND_EFFECTS=new Set(['nova','quake','vortex','ground-fire']);
 const COMBAT_TRANSIENTS=new Set(['melee-trail','hit-impact','weapon-hit','evade-dust']);
 
 export class Renderer {
   constructor(canvas, minimap) {
     this.canvas=canvas; this.ctx=canvas.getContext('2d'); this.map=minimap; this.mc=minimap.getContext('2d');
     this.w=0;this.h=0;this.camera={x:0,y:0};this.time=0;this.zoom=1;
-    this.deaths=new DeathSprites();this.enemySprites=new EnemySprites();this.columnArt=new Image();this.columnArt.src=STONE_COLUMN_ART;this.chickenArt=new Image();this.chickenArt.src=CHICKEN_ART;this.stashArt=new Image();this.stashArt.src=STASH_CHEST_ART;this.fountainArt=new Image();this.fountainArt.src=WAYPOINT_FOUNTAIN_ART;this.forestGroundArt=new Image();this.forestGroundArt.src=FOREST_GROUND_ART;this.forestArt=new Image();this.forestArt.src=FOREST_LIFE_ART;this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;this.farmArt=new Image();this.farmArt.src=FARM_ART;
+    this.skillArt=new PaintedSkills();this.deaths=new DeathSprites();this.enemySprites=new EnemySprites();this.columnArt=new Image();this.columnArt.src=STONE_COLUMN_ART;this.chickenArt=new Image();this.chickenArt.src=CHICKEN_ART;this.stashArt=new Image();this.stashArt.src=STASH_CHEST_ART;this.fountainArt=new Image();this.fountainArt.src=WAYPOINT_FOUNTAIN_ART;this.forestGroundArt=new Image();this.forestGroundArt.src=FOREST_GROUND_ART;this.forestArt=new Image();this.forestArt.src=FOREST_LIFE_ART;this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;this.farmArt=new Image();this.farmArt.src=FARM_ART;
     this.innerGateArt=new Image();this.innerGateArt.src=MARCHGATE_INNER_ART;this.gateArt=new Image();this.gateArt.src=MARCHGATE_ART;this.campaignArt=new Image();this.campaignArt.src=CAMPAIGN_ART;this.heroFrame={row:0,column:0,action:'idle'};
     this.remainsArt=new WeakMap();this.corpseArt=new Map();this.stainArt=new Map();this.contactShadows=new Map();this.artKeys=new WeakMap();this.artSerial=0;this.guard=new GuardSprites();this.groundCache=new Map();this.glowCache=new Map();this.wallCache=new Map();this.spriteCache=new Map();this.tileCache=new Map();this.artLoaded=false;
-    for(const art of [...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons])art.addEventListener('load',()=>{this.artLoaded=[...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
+    for(const art of [...this.skillArt.images,...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons])art.addEventListener('load',()=>{this.artLoaded=[...this.skillArt.images,...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
     this.resize();window.addEventListener('resize',()=>this.resize());
   }
   configure(settings){this.settings=settings;this.adaptiveScale=1;this.frameSample=null;this.canvas.style.filter=settings.brightness===100?'none':`brightness(${settings.brightness/100})`;this.resize();}
@@ -142,7 +145,7 @@ export class Renderer {
   }
   async prepareDungeon(d,progress){
     const token={};this.prepareToken=token;
-    await Promise.all([...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].map(art=>art.decode()));
+    await Promise.all([...this.skillArt.images,...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].map(art=>art.decode()));
     if(this.prepareToken!==token)return;
     // Prepare every terrain chunk, indoors and outdoors, at half resolution.
     // A new region is never revealed or generated by player movement.
@@ -172,6 +175,7 @@ export class Renderer {
   }
 
   draw(game,dt){
+    this.skillArt.beginFrame(game.settings);
     const c=this.ctx,{dungeon:d,player:p}=game;this.time+=dt;
     this.artLoaded=this.guard.ready&&this.worldArt.complete&&this.worldArt.naturalWidth>0&&this.itemArt.complete&&this.itemArt.naturalWidth>0&&this.campaignArt.complete&&this.campaignArt.naturalWidth>0;
     this.originX??=this.w/2;this.originX+=((this.w-(game.hudWidth||0))/2-this.originX)*Math.min(1,dt*12);
@@ -182,9 +186,9 @@ export class Renderer {
     this.drawGround(d,viewW,viewH);
     if(!game.loading&&(!game.paused||game.panel==='death'||game.lanActive))advanceRemains(d,dt);
     this.drawRemainsGround(game,viewW,viewH);
-    for(const [id,on]of Object.entries(game.auras||{}))if(on){const v=this.iso(p.x,p.y);c.save();c.translate(v.x,v.y);combatEffect(this,{type:'sigil',radius:id==='focus'?1.6:1.2,element:id==='focus'?'fire':'aether'},.2,game);c.restore();}
+    for(const [id,on]of Object.entries(game.auras||{}))if(on){const v=this.iso(p.x,p.y);c.save();c.translate(v.x,v.y);combatEffect(this,{type:'sigil',skill:id,radius:id==='focus'?1.6:1.2,element:id==='focus'?'fire':'aether'},.2,game);c.restore();}
     if(game.pyre){const v=this.iso(p.x,p.y);this.fireField(v.x,v.y,pyreStats(p,game.stats).radius,11);}
-    c.globalAlpha=1;
+    c.globalAlpha=1;this.effects(game,true);
     // Back walls, crenellated masonry, and scattered objects share painter ordering.
     const visible=o=>{const v=this.iso(o.x,o.y);if(o.type.startsWith('kingdom-gate'))return Math.abs(v.x-this.camera.x)<viewW+o.width/2&&v.y-this.camera.y<viewH+o.height&&v.y-this.camera.y>-viewH;return Math.abs(v.x-this.camera.x)<viewW&&Math.abs(v.y-this.camera.y)<viewH;};
     if(this.indexedObjects!==this.staticObjects){this.indexedObjects=this.staticObjects;this.staticBins=new Map();this.largeObjects=[];for(const o of this.staticObjects){if(o.type.startsWith('kingdom-gate')){this.largeObjects.push(o);continue;}const key=Math.floor(o.x/8)+','+Math.floor(o.y/8);if(!this.staticBins.has(key))this.staticBins.set(key,[]);this.staticBins.get(key).push(o);}}
@@ -552,15 +556,16 @@ export class Renderer {
     this.ellipse(0,-30,18,31,'#80c0aa1a');c.font='9px Inter';c.fillStyle='#d3d4ac';c.textAlign='center';c.fillText(game.player.campaign?'CONTINUE THE ROAD · CLICK':'DESCEND · CLICK',0,-81);
   }
   fireField(x,y,radius,seed=0){
+    if(paintedFireField(this,x,y,radius,seed))return;
     if(!this.flameFrames){this.flameFrames=[];for(let frame=0;frame<6;frame++){const image=document.createElement('canvas');image.width=32;image.height=48;const f=image.getContext('2d'),g=f.createLinearGradient(0,4,0,46);g.addColorStop(0,'#ceb68c00');g.addColorStop(.35,'#e1ad63b0');g.addColorStop(.8,'#b56530cc');g.addColorStop(1,'#52251a44');f.fillStyle=g;f.beginPath();f.moveTo(8,45);f.bezierCurveTo(3,29,18,24,12+frame%3*2,3+frame*2);f.bezierCurveTo(27,24,18,25,25,34);f.bezierCurveTo(31,43,19,48,8,45);f.fill();f.fillStyle='#edcc8dcc';f.beginPath();f.moveTo(12,45);f.quadraticCurveTo(20,31,17,25);f.quadraticCurveTo(26,40,21,45);f.fill();this.flameFrames.push(image);}}
     const c=this.ctx;c.save();c.translate(x,y);this.light(0,-2,radius*38,'#ba6e2428');
     c.fillStyle='#140c0922';c.beginPath();for(let i=0;i<18;i++){const a=i*Math.PI/9,r=radius*30*(.82+Math.sin(i*4.7+seed)*.13),px=Math.cos(a)*r,py=Math.sin(a)*r*.5;i?c.lineTo(px,py):c.moveTo(px,py);}c.closePath();c.fill();
     for(let i=0;i<24;i++){const a=i*2.399+seed,ring=.25+(i%7)/8,px=Math.cos(a)*radius*31*ring,py=Math.sin(a)*radius*15*ring,h=16+(i*7%17),frame=(Math.floor(this.time*11)+i)%6;c.globalAlpha=.4+(Math.sin(this.time*7+i)+1)*.18;c.drawImage(this.flameFrames[frame],px-8,py-h,16,h);if(i%3===0){c.fillStyle='#c3955c88';c.fillRect(px+Math.sin(this.time*2+i)*4,py-(this.time*14+i*3)%34,1,1);}}
     c.restore();
   }
-  effects(game){
+  effects(game,ground=false){
     const c=this.ctx;
-    for(const e of game.effects){const p=this.iso(e.x,e.y),progress=1-e.life/e.maxLife;c.save();c.translate(p.x,p.y);c.globalAlpha=e.type.endsWith('-warning')?1:COMBAT_TRANSIENTS.has(e.type)?Math.min(1,(1-progress)*2.5):Math.min(1,e.life*3);
+    for(const e of game.effects){if(PAINTED_GROUND_EFFECTS.has(e.type)!==ground)continue;const p=this.iso(e.x,e.y),progress=1-e.life/e.maxLife;c.save();c.translate(p.x,p.y);c.globalAlpha=e.type.endsWith('-warning')?1:COMBAT_TRANSIENTS.has(e.type)?Math.min(1,(1-progress)*2.5):Math.min(1,e.life*3);
       if(combatEffect(this,e,progress,game)){}
       else if(e.type==='ground-fire'){this.fireField(0,0,e.radius,Math.floor(e.x));
       }else if(e.type==='whirl'){const a=this.time*18;for(let i=0;i<3;i++){c.strokeStyle=i?'#c7c2a655':'#d6d0b088';c.lineWidth=1.2;c.beginPath();c.ellipse(0,-19,45+i*5,22+i*2,a+i*.2,0,Math.PI*.9);c.stroke();}
@@ -591,6 +596,7 @@ export class Renderer {
       }else if(e.type==='heal'){this.light(0,-20,55,'#bfe5a433');for(let i=0;i<5;i++)this.ellipse(Math.cos(i*2.2)*15,-progress*60+i*4,2,2,'#bdd89c');}
       c.restore();
     }
+    if(ground)return;
     for(const b of [...game.projectiles,...(game.lanProjectiles||[]),...(game.lanCastProjectiles||[])])combatProjectile(this,b);
     for(const f of game.floaters){const p=this.iso(f.x,f.y);c.save();c.globalAlpha=Math.min(1,f.life);c.font=`${f.crit?'bold 19':'12'}px ${'Georgia'},serif`;c.textAlign='center';c.fillStyle=f.color||'#d9d7b6';c.shadowColor='#06120c';c.shadowBlur=4;c.fillText(f.text,p.x,p.y-42-(1.4-f.life)*27);c.restore();}
   }

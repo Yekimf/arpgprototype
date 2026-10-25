@@ -1,3 +1,4 @@
+import {paintedEffect,paintedProjectile} from './painted-skills.js';
 import {effectSeed,particleNoise,effectBudget,debrisPoint,meleeTrail} from './combat-particles.js';
 const COLORS={physical:['#c6bda8','#776b57'],fire:['#e4bc85','#a75a32'],cold:['#ccdfdd','#768e96'],lightning:['#ddd8c7','#8985aa'],aether:['#c4becf','#817d99']};
 const THEMES={harvest:'physical',thorns:'physical',flood:'cold',fire:'fire',frost:'cold',oath:'physical',king:'fire',wanderer:'aether'};
@@ -70,6 +71,7 @@ function drawLightning(r,e,progress,settings){
  c.globalAlpha=alpha*(1-progress)*.6;r.light(dx,dy-27,19,'#c6d0cd2c');
 }
 export function combatEffect(r,e,progress,game){
+ if(paintedEffect(r,e,progress,game))return true;
  const c=r.ctx,element=e.element||THEMES[e.theme]||'physical',[light,dark]=COLORS[element]||COLORS.physical,budget=effectBudget(game.settings),t=r.time,rad=(e.radius||2)*34*Math.SQRT2,alpha=c.globalAlpha;
  if(e.type==='melee-trail'||e.type==='slash'){drawMelee(r,e,progress,game.settings);return true;}
  if(e.type==='hit-impact'||e.type==='weapon-hit'){drawImpact(r,e,progress,game.settings);return true;}
@@ -161,6 +163,7 @@ export function combatEffect(r,e,progress,game){
  return false;
 }
 export function combatProjectile(r,b){
+ if(paintedProjectile(r,b))return;
  const c=r.ctx,p=r.iso(b.x,b.y),v=r.iso(b.dx,b.dy),element=b.element||(b.kind==='blade'?'physical':b.kind),[light,dark]=COLORS[element]||COLORS.aether,angle=Math.atan2(v.y,v.x),alpha=c.globalAlpha,settings=r.settings||{},count=effectBudget(settings,settings.reducedMotion?3:settings.quality==='performance'?4:7),seed=effectSeed({type:b.kind,seed:b.visualSeed??Math.round((b.dx+1)*76543+(b.dy+1)*12347)}),phase=settings.reducedMotion?0:r.time*5;
  c.save();c.translate(p.x,p.y-25);c.rotate(angle);c.lineCap='round';c.lineJoin='round';
  if(element==='physical'){

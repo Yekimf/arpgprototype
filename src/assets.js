@@ -121,3 +121,8 @@ export const ENEMY_DEATH_ART=localAsset(enemyDeaths);
 
 import bossDeath from './art/runtime/boss-death.webp?inline';
 export const BOSS_DEATH_ART=localAsset(bossDeath);
+
+import skillElements from './art/runtime/skill-elements.webp?inline';
+import skillForces from './art/runtime/skill-forces.webp?inline';
+import skillWards from './art/runtime/skill-wards.webp?inline';
+export const SKILL_EFFECT_ART={elements:localAsset(skillElements),forces:localAsset(skillForces),wards:localAsset(skillWards)};
