@@ -1,3 +1,4 @@
+import {hasTurnRelay} from './connection-retry.js';
 import defaults from '../network-config.json' with {type:'json'};
 const KEY='forgotten-kingdom-social-v1';
 export function displayName(raw){const name=String(raw||'').normalize('NFKC').trim().replace(/\s+/g,' ');if(!/^[\p{L}\p{N}][\p{L}\p{N} _'-]{1,23}$/u.test(name))throw Error('Use 2–24 letters, numbers, spaces, apostrophes or hyphens.');return name;}
@@ -37,5 +38,5 @@ export class SocialService {
  cancelJoin(id){return this.rpc('social_cancel_join',{p_id:id});}
  poll(after=0){return this.rpc('social_poll',{p_after:after});}
  signal(id,kind,payload){return this.rpc('social_signal',{p_request:id,p_kind:kind,p_payload:payload});}
- async iceServers(){if(!this.config.turnCredentialsUrl)return this.config.iceServers||[];await this.authenticate();const r=await this.fetcher(this.config.turnCredentialsUrl,{method:'POST',headers:{Authorization:'Bearer '+this.session.access_token,apikey:this.config.publishableKey},signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error('The connection relay is unavailable. Try again shortly.');const data=await r.json();if(!Array.isArray(data.iceServers))throw Error('The relay returned invalid settings.');return [...(this.config.iceServers||[]),...data.iceServers];}
+ async iceServers(){if(!this.config.turnCredentialsUrl)return this.config.iceServers||[];await this.authenticate();const r=await this.fetcher(this.config.turnCredentialsUrl,{method:'POST',headers:{Authorization:'Bearer '+this.session.access_token,apikey:this.config.publishableKey},signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error('The connection relay is unavailable. Try again shortly.');const data=await r.json();if(!Array.isArray(data.iceServers)||!hasTurnRelay(data.iceServers))throw Error('The relay returned no TURN servers. Check the Edge Function configuration.');return [...(this.config.iceServers||[]),...data.iceServers];}
 }

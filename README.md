@@ -10,6 +10,14 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.54.0 — Long-distance multiplayer reliability
+
+- Movement no longer waits in an ever-growing queue behind old replies. New positions replace unsent positions; hits and casts are retained. Host corrections compare against acknowledged movement rather than pulling the guest back toward a stale position.
+- Unsent world snapshots coalesce under congestion, with replies and asset changes prioritized. Character sync runs every two seconds; explicit saves/trades still flush immediately. Duplicate kill acknowledgements no longer flood the command queue.
+- Concurrent ICE/offer handling shares a single connection. Transient signaling failures retry; the initial ICE attempt retries once. Duplicate/old handshake messages are ignored and brief disconnections have a recovery window. Failed guests cannot release the host's online character lease or leave a ghost session during validation.
+- Tested guest movement, chat, private accounts and trading with 500 ms of simulated round-trip delay. The transport bridge verifies application behavior; it does not certify real-world router traversal or relay service availability.
+- For friends on different networks, enable a TURN relay. The included authenticated Edge Function now supports **managed Cloudflare TURN** as well as coturn. Follow [the relay setup guide](docs/browser-multiplayer.md#4-enable-cross-network-joining-with-a-turn-relay), then republish. No database migration is required.
+
 ## Version 0.53.0 — Treasure classes and Magic Find
 
 - Regular solo monsters first roll a 62.5% chance to drop nothing. Living players in the same area reduce this chance, with nearby party members counting more. Gold is part of the drop roll instead of guaranteed on every kill.

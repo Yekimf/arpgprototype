@@ -75,34 +75,60 @@ shared storage and options stay in the browser. See [account details and save
 rules](online-accounts.md). Character export/import is for local Single player /
 Classic LAN characters and cannot promote them into the online realm.
 
-## 4. Relay support for difficult networks (recommended before a wider release)
+## 4. Enable cross-network joining with a TURN relay
 
-Two computers on a normal Wi-Fi can usually connect directly. Some routers,
-VPNs, guest Wi-Fi and carrier networks require TURN. A STUN server helps discover
-addresses but cannot relay traffic. Direct-only connections are not guaranteed.
+**For friends on different home networks, configure a relay.** STUN only discovers
+addresses; it cannot carry game traffic through routers that block a direct
+connection. Supabase handles accounts and invitations; it is not itself a TURN
+relay. Players still only open the website, and direct connections are used when
+available. A relay carries encrypted WebRTC packets when needed.
 
-Use a managed TURN provider with short-lived credentials, or coturn configured
-with `use-auth-secret` and a private shared secret. The optional included
-Supabase Edge Function supports coturn's REST credential format:
+### Managed relay: Cloudflare TURN (no server for you to run)
 
-1. Deploy `supabase/functions/turn-credentials/index.ts` as the `turn-credentials`
-   Edge Function. It verifies the bearer token with Supabase Auth itself. If the
-   project's gateway does not accept the new Auth signing keys, disable gateway
-   JWT verification for this function; its internal user verification remains
-   required and must not be removed.
-2. Set Edge Function secrets:
-   - `TURN_SHARED_SECRET`: the coturn shared secret.
-   - `TURN_URLS`: comma-separated URLs such as
-     `turn:relay.example.com:3478?transport=udp,turns:relay.example.com:5349?transport=tcp`.
-   - `GAME_ORIGINS`: comma-separated allowed HTTPS origins, for example
-     `https://yekimf.github.io`. Origins have no trailing path or slash.
-3. Set `turnCredentialsUrl` / `FK_TURN_CREDENTIALS_URL` to
+1. In [Cloudflare Realtime TURN](https://developers.cloudflare.com/realtime/turn/),
+   create a TURN key. Keep its **key ID** and **API token**. The provider may charge
+   for bandwidth; check its current pricing before enabling it.
+2. In your **Supabase project → Edge Functions**, create `turn-credentials` and
+   paste the complete contents of
+   [`supabase/functions/turn-credentials/index.ts`](../supabase/functions/turn-credentials/index.ts).
+   Deploy it. The function verifies the signed-in user with Supabase Auth itself.
+   If gateway JWT verification rejects your project's new signing keys, disable
+   gateway JWT verification for this function; keep its internal verification.
+3. In **Supabase → Edge Functions → Secrets**, add:
+   - `CLOUDFLARE_TURN_KEY_ID`: your TURN key ID.
+   - `CLOUDFLARE_TURN_API_TOKEN`: your TURN API token.
+   - `GAME_ORIGINS`: `https://yekimf.github.io` (no `/arpgprototype/` or trailing slash).
+   Supabase provides `SUPABASE_URL` and `SUPABASE_ANON_KEY` automatically.
+4. In **GitHub → arpgprototype → Settings → Secrets and variables → Actions →
+   Variables**, set `FK_TURN_CREDENTIALS_URL` to:
    `https://YOUR_PROJECT.supabase.co/functions/v1/turn-credentials`.
+5. Run **Actions → Publish browser game → Run workflow → main**. Both players
+   reload the updated website, sign in and request/accept a new company connection.
 
-The shared secret stays in the function. Clients obtain credentials valid for
-one hour. Budget for relay bandwidth if players use it; no relay is provisioned
-or paid for by this repository. An external managed provider needs an equivalent
-server-side credential endpoint, rather than embedding its private API key.
+The Cloudflare token belongs only in Supabase Secrets. Never put it in GitHub's
+public browser configuration or the HTML. Browsers receive temporary credentials
+valid for one hour, not the provider token. No database migration is needed.
+
+### Existing coturn relay
+
+The same Edge Function also supports coturn's `use-auth-secret` mode. Instead of
+the Cloudflare secrets, set `TURN_SHARED_SECRET` and `TURN_URLS` (comma-separated
+`turn:` / `turns:` URLs). Include TCP/TLS, preferably on port 443, for networks
+that block UDP. Keep `GAME_ORIGINS` and the GitHub URL variable as above.
+
+### Connection troubleshooting
+
+- “Direct connections only” in the company hall means this build has no configured
+  relay. Changing a repository variable needs another Publish workflow run.
+- Check the Edge Function logs if it reports relay unavailability. It must return
+  actual TURN URLs, a username and temporary credential for an authenticated user.
+- The movement stream coalesces stale positions, retains hits/casts, and uses
+  acknowledged positions for prediction corrections. Long-distance latency no
+  longer adds an ever-growing queue of old movement commands.
+- The handshake retries transient signaling failures and an initial ICE attempt.
+  Brief disconnected states have a 30-second recovery window. A terminal failure
+  requires Save & leave, then a fresh join request; game ownership does not migrate
+  automatically if the host leaves. Keep the host's browser open and computer awake.
 
 ## Maintenance and verification
 
@@ -124,3 +150,7 @@ the separate real ICE test is explicitly skipped there. The cloud test browser
 has this restriction. These checks do not verify an undeployed Supabase project,
 a paid relay, or router-specific behavior. Run the real ICE check on an ordinary
 browser/CI before public release.
+
+Run `NETWORK_TEST_LATENCY=250 npx playwright test tests/browser/friends-webrtc.spec.js`
+to impose 250 ms in each direction on the test bridge. This checks the guest
+walking away and returning, host agreement, chat, trading and saving at 500 ms RTT.
