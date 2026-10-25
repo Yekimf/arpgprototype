@@ -1,0 +1,7 @@
+#app #npc-dialogue .npc-spoken{position:relative;white-space:pre-line;max-height:calc(100dvh - 260px);overflow:auto;scrollbar-width:thin}
+.npc-speech-measure{visibility:hidden;display:block}.npc-speech-reveal{position:absolute;inset:0;white-space:pre-line}
+#app #npc-dialogue nav[hidden]{display:none}#app #npc-dialogue .npc-reading-hint{font:11px/1.5 Georgia;color:#8e8065;text-align:center;margin:12px 0 0;border-top:1px solid #69563d55;padding-top:10px}
+#miniboss-health{position:absolute;top:139px;left:50%;transform:translateX(-50%);width:min(390px,43vw);z-index:13;text-align:center;pointer-events:none;color:#c9b48a;text-shadow:1px 2px #000;padding:10px 20px;background:linear-gradient(90deg,transparent,#100d09ed 13%,#100d09ed 87%,transparent);font:14px Georgia}
+#miniboss-health.hidden{display:none}#miniboss-health:before,#miniboss-health:after{content:'◆';position:absolute;top:26px;color:#9c8152;font-size:14px}#miniboss-health:before{left:4px}#miniboss-health:after{right:4px}
+#miniboss-health .commander-track{height:16px;padding:2px;border:2px ridge #817154;background:#070605;box-shadow:0 2px 6px #000;margin:7px 0 4px}#miniboss-fill{height:100%;display:block;background:linear-gradient(#a16f45,#633225 45%,#30140e)}#miniboss-phase{color:#9a896c;font-size:9px;letter-spacing:1px}
+.quest-book .quest-parchment .quest-objective{white-space:pre-line}.quest-seal.ready{border-color:#d1b878}.quest-seal.offered .quest-seal-art{filter:brightness(.75)}

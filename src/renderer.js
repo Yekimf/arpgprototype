@@ -1,3 +1,4 @@
+import {visibleTownPortals,drawTownPortal} from './town-portals.js';
 import {DeathSprites} from './death-sprites.js';
 import {advanceRemains,paintStain,drawRemainsParticles} from './death-remains.js';
 import {dressDungeon} from './dungeon-architecture.js';
@@ -200,6 +201,7 @@ export class Renderer {
     if(d.field)objects.push({...d.field,type:'quest-object',kind:d.field.kind||'orders'});
     if(d.supplies)objects.push({...d.supplies,type:'supplies'});
     if(d.bossDead)objects.push({...d.portal,type:'portal'});
+    for(const portal of visibleTownPortals(game))objects.push({...portal,type:'town-portal'});
     for(const enemy of d.enemies)if(!enemy.dead&&(d.outdoor||distance(enemy,p)<14)&&d.seen.has(Math.floor(enemy.y)*d.size+Math.floor(enemy.x)))objects.push({...enemy,type:'enemy',enemy});
     for(const corpse of d.remains?.corpses||[])if(corpse.age<corpse.duration)objects.push({...corpse,type:'falling-body',corpse});
     for(const peer of game.lanPeers||[])if(visible({...peer,type:'ally'}))objects.push({...peer,type:'ally',peer});
@@ -254,6 +256,7 @@ export class Renderer {
       else if(o.type==='tomb')this.tomb(o);
       else if(o.type==='loot')this.loot(o.loot,game);
       else if(o.type==='portal')this.portal(game);
+      else if(o.type==='town-portal')drawTownPortal(this,o);
       else if(o.type==='building'){
         const offset=o.height*(o.stash?SCENE_BASELINES.stash:WORLD_FOOT_OFFSETS[o.sprite]||0);
         if(o.stash){this.structureShadow(this.stashArt,null,o.width,o.height,offset);if(this.stashArt.complete&&this.stashArt.naturalWidth)c.drawImage(this.stashArt,-o.width/2,-o.height+offset,o.width,o.height);}
@@ -454,6 +457,7 @@ export class Renderer {
       else this.enemySprites.draw(c,e,game.player,t,bodyOnly);
       c.restore();
       if(bodyOnly)return;
+      if(e.miniBoss){c.font='11px Georgia';c.textAlign='center';c.fillStyle='#cfb782';c.fillText(e.name,0,-110);}
       if((e.hp<e.maxHp||selected||hovered)&&!boss)this.enemyHealthBar(e,-88);
       if(e.slow>0){c.strokeStyle='#87999a66';c.lineWidth=1;c.beginPath();c.ellipse(0,2,15,6,0,.3,Math.PI-.3);c.stroke();for(const x of [-8,3,10])this.line([[x,1],[x+2,-3],[x+3,0]],'#a3b9b777',1);}
       if(e.burn>0||e.pyreGlow>0)this.light(0,-30,35,'#ea8c4233');if(boss)this.factionDetails(e);return;
@@ -540,7 +544,7 @@ export class Renderer {
     this.ellipse(0,2,17,7,'#08050388');this.sprite(n.sprite,n.id==='smith'?65:64,n.id==='smith'?88:91);
     const nearby=distance(n,game.player)<3;if(nearby){this.ctx.strokeStyle='#c7ac6a55';this.ctx.lineWidth=1;this.ctx.beginPath();this.ctx.ellipse(0,0,20,9,0,0,Math.PI*2);this.ctx.stroke();}
     this.worldLabel(n.name,n.role,-103);
-    if(n.id==='guide'&&(!game.player.quests.guideMet||game.player.quests.wardenDefeated&&!game.player.quests.guideRewarded)){this.ctx.font='bold 20px Georgia';this.ctx.fillStyle='#e3c476';this.ctx.textAlign='center';this.ctx.fillText('!',0,-123+Math.sin(this.time*2)*3);}
+    if(game.questCue?.npc===n.id){this.ctx.font='bold 20px Georgia';this.ctx.fillStyle='#e3c476';this.ctx.textAlign='center';this.ctx.fillText(game.questCue.mark,0,-123+Math.sin(this.time*2)*3);}
   }
   portal(game){
     const c=this.ctx,t=this.time;this.light(0,-25,100,'#a1d3bb22');

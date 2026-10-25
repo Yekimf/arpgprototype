@@ -33,8 +33,9 @@ test('rescuing Edrin early keeps the quest label aligned with unfinished neighbo
 });
 
 function conversation(){
- const names=['document','innerWidth','innerHeight'],original=Object.fromEntries(names.map(n=>[n,Object.getOwnPropertyDescriptor(globalThis,n)]));
- const element=()=>({children:[],style:{},attrs:{},innerHTML:'',textContent:'',classList:{values:new Set(),add(...names){for(const n of names)this.values.add(n);},remove(...names){for(const n of names)this.values.delete(n);}},setAttribute(k,v){this.attrs[k]=v;},append(node){this.children.push(node);},replaceChildren(){this.children=[];this.innerHTML='';},addEventListener(){},getBoundingClientRect(){return{width:330,height:220};}});
+ const names=['document','innerWidth','innerHeight','requestAnimationFrame','cancelAnimationFrame'],original=Object.fromEntries(names.map(n=>[n,Object.getOwnPropertyDescriptor(globalThis,n)]));
+ globalThis.requestAnimationFrame=()=>0;globalThis.cancelAnimationFrame=()=>{};
+ const element=()=>({children:[],style:{},attrs:{},innerHTML:'',textContent:'',classList:{values:new Set(),add(...names){for(const n of names)this.values.add(n);},remove(...names){for(const n of names)this.values.delete(n);}},setAttribute(k,v){this.attrs[k]=v;},removeAttribute(k){delete this.attrs[k];},querySelector(selector){this.parts??={};return this.parts[selector]??=element();},remove(){},append(node){this.children.push(node);},replaceChildren(){this.children=[];this.innerHTML='';},addEventListener(){},getBoundingClientRect(){return{width:330,height:220};}});
  const app=element();globalThis.document={createElement:element,getElementById:()=>app};globalThis.innerWidth=1024;globalThis.innerHeight=720;
  const game={player:character(),storyBookTab:'accounts',primaryHeld:true,secondaryHeld:true,moving:true,target:{}};const panels=[],dialogue=new NPCDialogue(game,{project:()=>({x:512,y:400}),openPanel:id=>panels.push(id),save(){},toast(){}});
  return{game,dialogue,panels,restore(){for(const n of names){if(original[n])Object.defineProperty(globalThis,n,original[n]);else delete globalThis[n];}}};
@@ -43,9 +44,9 @@ test('conversations retain direct services, escape text, and keep optional talk 
  const {game,dialogue,panels,restore}=conversation();try{
   dialogue.open({id:'merchant',name:'<img src=x onerror=alert(1)>',x:0,y:0});assert.equal(game.primaryHeld,false);assert.equal(game.secondaryHeld,false);assert.equal(game.moving,false);
   assert.match(dialogue.root.innerHTML,/&lt;img/);assert.doesNotMatch(dialogue.root.innerHTML,/<img/);assert.match(dialogue.root.innerHTML,/data-talk="merchant"/);
-  const before=JSON.stringify(game.player);dialogue.choose('talk');assert.match(dialogue.root.innerHTML,/data-talk="lore:trade"/);assert.match(dialogue.root.innerHTML,/data-talk="topics"/);assert.equal(JSON.stringify(game.player),before);
-  dialogue.choose('topics');dialogue.choose('merchant');assert.deepEqual(panels,['merchant']);assert.equal(game.dialogue,null);
-  dialogue.open({id:'guide',name:'Maelin',x:0,y:0});dialogue.choose('journal');assert.deepEqual(panels,['merchant','journal']);assert.equal(game.storyBookTab,'quests');
+  const before=JSON.stringify(game.player);dialogue.advanceSpeech();dialogue.advanceSpeech();dialogue.choose('talk');assert.match(dialogue.root.innerHTML,/data-talk="lore:trade"/);assert.match(dialogue.root.innerHTML,/data-talk="topics"/);assert.equal(JSON.stringify(game.player),before);
+  dialogue.advanceSpeech();dialogue.advanceSpeech();dialogue.choose('topics');dialogue.advanceSpeech();dialogue.advanceSpeech();dialogue.choose('merchant');assert.deepEqual(panels,['merchant']);assert.equal(game.dialogue,null);
+  dialogue.open({id:'guide',name:'Maelin',x:0,y:0});dialogue.advanceSpeech();dialogue.advanceSpeech();dialogue.choose('journal');assert.deepEqual(panels,['merchant','journal']);assert.equal(game.storyBookTab,'quests');
  }finally{restore();}
 });
 test('signs use literal text and no conversation buttons, and a new conversation clears account styling',()=>{

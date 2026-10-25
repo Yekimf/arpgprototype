@@ -10,6 +10,13 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.48.0 — Quests, conversations and return portals
+
+- Quests are assigned one at a time. Finish the objectives, then return to the giver to receive gold and experience and unlock the next assignment. Maelin gives the first two quests, Orrin the next two, and Garran the final two. Previously paid quests remain paid on older saves.
+- Quest givers automatically deliver the current introduction or reward dialogue. Text reveals gradually, with conversation buttons hidden until you finish reading. Click or Space reveals the remaining text; click or Space again continues. Escape leaves without accepting or claiming unfinished dialogue.
+- Town portal casts now leave visible paired portals. Click either end for repeated trips between Emberfall and your exact field location, preserving the expedition. Casting a new portal replaces the previous pair; character changes and reloading end that portal session.
+- The levy commanders and thorn choir have matching named objectives, directional descriptions, visible nameplates and a separate gothic miniboss health bar.
+
 ## Version 0.47.1 — Gothic startup screen
 
 The website and offline game now show an immediate dark archway and title while loading. The unfinished game HUD stays hidden until the main menu and its painted artwork are ready. Failed downloads show a retry button while preserving character saves.

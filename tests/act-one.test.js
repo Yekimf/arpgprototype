@@ -2,15 +2,16 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createPlayer,findPath,isWalkable} from '../src/game.js';
 import {createCampaign,ensureCampaign,generateWilderness,generateStronghold,defeatCampaignBoss,nextChapter,canAdvance} from '../src/campaign.js';
-import {actOneQuests,recordActOneKill} from '../src/act-one.js';
+import {actOneQuests,recordActOneKill,acceptActOneQuest,claimActOneQuest,ACT_ONE_QUESTS} from '../src/act-one.js';
 import {ensureManaFlask,drinkManaFlask,tickManaFlask,combatFlaskCharges} from '../src/flasks.js';
-test('all six Act I quests complete by combat, persist, and never require a pickup',()=>{
+test('all six Act I quests require assignment and a return for rewards, persist, and never require a pickup',()=>{
  const p=createPlayer();p.campaign=createCampaign();
  for(let chapter=0;chapter<3;chapter++){
+  acceptActOneQuest(p,ACT_ONE_QUESTS[chapter*2].id);const beforeGold=p.gold;
   const d=generateWilderness(42817+chapter*7919,1,p,chapter);assert.equal(d.field,null);assert.equal(d.provisions,null);
   const leaders=d.enemies.filter(e=>e.questId);assert.equal(leaders.length,chapter===0?6:3);for(const e of leaders){assert.ok(isWalkable(d,e.x,e.y,.23));assert.ok(findPath(d,d.start,e).length);recordActOneKill(p,e);assert.equal(recordActOneKill(p,e),null);}
-  assert.equal(actOneQuests(p)[chapter*2].status,'complete');assert.equal(generateWilderness(d.seed,1,p,chapter).enemies.filter(e=>e.questId).length,0);
-  const keep=generateStronghold(42921+chapter,1,chapter);const boss=keep.enemies.find(e=>e.type==='warden');assert.ok(defeatCampaignBoss(p,boss.bossId));assert.equal(actOneQuests(p)[chapter*2+1].status,'complete');if(chapter<2)assert.ok(nextChapter(p));
+  assert.equal(actOneQuests(p)[chapter*2].status,'ready');assert.equal(p.gold,beforeGold);assert.ok(claimActOneQuest(p,ACT_ONE_QUESTS[chapter*2].id));assert.equal(claimActOneQuest(p,ACT_ONE_QUESTS[chapter*2].id),null);acceptActOneQuest(p,ACT_ONE_QUESTS[chapter*2+1].id);assert.equal(generateWilderness(d.seed,1,p,chapter).enemies.filter(e=>e.questId).length,0);
+  const keep=generateStronghold(42921+chapter,1,chapter);const boss=keep.enemies.find(e=>e.type==='warden');assert.ok(defeatCampaignBoss(p,boss.bossId));assert.equal(actOneQuests(p)[chapter*2+1].status,'ready');assert.ok(claimActOneQuest(p,ACT_ONE_QUESTS[chapter*2+1].id));if(chapter<2)assert.ok(nextChapter(p));
  }
  assert.ok(canAdvance(p));const saved=JSON.parse(JSON.stringify(p));ensureCampaign(saved);assert.equal(actOneQuests(saved).filter(q=>q.done).length,6);assert.equal(saved.inventory.length,0);
 });
@@ -22,9 +23,9 @@ test('mana flask uses charges, respects reservations, regenerates and refills fr
 });
 test('the restored sheep quest preserves old completion and partial pasture kills',()=>{
  const p=createPlayer();p.campaign={...createCampaign(),actOneVersion:2};p.quests.herdKills=['herd-0','herd-2'];ensureCampaign(p);
- assert.deepEqual(p.campaign.actOneKills['last-herd'],[0,2]);const d=generateWilderness(42817,1,p,0);assert.equal(d.enemies.filter(e=>e.questId==='last-herd').length,4);assert.match(actOneQuests(p)[0].objective,/2 \/ 6/);
- for(const e of d.enemies.filter(e=>e.questId==='last-herd'))recordActOneKill(p,e);assert.equal(actOneQuests(p)[0].done,true);assert.match(actOneQuests(p)[0].story,/starve/);
- const old=createPlayer();old.campaign={...createCampaign(),actOneVersion:2,records:['field-1-0']};ensureCampaign(old);assert.equal(actOneQuests(old)[0].done,true);assert.equal(generateWilderness(42817,1,old,0).enemies.filter(e=>e.herdId).length,0);
+ assert.deepEqual(p.campaign.actOneKills['last-herd'],[0,2]);acceptActOneQuest(p,'last-herd');const d=generateWilderness(42817,1,p,0);assert.equal(d.enemies.filter(e=>e.questId==='last-herd').length,4);assert.match(actOneQuests(p)[0].objective,/2 \/ 6/);
+ for(const e of d.enemies.filter(e=>e.questId==='last-herd'))recordActOneKill(p,e);assert.equal(actOneQuests(p)[0].ready,true);assert.ok(claimActOneQuest(p,'last-herd'));assert.equal(actOneQuests(p)[0].done,true);assert.match(actOneQuests(p)[0].story,/starve/);
+ const old=createPlayer();old.campaign={...createCampaign(),actOneVersion:2,records:['field-1-0']};delete old.campaign.questFlow;ensureCampaign(old);assert.equal(actOneQuests(old)[0].done,true);assert.equal(generateWilderness(42817,1,old,0).enemies.filter(e=>e.herdId).length,0);
 });
 test('the granary opening aligns with the road, stays clear, and shares its arrival heading',()=>{
  const p=createPlayer();p.campaign=createCampaign();const d=generateWilderness(42817,1,p,1),gate=d.props.find(p=>p.exit);assert.equal(gate.x,d.portal.x);assert.equal(gate.y,d.portal.y);
