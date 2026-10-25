@@ -48,7 +48,7 @@ export function shopStock(now=Date.now()){const rotation=Math.floor(now/SHOP_PER
 export function buyPetWare(p,kind,key,now=Date.now()){const s=ensurePets(p);if(!s.unlocked)return {ok:false,message:'There is no one here.'};const stock=shopStock(now),ware=kind==='hat'?stock.hats.find(h=>h.id===key):stock.items.find(i=>i.id===key);if(!ware)return {ok:false,message:'Those wares have changed.'};if(kind==='hat'&&s.hats.includes(key))return {ok:false,message:'Already in your collection.'};if(s.points<ware.price)return {ok:false,message:'Not enough chicken points.'};if(kind!=='hat'&&(s.items[key]||0)>=99)return {ok:false,message:'Your provisions are full.'};s.points-=ware.price;if(kind==='hat')s.hats.push(key);else s.items[key]=(s.items[key]||0)+1;return {ok:true,message:ware.name+' acquired.'};}
 export function equipPetHat(p,petId,hat){const s=ensurePets(p),c=s.roster.find(c=>c.id===petId);if(!c||hat&&!s.hats.includes(hat))return false;for(const other of s.roster)if(hat&&other.hat===hat)other.hat=null;c.hat=hat||null;return true;}
 export function usePetItem(p,c,key){const s=ensurePets(p);if(!c||!(s.items[key]>0))return false;const max=petStats(c).hp;if(key==='mash'&&c.hp>0&&c.hp<max)c.hp=Math.min(max,c.hp+Math.ceil(max/2));else if(key==='revive'&&c.hp<=0)c.hp=Math.ceil(max/2);else if(key==='ether'&&movesFor(c).some(k=>(c.pp?.[k]??MOVES[k].pp)<MOVES[k].pp)){c.pp=Object.fromEntries(movesFor(c).map(k=>[k,MOVES[k].pp]));}else return false;s.items[key]--;return true;}
-export function startPetBattle(p,d,wild){const s=ensurePets(p),lead=s.roster.find(c=>c.id===s.active&&c.hp>0)||s.roster.find(c=>c.hp>0);if(!lead||wild.capturing||s.captured.includes(wildIdentity(d,wild)))return null;
+export function startPetBattle(p,d,wild){const s=ensurePets(p),lead=s.roster.find(c=>c.id===s.active&&c.hp>0&&!c.trip)||s.roster.find(c=>c.hp>0&&!c.trip);if(!lead||wild.capturing||s.captured.includes(wildIdentity(d,wild)))return null;
  wildProfile(d,wild);const foe=makePet(wild);foe.id='wild:'+wildIdentity(d,wild);restorePet(foe);return {key:wildIdentity(d,wild),wildId:wild.id,foe,active:lead.id,participants:[lead.id],round:0,status:{},result:null,rewarded:false,log:['A wild '+petName(foe)+' bars the path.'],events:[]};}
 function status(b,c){return b.status[c.id]??={};}
 function message(b,text,event={}){b.log.push(text);b.events.push({text,...event});}
@@ -64,7 +64,7 @@ function strike(b,a,t,key,rng){const m=MOVES[key];if(!m||!movesFor(a).includes(k
 function availableMove(c,rng){const moves=movesFor(c).filter(k=>(c.pp?.[k]??MOVES[k].pp)>0);return moves[Math.floor(rng()*moves.length)]||null;}
 export function battleAction(p,b,action,rng=Math.random){if(!b||b.result)return {ok:false};const s=ensurePets(p),lead=s.roster.find(c=>c.id===b.active);if(!lead)return {ok:false};b.events=[];
  if(action.kind==='flee'){b.result='fled';message(b,'You withdraw with your dignity. The chicken disputes this.');return {ok:true,events:b.events};}
- const replacement=s.roster.find(c=>c.id===action.id&&c.hp>0),forced=lead.hp<=0;
+ const replacement=s.roster.find(c=>c.id===action.id&&c.hp>0&&!c.trip),forced=lead.hp<=0;
  if(forced&&action.kind!=='switch'&&!(action.kind==='item'&&action.item==='revive'))return {ok:false,message:'Choose a fit chicken, or use Second Breakfast.'};
  const foeKey=availableMove(b.foe,rng);
  if(action.kind==='switch'){if(!replacement||replacement.id===lead.id)return {ok:false,message:'Choose another fit chicken.'};b.active=replacement.id;if(!b.participants.includes(replacement.id))b.participants.push(replacement.id);message(b,'Go, '+petName(replacement)+'!',{switch:true});if(!forced&&foeKey)strike(b,b.foe,replacement,foeKey,rng);}
@@ -75,7 +75,7 @@ export function battleAction(p,b,action,rng=Math.random){if(!b||b.result)return 
   for(const [a,t,k]of turns)if(a.hp>0&&t.hp>0){if(k)strike(b,a,t,k,rng);else{const damage=Math.max(3,Math.floor(a.level*2));t.hp=Math.max(0,t.hp-damage);a.hp=Math.max(0,a.hp-2);message(b,petName(a)+' struggles for '+damage+' damage.',{actor:a.id,target:t.id,damage});}}
  }else return {ok:false};
  b.round++;for(const c of [s.roster.find(c=>c.id===b.active),b.foe]){const st=status(b,c);if(c.hp>0&&st.burn){const damage=Math.max(2,Math.ceil(petStats(c).hp*.06));c.hp=Math.max(0,c.hp-damage);message(b,petName(c)+' is scorched for '+damage+'.',{target:c.id,damage,move:'ember0'});}for(const k of ['burn','slow','haste','weaken'])if(st[k]&&--st[k]<=0)delete st[k];}
- if(b.foe.hp<=0)b.result='won';else if(!s.roster.some(c=>c.hp>0))b.result='lost';else if(s.roster.find(c=>c.id===b.active)?.hp<=0)message(b,'Your chicken is exhausted. Choose a companion.');
+ if(b.foe.hp<=0)b.result='won';else if(!s.roster.some(c=>c.hp>0&&!c.trip))b.result='lost';else if(s.roster.find(c=>c.id===b.active)?.hp<=0)message(b,'Your chicken is exhausted. Choose a companion.');
  if(b.result)settlePetBattle(p,b);return {ok:true,events:b.events,result:b.result};
 }
 export function settlePetBattle(p,b){if(b.rewarded||!['won','lost'].includes(b.result))return false;b.rewarded=true;const s=ensurePets(p),win=b.result==='won',xp=win?35+b.foe.level*19:10+b.foe.level*3,points=win?10+b.foe.level*2:0;

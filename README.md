@@ -10,6 +10,13 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.51.0 — Feathered companions and selling trips
+
+- The selected chicken follows your character through outdoor areas and dungeons, navigates walkable paths and displays its hat. Choose a companion or send it back to the coop from the Pets tab.
+- **Chickendex → Saddlebags** opens your pack alongside the selected chicken’s 6×4 cargo grid. Click items to transfer them. Quest items and marked keepsakes cannot be packed for sale.
+- The sale button lists the exact cargo count and gold value. Your chicken takes a 30-second trip to Orrin, sells at normal vendor prices, and returns the gold automatically. It is unavailable for following or chicken battles while away. Each chicken has its own cargo and trip.
+- Trips persist with the character, finish across reloads/offline time and pay once. Sold items enter Orrin’s eight-item buyback ledger. Chicken points remain separate from ordinary sale gold.
+
 ## Version 0.50.0 — The Quiet Coop
 
 - Orrin sells unexplained Wooden Crates for 18 gold. Right-click a crate in your pack, then right-click a nearby chicken. The thrown crate shakes five times, releases stars and turns grey. Your first catch earns **I choose** and unlocks the **Chickendex**.
