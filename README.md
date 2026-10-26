@@ -10,6 +10,11 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.65.0 — Online realm ladder
+
+- The online company hall has a **Ladder** tab beside Create and Join. It ranks the top 100 online characters by level and shows rank, character name, account display name, class and level.
+- Ladder entries come from online character saves in Supabase. Apply [004_online_ladder.sql](supabase/migrations/004_online_ladder.sql) to an existing project before opening the new tab. The query returns only public ranking fields.
+
 ## Version 0.64.0 — Separate Chickendex and Inventory panels
 
 - The **Chickens** button now sits beside Inventory in the bottom menu. Opening Chickendex also opens the real Inventory panel, placing the chicken's page on the left and the player's existing equipment and pack on the right. Both remain visible over the game at desktop sizes.
