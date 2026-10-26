@@ -5,3 +5,33 @@
 #pet-nickname-form{text-align:left;margin:8px 0;padding:8px;border:2px ridge #65573d;background:#0d0b08}#pet-nickname-form label{display:block;color:#b7a37b;font:11px Georgia;margin-bottom:5px}#pet-nickname-form>div{display:flex;gap:7px}#pet-nickname-form input{width:100%;min-width:0;background:#080705;border:2px inset #776344;color:#d9c69e;padding:7px;font:13px Georgia;border-radius:0}#pet-nickname-form button{font-size:11px;padding:6px 10px;flex:none}#pet-nickname-form [role=status]:empty{display:none}#pet-nickname-form [role=status]{color:#d3a17e;font-size:11px}.chicken-hat{pointer-events:none;filter:drop-shadow(0 1px 1px #0009)}.pet-roster .poultry-portrait{margin-top:25px}.pet-detail>.poultry-portrait{margin-top:60px}.battle-bird .chicken-hat{filter:drop-shadow(0 2px 1px #000b)}
 
 .battle-bird.foe:has(.chicken-hat){top:90px}
+
+/* The collection is a floating folio; the paired packs share a single cell scale. */
+#chicken-screen{background:#030302b8;padding:24px}
+.chicken-folio{box-sizing:border-box;width:min(830px,calc(100vw - 48px));max-height:min(760px,calc(100vh - 48px));padding:18px;border-width:12px;scrollbar-width:thin;scrollbar-color:#776649 #17140f}
+.chicken-folio.courier-folio{width:min(950px,calc(100vw - 48px))}
+#app #chicken-screen .chicken-folio>header{background-image:none}
+.chicken-folio>header>span:last-of-type{white-space:nowrap;padding:5px 8px;border:1px solid #695a3e;background:#0b0a08;color:#cdbb93;font-size:12px}
+.chicken-folio>nav{flex-wrap:wrap;margin:10px 0}
+.chicken-folio>nav button{padding:7px 12px}
+.chicken-folio footer{line-height:1.45}
+.courier-owner{display:grid;grid-template-columns:74px minmax(0,1fr) auto;align-items:center;gap:14px;padding:8px 10px;margin:0 0 14px;background:linear-gradient(90deg,#252116,#0b0b09);border:1px solid #695b3d}
+.courier-owner-portrait{width:68px;height:68px;overflow:visible}
+.courier-owner h3{margin:3px 0 4px;color:#dcc9a0;font:19px Georgia}
+.courier-owner small{font-size:10px;color:#a69570;letter-spacing:1px}
+.courier-owner span{font-size:12px;color:#aea084}
+.courier-switch{display:flex;gap:5px}.chicken-folio .courier-switch button{min-width:34px;padding:5px 8px;font-size:17px}
+.courier-packs{grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:18px}
+.courier-packs>section{min-width:0;padding:9px;background:#090a08a8;border:1px solid #4e4838}
+.courier-packs h4{margin:0 0 9px;color:#cbb788;font:small-caps 15px Georgia}
+.courier-packs .courier-grid{--cell:clamp(22px,3.15vw,38px);width:min(100%,calc(var(--cols)*var(--cell)));height:auto;aspect-ratio:var(--cols)/var(--rows);grid-template-columns:repeat(var(--cols),minmax(0,1fr));grid-template-rows:repeat(var(--rows),minmax(0,1fr));margin:0 auto 12px;background-color:#070706}
+.courier-packs .courier-grid.courier-drop-target{border-color:#d1b373;box-shadow:0 0 0 2px #bfa66b,inset 0 0 30px #a7803355}
+.courier-packs .courier-grid button{cursor:grab;user-select:none;touch-action:none}
+.courier-packs .courier-grid button:active{cursor:grabbing}
+.courier-packs .courier-grid button.courier-drag-source{opacity:.4}
+.courier-packs>section>small{display:block;color:#9d9178;font:11px/1.5 Georgia}
+.courier-packs>section>p{margin:8px 0;font:12px Georgia}
+.courier-packs [data-pet=send-town]{width:100%;margin-bottom:9px}
+.courier-drag-ghost{position:fixed;z-index:1000;pointer-events:none;width:64px;height:64px;transform:translate(-50%,-50%);padding:3px;border:2px ridge #b99a5e;background:#17120bea;box-shadow:0 5px 18px #000c;opacity:.92}
+.courier-drag-ghost .item-art{width:100%;height:100%}
+@media(max-height:760px){.chicken-folio{padding:12px}.courier-owner{margin-bottom:8px}.courier-packs .courier-grid{--cell:clamp(21px,3vw,32px)}}

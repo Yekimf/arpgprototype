@@ -10,6 +10,12 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.63.0 — Chicken folio and drag transfers
+
+- The Chickendex opens as a smaller, centered gothic popup with the game visible behind it. Its saddlebags page shows your inventory and your chosen chicken's bags side by side, with arrows to choose another chicken.
+- Drag items from your inventory into the saddlebags to prepare a sale, or drag them back to keep them. Clicking an item still transfers it for keyboard and accessibility use. Quest items and keepsakes cannot be packed, and full bags leave items where they are.
+- Sending a chicken to Orrin keeps the existing 30-second selling trip, saved payout, and buyback behavior.
+
 ## Version 0.62.0 — Chickens stay gone, names, and clearer hats
 
 - Captured chickens leave the world after the crate closes. Wild chickens defeated in a battle also disappear. Neither returns when you walk away or revisit the area during the same game; a fresh world can have new wild chickens.
