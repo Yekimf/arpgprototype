@@ -1,3 +1,7 @@
+import uiCrown from './art/runtime/ui-crown.webp?inline';
+import uiGuardian from './art/runtime/ui-guardian.webp?inline';
+import uiDivider from './art/runtime/ui-divider.webp?inline';
+import uiRaven from './art/runtime/ui-raven.webp?inline';
 import {rollMonsterLoot,baseTreasureLevel} from './treasure.js';
 import {ChickenUI} from './chicken-ui.js';
 import {CHICKEN_TREASURES_ART,CHICKEN_BREEDS_ART} from './assets.js';
@@ -82,6 +86,8 @@ import './collections.css';
 import './skill-bindings.css';
 import './act-one.css';
 import './controls.css';
+import './ui-polish.css';
+for(const [key,url] of Object.entries({'--ui-crown':uiCrown,'--ui-guardian':uiGuardian,'--ui-divider':uiDivider,'--ui-raven':uiRaven}))document.documentElement.style.setProperty(key,`url("${url}")`);
 import {GLOBE_FRAME_ART,SET_MODELS_ART,SET_ITEMS_ART,EQUIPMENT_ETCHINGS_ART,SKILL_PAINTINGS_ART,EQUIPMENT_RELIEF_ART,MENU_CREST_ART} from './assets.js';
 import {NPCDialogue} from './npc-dialogue.js';
 import {FOLIO_FRAME_ART,SKILL_FRAME_ART,STORY_ART,LEATHER_ART,MAP_ART,GUARD_ART,STONE_ART} from './assets.js';

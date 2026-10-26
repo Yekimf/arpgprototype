@@ -10,6 +10,14 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.57.0 — Gothic interface readability
+
+- Audited pause/options, character, mastery, inventory, quests and chronicle at 1024×720, 1280×720 and 1920×1080, plus merchant and blacksmith controls. Button labels now wrap at word boundaries, stay centred inside their frames, and have more consistent font sizes and spacing.
+- Increased the tiny mastery captions and skill labels, improved contrast for locked skill names, and compacted the mastery sidebar so the point counter remains visible at 720p. Skill details can scroll within their own panel.
+- Equipment slots use clear slot names instead of overflowing “Empty · Body armor” captions. Equipment art, hover inspection and drag controls remain intact. Toolbar and vendor/forge action labels have more clearance from their decorative borders.
+- Added original aged iron crown, guardian, divider and raven relief artwork to menu surfaces, including the pause screen, character ledger, controls and poultry menus. Ornaments use cached images and do not intercept clicks or animate while menus are idle.
+- Browser checks exercise button text bounds, minimum label sizes, menu fit, keyboard navigation, vendor purchasing and forge controls. Both offline HTML copies are rebuilt.
+
 ## Version 0.56.0 — Painted boss attacks and unlocked passages
 
 - Act I commanders now use distinct six-pose painted spear impacts, burning-chaff eruptions and thorn bursts. Sweep attacks lay artwork across the actual arc; shockwaves carry animated impacts along the expanding collision edge. These keep their painted dimensions instead of stretching a single shape through an attack.

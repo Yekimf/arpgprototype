@@ -59,7 +59,7 @@ export class TownUI {
     }).join('')}</div>${items.some(i=>i.bagX<0)?`<div class="overflow-items"><small>Legacy overflow · preserved safely. Free pack space to organize.</small>${items.filter(i=>i.bagX<0).map(i=>`<button data-pack-id="${escape(i.id)}" data-container="${container}" class="small-button">${escape(itemName(i))}</button>`).join('')}</div>`:''}`;
   }
   equipment(){const p=this.player;return `<div class="paperdoll"><div class="paperdoll-figure"></div>${Object.entries(EQUIPMENT).map(([slot,name])=>{
-    const item=p.equipment[slot];return `<button class="paper-slot slot-${slot} ${rarity(item)} ${item&&!canUseGear(p,item)?'gear-unusable':''} ${item?.id===this.selection?'selected':''}" data-equip-slot="${slot}" aria-label="${name}: ${escape(item?itemName(item):'Empty')}" title="${name}${item?' · '+escape(itemName(item)):''}">${item?icon(item):equipmentEtching(slot)}<small>${item?name:'Empty · '+name}</small>${item&&item.durability<25?'<b class="wear-mark">!</b>':''}</button>`;
+    const item=p.equipment[slot];return `<button class="paper-slot slot-${slot} ${rarity(item)} ${item&&!canUseGear(p,item)?'gear-unusable':''} ${item?.id===this.selection?'selected':''}" data-equip-slot="${slot}" aria-label="${name}: ${escape(item?itemName(item):'Empty')}" title="${name}${item?' · '+escape(itemName(item)):''}">${item?icon(item):equipmentEtching(slot)}<small>${name}</small>${item&&item.durability<25?'<b class="wear-mark">!</b>':''}</button>`;
   }).join('')}</div>`;}
   detail(){
     const item=this.selected;if(!item)return `<div class="empty-detail"><span>✧</span><p>Select a relic to inspect its properties.</p><small>Drag items to rearrange. Double-click to equip.<br>Shift-click to equip; Ctrl-click to trade or transfer.</small></div>`;
