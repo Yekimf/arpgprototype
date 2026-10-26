@@ -10,6 +10,10 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.60.1 — Achievement and chat spacing
+
+- Achievement notifications sit above the full multiplayer chat history and input area. Solo placement stays the same; stash notifications also respect the chat clearance.
+
 ## Version 0.60.0 — Spatial trade windows
 
 - Trading now opens a stone-framed trade sheet on the left and a separate equipment/backpack sheet on the right, leaving the world visible between them. The partner’s offer is above yours; each has a spatial 10×4 item grid, a nameplate, gold amount and confirmation seal.

@@ -24,4 +24,4 @@
 
 #modal.dual-stash .stash-engraving{width:90px;height:45px;max-height:60px;min-height:0;flex:1;font-size:0;background:var(--menu-crest) center/contain no-repeat;opacity:.25}
 /* Earned distinctions stay in the open playfield, clear of both inventories. */
-body:has(#modal-backdrop:not(.hidden) #modal.dual-stash) .achievement-announcement{left:calc(50% - 32px);translate:-50% 0;max-width:280px;bottom:140px}
+body:has(#modal-backdrop:not(.hidden) #modal.dual-stash) .achievement-announcement{left:calc(50% - 32px);translate:-50% 0;max-width:280px;bottom:var(--achievement-bottom,140px)}
