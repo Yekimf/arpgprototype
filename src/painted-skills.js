@@ -1,3 +1,4 @@
+import {paintedBossAttack} from './boss-painting.js';
 import {projectilePainting} from './skill-animation.js';
 
 const dir=(r,e)=>{const v=r.iso(e.dx??1,e.dy??0);return Math.atan2(v.y,v.x);};
@@ -11,6 +12,7 @@ function cut(r,e,p,{loop=false,blood=false}={}){
  r.skillArt.draw(c,blood?'rend':'cut',loop?r.time*19:p,{width:rad*(blood?1.25:2.1),height:rad*(blood?1.25:2.1),loop,alpha:(1-p*.75)*(e.combo===1?.9:1)});c.restore();
 }
 export function paintedEffect(r,e,p,game){
+ if(paintedBossAttack(r,e,p,game))return true;
  if(!r.skillArt?.ready)return false;const c=r.ctx,art=r.skillArt,rad=radius(e),t=r.time;
  if(['melee-trail','slash','rend','whirl'].includes(e.type)){cut(r,e,p,{loop:e.type==='whirl',blood:e.type==='rend'});return true;}
  if(e.type==='nova'||e.type==='quake'){ground(r,e.type==='nova'?'frostburst':'earth',p,rad,{alpha:.88});return true;}

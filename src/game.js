@@ -62,6 +62,7 @@ export function makeEnemy(id,x,y,type,depth,elite=false) {
 }
 
 export function isWalkable(dungeon,x,y,radius=.21) {
+  if(dungeon.exitDoor&&!dungeon.bossDead&&Math.hypot(x-dungeon.exitDoor.x,y-dungeon.exitDoor.y)<.7+radius)return false;
   const left=Math.floor(x-radius),right=Math.floor(x+radius),top=Math.floor(y-radius),bottom=Math.floor(y+radius),a=dungeon.tiles[top],b=dungeon.tiles[bottom];
   return a?.[left]===1&&a?.[right]===1&&b?.[left]===1&&b?.[right]===1;
 }

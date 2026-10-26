@@ -10,6 +10,13 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.56.0 — Painted boss attacks and unlocked passages
+
+- Act I commanders now use distinct six-pose painted spear impacts, burning-chaff eruptions and thorn bursts. Sweep attacks lay artwork across the actual arc; shockwaves carry animated impacts along the expanding collision edge. These keep their painted dimensions instead of stretching a single shape through an attack.
+- Added textured elemental impact materials for the other supported boss themes. Danger outlines remain visible before attacks; collision, damage and warning times remain governed by the existing encounter rules. Effects share the quality-dependent graphics budget and respect reduced motion.
+- Stronghold exits are now grounded stone or timber passages, visible and barred before victory. After the commander falls, the doors open. Click to approach or walk through an unlocked passage to continue directly into the next region, using the existing area-loading screen. The last refuge passage leads back to Emberfall.
+- Town portal spells remain available for round trips. Region transitions still load separate maps; this update improves physical passage and progression without claiming a seamless streamed world.
+
 ## Version 0.55.0 — Companions and multiplayer chicken duels
 
 - Chickens now face their direction of travel. The atlas artwork faces left, and the world renderer mirrors it correctly for movement toward the right of the screen.

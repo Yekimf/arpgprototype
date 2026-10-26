@@ -1,3 +1,4 @@
+import {placeExitDoor} from './exit-doors.js';
 import {generateRedoubt} from './redoubt.js';
 import {actOneLevel,balanceActOne,placeActOneVeterans} from './act-one-balance.js';
 import {actOneObjective,migrateActOne,seedActOneEncounters} from './act-one.js';
@@ -108,7 +109,7 @@ export function generateStronghold(seed,act=1,chapter=0){
  d.act=act;d.chapter=chapter;d.kind='stronghold';d.returnGate=d.entryGate||{x:d.start.x,y:d.start.y-1};const serviceAt=d.fortress?{x:d.rooms[0].x+4.5,y:d.rooms[0].y+4.5}:d.farm?{x:d.start.x-5,y:d.start.y-8}:d.start;d.waypoint={x:serviceAt.x+2,y:serviceAt.y+1};
  Object.assign(boss,{name:ch.captain||actFor(act).knight,bossId:captainId(act,chapter),phaseType:['oath','harvest','thorns'][chapter],tint:actFor(act).color,chapter});
  d.tileset=['marchgate','granary','redoubt'][chapter];d.entranceStyle=['fortress','farm','crypt'][chapter];
- d.supplies={x:serviceAt.x-2,y:serviceAt.y+2};if(d.farm){d.props=d.props.filter(p=>![d.waypoint,d.supplies].some(at=>distance(p,at)<3));for(const at of [d.waypoint,d.supplies])for(let y=Math.floor(at.y)-1;y<=at.y+1;y++)for(let x=Math.floor(at.x)-1;x<=at.x+1;x++)if(d.tiles[y]?.[x])d.roads.add(y*d.size+x);}return placeActOneVeterans(balanceActOne(d,chapter,true),chapter);
+ placeExitDoor(d);d.supplies={x:serviceAt.x-2,y:serviceAt.y+2};if(d.farm){d.props=d.props.filter(p=>![d.waypoint,d.supplies].some(at=>distance(p,at)<3));for(const at of [d.waypoint,d.supplies])for(let y=Math.floor(at.y)-1;y<=at.y+1;y++)for(let x=Math.floor(at.x)-1;x<=at.x+1;x++)if(d.tiles[y]?.[x])d.roads.add(y*d.size+x);}return placeActOneVeterans(balanceActOne(d,chapter,true),chapter);
 }
 
 export const PROLOGUE=[

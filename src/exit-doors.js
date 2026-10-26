@@ -1,0 +1,3 @@
+export function placeExitDoor(d){if(d.kind!=='stronghold')return null;const p=d.portal,dx=p.x-d.start.x,dy=p.y-d.start.y,len=Math.hypot(dx,dy)||1;let at={x:p.x,y:p.y};for(const n of [3,2,1]){const x=p.x+dx/len*n,y=p.y+dy/len*n;if(d.tiles[Math.floor(y)]?.[Math.floor(x)]){at={x,y};break;}}return d.exitDoor={...at,wood:!!d.farm,label:d.chapter===0?'The road to Widow’s Fields':d.chapter===1?'The Blackthorn road':'The refuge road'};}
+export const exitDoorOpen=d=>!!d.bossDead;
+export function doorAnimation(previous,open,dt,reduced=false){const target=open?1:0;return reduced?target:Math.max(0,Math.min(1,previous+Math.sign(target-previous)*dt*.8));}

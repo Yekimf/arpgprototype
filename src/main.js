@@ -514,10 +514,10 @@ function update(dt){
     e.life-=dt;if(e.lanVisual)continue;if(e.type==='whirl'){e.x=player.x;e.y=player.y;}
     if(e.type==='ruin-mark'&&e.life<=0&&e.pending){e.pending=false;effect('ruin-impact',e.x,e.y,.8,{radius:e.radius,element:e.element,skill:e.skill});for(const enemy of game.dungeon.enemies)if(!enemy.dead&&distance(enemy,e)<e.radius)damageEnemy(enemy,e.damage,e.element,true,e.skill);}
     if(e.type==='blade-procession'){e.x=player.x;e.y=player.y;e.tick-=dt;if(e.tick<=0){e.tick=.25;for(const enemy of game.dungeon.enemies)if(!enemy.dead&&distance(enemy,e)<e.radius)damageEnemy(enemy,e.damage*.25,'physical',true,e.skill);}}
-    if(e.type==='meteor-warning'&&e.life<=0&&e.pending){e.pending=false;if(e.playerGround){effect('fire-eruption',e.x,e.y,.7,{radius:e.radius});effect('ground-fire',e.x,e.y,5*(e.duration||1),{radius:e.radius,damage:e.damage,tick:0});}else if(e.hostile){if(e.hazard)effect('hostile-ground',e.x,e.y,e.hazard,{radius:e.radius,damage:e.damage,element:e.element,tick:.7});effect('boss-impact',e.x,e.y,.65,{radius:e.radius,theme:e.theme,element:e.element});if(distance(player,e)<e.radius)hurt(e.damage,e.element||'physical',e,false,false);}else elementBurst('inferno',e.x,e.y,e.radius,e.damage);}
+    if(e.type==='meteor-warning'&&e.life<=0&&e.pending){e.pending=false;if(e.playerGround){effect('fire-eruption',e.x,e.y,.7,{radius:e.radius});effect('ground-fire',e.x,e.y,5*(e.duration||1),{radius:e.radius,damage:e.damage,tick:0});}else if(e.hostile){if(e.hazard)effect('hostile-ground',e.x,e.y,e.hazard,{radius:e.radius,damage:e.damage,element:e.element,theme:e.theme,tick:.7});effect('boss-impact',e.x,e.y,.65,{radius:e.radius,theme:e.theme,element:e.element});if(distance(player,e)<e.radius)hurt(e.damage,e.element||'physical',e,false,false);}else elementBurst('inferno',e.x,e.y,e.radius,e.damage);}
     if(e.type==='hostile-ground'){e.tick-=dt;if(e.tick<=0){e.tick=.7;if(distance(player,e)<e.radius)hurt(e.damage,e.element,e,false,false);}}
-    if(e.type==='boss-sweep-warning'&&e.life<=0&&e.pending){e.pending=false;if(bossSweepHits(e,player))hurt(e.damage,e.element,e,false,false);effect('boss-sweep',e.x,e.y,.45,{radius:e.radius,dx:e.dx,dy:e.dy,arc:e.arc,element:e.element});}
-    if(e.type==='boss-wave-warning'&&e.life<=0&&e.pending){e.pending=false;effect('boss-wave',e.x,e.y,1.25,{radius:e.radius,damage:e.damage,element:e.element,hit:false});}
+    if(e.type==='boss-sweep-warning'&&e.life<=0&&e.pending){e.pending=false;if(bossSweepHits(e,player))hurt(e.damage,e.element,e,false,false);effect('boss-sweep',e.x,e.y,.45,{radius:e.radius,dx:e.dx,dy:e.dy,arc:e.arc,element:e.element,theme:e.theme});}
+    if(e.type==='boss-wave-warning'&&e.life<=0&&e.pending){e.pending=false;effect('boss-wave',e.x,e.y,1.25,{radius:e.radius,damage:e.damage,element:e.element,theme:e.theme,hit:false});}
     if(e.type==='boss-wave'&&!e.hit){if(bossWaveHits(e,player,1-e.life/e.maxLife)){e.hit=true;hurt(e.damage,e.element,e,false,false);}}
     if(e.type==='ground-fire'){e.tick-=dt;if(e.tick<=0){e.tick=.4;for(const enemy of game.dungeon.enemies)if(!enemy.dead&&distance(enemy,e)<e.radius){damageEnemy(enemy,e.damage*.4,'fire',false);enemy.pyreGlow=.5;}}}
     if(e.type==='vortex'){
@@ -528,6 +528,7 @@ function update(dt){
   }
   game.effects=game.effects.filter(e=>e.life>0);for(const f of game.floaters)f.life-=dt;game.floaters=game.floaters.filter(f=>f.life>0);
 
+  if(game.dungeon.exitDoor&&game.dungeon.bossDead&&!game.panel&&distance(player,game.dungeon.exitDoor)<.65){performInteraction('stronghold-door');return;}
   saveTimer+=dt;if(saveTimer>5){save();saveTimer=0;}
 }
 
@@ -885,10 +886,11 @@ function campaignTargets(){
  if(d.provisions&&game.act!==1&&!player.quests.provisionsRecovered)targets.push({...d.provisions,interaction:'opening-provisions',height:65,width:35});
  if(d.supplies)targets.push({...d.supplies,interaction:'supplies',label:'Roadside provisions',height:65,width:30});
  if(game.zone==='wilderness')targets.push({...d.portal,interaction:'campaign-exit',label:`Enter ${chapterFor(game.act,game.chapter).stronghold}`,height:165,width:65});
- else if(d.bossDead)targets.push({...d.portal,interaction:game.chapter<lastChapter(game.act)?'chaptercomplete':'actcomplete',label:game.chapter<lastChapter(game.act)?'Continue to the next region':'Act I complete · return to Emberfall',height:100,width:40});
+ else if(d.exitDoor)targets.push({...d.exitDoor,interaction:'stronghold-door',label:d.bossDead?d.exitDoor.label:'Barred passage · Defeat the commander',height:180,width:80,reach:.9});
  return targets;
 }
 function performInteraction(action){
+ if(action==='stronghold-door'){if(!game.dungeon.bossDead){toast('The commander holds the passage shut.');return;}const at=game.dungeon.exitDoor;if(distance(player,at)>.95){game.interactTarget={...at,interaction:action,reach:.9};walkTo(at,false);return;}if(game.chapter<lastChapter(game.act)){if(game.chapter===chapterOf(player,game.act))nextChapter(player,game.act);game.expedition=null;enterCampaignArea('wilderness',game.act,false,false,game.chapter+1);}else enterTown();save();return;}
  if(action.startsWith('town-portal:')){useTownPortal(action.slice(12));return;}
  if(action.startsWith('story:')){
   const id=action.slice(6),marker=game.dungeon.storyMarkers?.find(m=>m.id===id),record=storyRecordById(id);

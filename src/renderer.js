@@ -1,3 +1,5 @@
+import {BossArt} from './boss-art.js';
+import {doorAnimation} from './exit-doors.js';
 import {chickenFacesRight} from './network/chicken-companions.js';
 import {CHICKEN_BREEDS_ART} from './assets.js';
 import {breedOf,wildIdentity,HATS} from './chicken-pets.js';
@@ -32,10 +34,10 @@ export class Renderer {
   constructor(canvas, minimap) {
     this.canvas=canvas; this.ctx=canvas.getContext('2d'); this.map=minimap; this.mc=minimap.getContext('2d');
     this.w=0;this.h=0;this.camera={x:0,y:0};this.time=0;this.zoom=1;
-    this.skillArt=new PaintedSkills();this.deaths=new DeathSprites();this.enemySprites=new EnemySprites();this.columnArt=new Image();this.columnArt.src=STONE_COLUMN_ART;this.chickenArt=new Image();this.chickenArt.src=CHICKEN_BREEDS_ART;this.stashArt=new Image();this.stashArt.src=STASH_CHEST_ART;this.fountainArt=new Image();this.fountainArt.src=WAYPOINT_FOUNTAIN_ART;this.forestGroundArt=new Image();this.forestGroundArt.src=FOREST_GROUND_ART;this.forestArt=new Image();this.forestArt.src=FOREST_LIFE_ART;this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;this.farmArt=new Image();this.farmArt.src=FARM_ART;
+    this.bossArt=new BossArt();this.skillArt=new PaintedSkills();this.deaths=new DeathSprites();this.enemySprites=new EnemySprites();this.columnArt=new Image();this.columnArt.src=STONE_COLUMN_ART;this.chickenArt=new Image();this.chickenArt.src=CHICKEN_BREEDS_ART;this.stashArt=new Image();this.stashArt.src=STASH_CHEST_ART;this.fountainArt=new Image();this.fountainArt.src=WAYPOINT_FOUNTAIN_ART;this.forestGroundArt=new Image();this.forestGroundArt.src=FOREST_GROUND_ART;this.forestArt=new Image();this.forestArt.src=FOREST_LIFE_ART;this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;this.farmArt=new Image();this.farmArt.src=FARM_ART;
     this.innerGateArt=new Image();this.innerGateArt.src=MARCHGATE_INNER_ART;this.gateArt=new Image();this.gateArt.src=MARCHGATE_ART;this.campaignArt=new Image();this.campaignArt.src=CAMPAIGN_ART;this.heroFrame={row:0,column:0,action:'idle'};
     this.remainsArt=new WeakMap();this.corpseArt=new Map();this.stainArt=new Map();this.contactShadows=new Map();this.artKeys=new WeakMap();this.artSerial=0;this.guard=new GuardSprites();this.groundCache=new Map();this.glowCache=new Map();this.wallCache=new Map();this.spriteCache=new Map();this.tileCache=new Map();this.artLoaded=false;
-    for(const art of [...this.skillArt.images,...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons])art.addEventListener('load',()=>{this.artLoaded=[...this.skillArt.images,...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
+    for(const art of [...this.bossArt.images,...this.skillArt.images,...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons])art.addEventListener('load',()=>{this.artLoaded=[...this.bossArt.images,...this.skillArt.images,...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
     this.resize();window.addEventListener('resize',()=>this.resize());
   }
   configure(settings){this.settings=settings;this.adaptiveScale=1;this.frameSample=null;this.canvas.style.filter=settings.brightness===100?'none':`brightness(${settings.brightness/100})`;this.resize();}
@@ -148,7 +150,7 @@ export class Renderer {
   }
   async prepareDungeon(d,progress){
     const token={};this.prepareToken=token;
-    await Promise.all([...this.skillArt.images,...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].map(art=>art.decode()));
+    await Promise.all([...this.bossArt.images,...this.skillArt.images,...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].map(art=>art.decode()));
     if(this.prepareToken!==token)return;
     // Prepare every terrain chunk, indoors and outdoors, at half resolution.
     // A new region is never revealed or generated by player movement.
@@ -210,7 +212,7 @@ export class Renderer {
     if(d.provisions&&!game.player.quests.provisionsRecovered)objects.push({...d.provisions,type:'quest-object',kind:'provisions'});
     if(d.field)objects.push({...d.field,type:'quest-object',kind:d.field.kind||'orders'});
     if(d.supplies)objects.push({...d.supplies,type:'supplies'});
-    if(d.bossDead)objects.push({...d.portal,type:'portal'});
+    if(d.exitDoor)objects.push({...d.exitDoor,type:'exit-door'});else if(d.bossDead)objects.push({...d.portal,type:'portal'});
     for(const portal of visibleTownPortals(game))objects.push({...portal,type:'town-portal'});
     for(const enemy of d.enemies)if(!enemy.dead&&(d.outdoor||distance(enemy,p)<14)&&d.seen.has(Math.floor(enemy.y)*d.size+Math.floor(enemy.x)))objects.push({...enemy,type:'enemy',enemy});
     for(const corpse of d.remains?.corpses||[])if(corpse.age<corpse.duration)objects.push({...corpse,type:'falling-body',corpse});
@@ -265,6 +267,7 @@ export class Renderer {
       else if(o.type==='pillar')this.pillar(o);
       else if(o.type==='tomb')this.tomb(o);
       else if(o.type==='loot')this.loot(o.loot,game);
+      else if(o.type==='exit-door')this.exitDoor(o,game,dt);
       else if(o.type==='portal')this.portal(game);
       else if(o.type==='town-portal')drawTownPortal(this,o);
       else if(o.type==='building'){
@@ -555,6 +558,12 @@ export class Renderer {
     const nearby=distance(n,game.player)<3;if(nearby){this.ctx.strokeStyle='#c7ac6a55';this.ctx.lineWidth=1;this.ctx.beginPath();this.ctx.ellipse(0,0,20,9,0,0,Math.PI*2);this.ctx.stroke();}
     this.worldLabel(n.name,n.role,-103);
     if(game.questCue?.npc===n.id){this.ctx.font='bold 20px Georgia';this.ctx.fillStyle='#e3c476';this.ctx.textAlign='center';this.ctx.fillText(game.questCue.mark,0,-123+Math.sin(this.time*2)*3);}
+  }
+  exitDoor(o,game,dt){
+    const d=game.dungeon;if(this.doorDungeon!==d){this.doorDungeon=d;this.doorProgress=d.bossDead?1:0;}
+    this.doorProgress=doorAnimation(this.doorProgress,!!d.bossDead,dt||.016,game.settings?.reducedMotion);const t=this.doorProgress,index=o.wood?10:8;
+    this.ellipse(0,1,70,26,'#00000055');this.bossArt.draw(this.ctx,index,{width:190,height:190,alpha:1-t});this.bossArt.draw(this.ctx,index+1,{width:190,height:190,alpha:t});
+    if(distance(o,game.player)<7)this.worldLabel(d.bossDead?o.label:'BARRED PASSAGE',d.bossDead?'WALK THROUGH':'Defeat the garrison commander',-183);
   }
   portal(game){
     const c=this.ctx,t=this.time;this.light(0,-25,100,'#a1d3bb22');
