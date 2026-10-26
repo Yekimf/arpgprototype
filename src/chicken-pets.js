@@ -83,3 +83,6 @@ export function settlePetBattle(p,b){if(b.rewarded||!['won','lost'].includes(b.r
  message(b,win?'Victory! +'+points+' chicken points. Each participant earned '+xp+' XP.':'Your flock needs rest. Each participant learned '+xp+' XP.');return true;
 }
 export function chickenVendor(d,p){if(!ensurePets(p).unlocked||!d.town&&!d.townBounds)return null;const bounds=d.townBounds||{x1:16,y1:16,x2:50,y2:51},preferred={x:bounds.x1+5.5,y:bounds.y2-6.5};for(let r=0;r<6;r++)for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++){const x=preferred.x+dx,y=preferred.y+dy;if(d.tiles[Math.floor(y)]?.[Math.floor(x)]&&(d.props||[]).every(o=>o.type!=='building'||Math.hypot(o.x-x,o.y-y)>3))return {id:'chicken-vendor',name:'Merrit',role:'THE QUIET COOP',x,y,sprite:3};}return null;}
+
+// Shared by host-authoritative friendly duels; wild battles use the same move rules.
+export {strike as strikePet};

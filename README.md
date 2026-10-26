@@ -10,6 +10,15 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.55.0 — Companions and multiplayer chicken duels
+
+- Chickens now face their direction of travel. The atlas artwork faces left, and the world renderer mirrors it correctly for movement toward the right of the screen.
+- Friends can see your selected following chicken, including its breed and hat. Companion positions interpolate with multiplayer movement. Chickens disappear for other players when sent to sell, left at the coop, or when their keeper leaves; cargo and private collection data are never broadcast with the follower.
+- In Emberfall, right-click a friend's companion or choose **Company → Challenge chicken**. The other keeper must accept. The selected companions fight a friendly one-on-one Trial of Feathers using their levels, elemental moves, speed, status effects and move uses.
+- Both keepers commit a move before the host resolves a round. Choices remain hidden until resolution. Exhausted move lists allow Struggle; withdrawing concedes the bout. Invitations expire after 45 seconds and rounds allow 60 seconds. Leaving or disconnecting forfeits an active duel.
+- Sparring uses rested copies of both chickens. Permanent life, move uses, XP, points, hats and saddlebags remain unchanged; there are no wagers or duel rewards. Wild chicken battles still award their usual progression.
+- Works with Classic LAN and browser-hosted multiplayer. Both players should reload the updated game.
+
 ## Version 0.54.0 — Long-distance multiplayer reliability
 
 - Movement no longer waits in an ever-growing queue behind old replies. New positions replace unsent positions; hits and casts are retained. Host corrections compare against acknowledged movement rather than pulling the guest back toward a stale position.
