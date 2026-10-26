@@ -9,3 +9,5 @@
 .bottom-hud .orb{border:2px solid #332c20;outline:0;margin:8px;box-shadow:inset 0 0 15px #000,0 0 6px #000}
 .bottom-hud .orb-label{bottom:-9px;z-index:2;background:#080807b0;padding:2px 5px}
 .bottom-hud .orb span{z-index:3;text-shadow:0 1px 3px #000,0 0 4px #000}
+/* The glass and its sculpted frame share one centre; old HUD padding offset it. */
+.bottom-hud .orb-wrap{padding-top:0}

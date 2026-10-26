@@ -10,6 +10,11 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.57.1 — Globe alignment
+
+- Removed inherited top padding that pushed the health and mana glass ten pixels below the centres of their sculpted frames, leaving an empty gap at the top.
+- Checked both globes at full resources at 1024×720, 1280×720 and 1920×1080. Resource percentages, glass highlights and ornamental frames keep their existing behaviour.
+
 ## Version 0.57.0 — Gothic interface readability
 
 - Audited pause/options, character, mastery, inventory, quests and chronicle at 1024×720, 1280×720 and 1920×1080, plus merchant and blacksmith controls. Button labels now wrap at word boundaries, stay centred inside their frames, and have more consistent font sizes and spacing.
