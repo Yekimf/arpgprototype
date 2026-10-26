@@ -1,3 +1,4 @@
+import {dressGrainStore} from './granary-dressing.js';
 import {random,makeEnemy,isWalkable} from './game.js';
 export function dressFarmland(d){
  const rng=random(d.seed+601);d.farm=true;d.tileset='widows-fields';d.biome='widows-fields';d.cropPlots=[];
@@ -32,7 +33,7 @@ export function generateGranary(seed,depth){
  for(let i=0;i<44;i++){const x=10+rng()*107,y=10+rng()*100;if(isWalkable({tiles},x,y,.23)&&Math.hypot(x-start.x,y-start.y)>10&&Math.hypot(x-portal.x,y-portal.y)>5)enemies.push(makeEnemy(id++,x,y,i%3?'skeleton':'wraith',depth));}
  enemies.push(makeEnemy(id++,portal.x,portal.y,'warden',depth,true));
  const d={seed,size,tiles,roads,props,enemies,rooms,start,portal,barnFloors,depth,seen:new Set(),water:new Set(),outdoor:true,farm:true,biome:'tithe-granary',tileset:'granary',returnGate:{x:63.5,y:120.5},entryGate:{x:63.5,y:120.5},entryFacing:{x:0,y:-1},arrival:{x:63.5,y:116.5},bossDead:false,cropPlots:[],landmarks:rooms.map(r=>({x:r.x+r.w/2,y:r.y+r.h/2,name:r.name}))};
- for(let y=34;y<115;y+=18)for(const x of [10,51,99])d.cropPlots.push({x:x+rng()*2,y:y+rng()*2,w:16+rng()*3,h:10+rng()*3});decorate(d,rng);return d;
+ for(let y=34;y<115;y+=18)for(const x of [10,51,99])d.cropPlots.push({x:x+rng()*2,y:y+rng()*2,w:16+rng()*3,h:10+rng()*3});decorate(d,rng);return dressGrainStore(d);
 }
 
 export function passivePosition(animal,d,time){const x=animal.x+Math.sin(time*.35+animal.phase)*.7,y=animal.y+Math.cos(time*.28+animal.phase)*.6;return isWalkable(d,x,y,.05)?{x,y}:{x:animal.x,y:animal.y};}

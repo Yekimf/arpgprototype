@@ -1,3 +1,4 @@
+import {objectBlocks,enableObjectCollisions} from './object-collisions.js';
 import {activeEquipment,effectiveAttributes,withGearRequirements} from './gear-requirements.js';
 import {setBonuses} from './set-items.js';
 import {NEW_SKILLS} from './skill-system.js';
@@ -53,7 +54,7 @@ export function generateDungeon(seed, depth = 1, options = {}) {
   });
   enemies.push(makeEnemy(id++,portal.x,portal.y,'warden',depth,true));
   props.push({x:start.x+1.4,y:start.y-1.5,type:'brazier',variant:1});
-  return {seed,size,tiles,rooms,start,portal,enemies,props,depth,seen:new Set(),bossDead:false};
+  return enableObjectCollisions({seed,size,tiles,rooms,start,portal,enemies,props,depth,seen:new Set(),bossDead:false});
 }
 
 export function makeEnemy(id,x,y,type,depth,elite=false) {
@@ -63,12 +64,13 @@ export function makeEnemy(id,x,y,type,depth,elite=false) {
 
 export function isWalkable(dungeon,x,y,radius=.21) {
   if(dungeon.exitDoor&&!dungeon.bossDead&&Math.hypot(x-dungeon.exitDoor.x,y-dungeon.exitDoor.y)<.7+radius)return false;
+  if(objectBlocks(dungeon,x,y,radius))return false;
   const left=Math.floor(x-radius),right=Math.floor(x+radius),top=Math.floor(y-radius),bottom=Math.floor(y+radius),a=dungeon.tiles[top],b=dungeon.tiles[bottom];
   return a?.[left]===1&&a?.[right]===1&&b?.[left]===1&&b?.[right]===1;
 }
 export function moveEntity(dungeon,entity,dx,dy,radius=.21) {
-  if(isWalkable(dungeon,entity.x+dx,entity.y,radius)) entity.x+=dx;
-  if(isWalkable(dungeon,entity.x,entity.y+dy,radius)) entity.y+=dy;
+  const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/.16));
+  for(let i=0;i<steps;i++){if(isWalkable(dungeon,entity.x+dx/steps,entity.y,radius))entity.x+=dx/steps;if(isWalkable(dungeon,entity.x,entity.y+dy/steps,radius))entity.y+=dy/steps;}
 }
 
 export function clearPath(d,a,b,radius=.23){const steps=Math.max(1,Math.ceil(distance(a,b)/.12));for(let i=0;i<=steps;i++){const t=i/steps;if(!isWalkable(d,a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,radius))return false;}return true;}

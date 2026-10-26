@@ -10,6 +10,14 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.58.0 — Solid scenery and the Tithe Granary
+
+- Buildings, tree trunks, chests, carts, sack stacks, barrels, pillars and other solid scenery have ground footprints. Canopies, loose bones, wheat and ground litter remain passable. Threshing shelters block their posts while leaving their centres open.
+- Spatially indexed collision is shared by pathfinding, movement and both multiplayer hosts. Fast movement checks small steps so characters cannot skip through thin obstacles; blocked enemy spawns relocate to nearby clear ground. Entrances, commanders, NPC approaches and service landings remain accessible.
+- The Tithe Granary now has seeded storage yards with raised grain stores, open threshing shelters, loaded wagons, grain bins, sacks, sorting tables, barrels and straw piles. Broad wagon routes connect the yards and boss area.
+- Replaced the granary's yellow-green floor treatment with original neutral packed-earth, wagon-yard, oak-board and sparse-chaff textures. New materials use the existing floor cache; the decoration atlas is embedded in both offline copies.
+- Checked scenery collision, fast movement, seeded layouts and routes, companion courier behaviour, vendor interactions and click-to-move through a new granary yard.
+
 ## Version 0.57.1 — Globe alignment
 
 - Removed inherited top padding that pushed the health and mana glass ten pixels below the centres of their sculpted frames, leaving an empty gap at the top.

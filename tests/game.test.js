@@ -26,8 +26,8 @@ test('seed reproduces map, rooms, boss location, and enemy roster',()=>{
 });
 test('collision stops walls while allowing movement over open floor',()=>{
   const d={tiles:[[0,0,0,0],[0,1,1,0],[0,1,1,0],[0,0,0,0]]},e={x:1.5,y:1.5};
-  moveEntity(d,e,-.8,0);assert.equal(e.x,1.5);
-  moveEntity(d,e,.4,.4);assert.equal(e.x,1.9);assert.equal(e.y,1.9);
+  moveEntity(d,e,-.8,0);assert.ok(e.x>=1.21&&e.x<1.5);e.x=1.5;
+  moveEntity(d,e,.4,.4);assert.ok(Math.abs(e.x-1.9)<1e-8);assert.ok(Math.abs(e.y-1.9)<1e-8);
   assert.equal(isWalkable(d,-10,0),false);
 });
 test('masteries enforce tier requirements, rank caps, and point costs',()=>{

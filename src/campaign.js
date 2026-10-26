@@ -1,3 +1,4 @@
+import {enableObjectCollisions} from './object-collisions.js';
 import {placeExitDoor} from './exit-doors.js';
 import {generateRedoubt} from './redoubt.js';
 import {actOneLevel,balanceActOne,placeActOneVeterans} from './act-one-balance.js';
@@ -37,7 +38,7 @@ export const inSanctuary=(d,p)=>!!d.townBounds&&p.x>d.townBounds.x1&&p.x<d.townB
 export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
  if(act!==1)throw new RangeError('Only Act I is available.');
  chapter=Math.max(0,Math.min(lastChapter(act),Math.floor(Number(chapter)||0)));
- if(act===1&&chapter===0){const d=generateOpeningForest(seed,player,chapterFor(act,chapter).task);d.tileset='kingsroad';return balanceActOne(seedActOneEncounters(d,player,chapter),chapter);}
+ if(act===1&&chapter===0){const d=generateOpeningForest(seed,player,chapterFor(act,chapter).task);d.tileset='kingsroad';return enableObjectCollisions(balanceActOne(seedActOneEncounters(d,player,chapter),chapter));}
  const camp=act===1&&chapter===0,ch=chapterFor(act,chapter),rng=random(seed),size=128,tiles=Array.from({length:size},()=>Array(size).fill(0)),start=camp?{x:48,y:50.5}:{x:17.5,y:109.5},portal=camp?{x:112.5,y:18.5}:{x:108.5,y:18.5},props=[],enemies=[],roads=new Set(),water=new Set();
  const townBounds=camp?{x1:TOWN_BOUNDS.x1+16,y1:TOWN_BOUNDS.y1+18,x2:TOWN_BOUNDS.x2+16,y2:TOWN_BOUNDS.y2+18}:null;
  // A broad, irregular landmass. Ponds, groves and ruins interrupt the field rather
@@ -98,7 +99,7 @@ export function generateWilderness(seed,act=1,player={quests:{}},chapter=0){
  d.field.kind=questRelic(act,chapter).kind;
  if(act===1&&chapter===1)dressFarmland(d);
  if(act===1){if(chapter===2)dressBlackthorn(d);seedActOneEncounters(d,player,chapter);balanceActOne(d,chapter);}
- return d;
+ return enableObjectCollisions(d);
 }
 export function generateStronghold(seed,act=1,chapter=0){
  if(act!==1)throw new RangeError('Only Act I is available.');
@@ -109,7 +110,7 @@ export function generateStronghold(seed,act=1,chapter=0){
  d.act=act;d.chapter=chapter;d.kind='stronghold';d.returnGate=d.entryGate||{x:d.start.x,y:d.start.y-1};const serviceAt=d.fortress?{x:d.rooms[0].x+4.5,y:d.rooms[0].y+4.5}:d.farm?{x:d.start.x-5,y:d.start.y-8}:d.start;d.waypoint={x:serviceAt.x+2,y:serviceAt.y+1};
  Object.assign(boss,{name:ch.captain||actFor(act).knight,bossId:captainId(act,chapter),phaseType:['oath','harvest','thorns'][chapter],tint:actFor(act).color,chapter});
  d.tileset=['marchgate','granary','redoubt'][chapter];d.entranceStyle=['fortress','farm','crypt'][chapter];
- placeExitDoor(d);d.supplies={x:serviceAt.x-2,y:serviceAt.y+2};if(d.farm){d.props=d.props.filter(p=>![d.waypoint,d.supplies].some(at=>distance(p,at)<3));for(const at of [d.waypoint,d.supplies])for(let y=Math.floor(at.y)-1;y<=at.y+1;y++)for(let x=Math.floor(at.x)-1;x<=at.x+1;x++)if(d.tiles[y]?.[x])d.roads.add(y*d.size+x);}return placeActOneVeterans(balanceActOne(d,chapter,true),chapter);
+ placeExitDoor(d);d.supplies={x:serviceAt.x-2,y:serviceAt.y+2};if(d.farm){d.props=d.props.filter(p=>![d.waypoint,d.supplies].some(at=>distance(p,at)<3));for(const at of [d.waypoint,d.supplies])for(let y=Math.floor(at.y)-1;y<=at.y+1;y++)for(let x=Math.floor(at.x)-1;x<=at.x+1;x++)if(d.tiles[y]?.[x])d.roads.add(y*d.size+x);}return enableObjectCollisions(placeActOneVeterans(balanceActOne(d,chapter,true),chapter));
 }
 
 export const PROLOGUE=[

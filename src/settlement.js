@@ -1,3 +1,4 @@
+import {enableObjectCollisions} from './object-collisions.js';
 import {withGearRequirements,requirementChecks} from './gear-requirements.js';
 import {recordFeat,ensureChronicle} from './achievements.js';
 import {discoverSetItems} from './set-items.js';
@@ -223,7 +224,7 @@ export function generateTown(player){
     for(let y=Math.floor(b.y-radius);y<=b.y+radius;y++)for(let x=Math.floor(b.x-radius);x<=b.x+radius;x++)if(tiles[y]?.[x])tiles[y][x]=0;
   }
   const seen=new Set();for(let y=0;y<size;y++)for(let x=0;x<size;x++)seen.add(y*size+x);
-  return {size,seed:7901,tiles,rooms:[],start:{x:32,y:32.5},portal:{x:32.5,y:17.5},enemies:[],props,depth:0,seen,bossDead:false,town:true,npcs:NPCS.filter(n=>n.id!=='scholar'||player.quests.scholarRescued).map(n=>({...n}))};
+  return enableObjectCollisions({size,seed:7901,tiles,rooms:[],start:{x:32,y:32.5},portal:{x:32.5,y:17.5},enemies:[],props,depth:0,seen,bossDead:false,town:true,npcs:NPCS.filter(n=>n.id!=='scholar'||player.quests.scholarRescued).map(n=>({...n}))});
 }
 
 export function temperItem(player,id){const item=[...player.inventory,...Object.values(player.equipment).filter(Boolean)].find(i=>i.id===id);if(!item||requiresIdentification(item))return result(false,'Choose identified equipment.');const stat=item.damage?'damage':item.armor?'armor':null;if(!stat)return result(false,'Only weapons and armour can be tempered.');const quality=item.quality||0;if(quality>=20)return result(false,'This item is already masterfully tempered.');const gold=18+Math.ceil(item.level||1)*8;if(player.gold<gold||player.shards<1)return result(false,`Tempering needs ${gold} gold and 1 ember.`);const bonus=(item.affixes||[]).filter(a=>a.stat===stat).reduce((n,a)=>n+a.value,0),base=(item[stat]-bonus)/(1+quality/100),next=Math.min(20,quality+5);item[stat]=Math.round(base*(1+next/100))+bonus;item.quality=next;item.durability=100;player.gold-=gold;player.shards--;return result(true,`Tempered to ${next}% quality. Durability restored.`);}

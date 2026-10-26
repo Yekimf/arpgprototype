@@ -81,7 +81,7 @@ test('town has no enemies and every service, stash, and gate can be approached o
     assert.equal(town.enemies.length,0);assert.equal(town.npcs.some(n=>n.id==='scholar'),rescued);
     assert.ok(isWalkable(town,town.start.x,town.start.y));
     const targets=[...town.npcs,town.portal,town.props.find(p=>p.stash)];
-    for(const target of targets){assert.ok(isWalkable(town,target.x,target.y),`Blocked service: ${target.id||target.type}`);assert.ok(findPath(town,town.start,target).length>0);}
+    for(const raw of targets){const target=raw.stash?{...raw,x:raw.x+.9}:raw;assert.ok(isWalkable(town,target.x,target.y),`Blocked service: ${target.id||target.type}`);assert.ok(findPath(town,town.start,target).length>0);}
   }
 });
 

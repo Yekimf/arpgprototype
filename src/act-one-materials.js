@@ -10,13 +10,15 @@ export function floorMaterial(d,x,y){
 const COLORS={
  'march-court':['#625a4b','#766b58','#3c372f'], 'march-slate':['#414442','#545650','#292d2c'],
  'crypt-slab':['#555149','#6b6558','#302c27'], 'crypt-inlay':['#4c3530','#685047','#281e1b'],
- 'barn-boards':['#51402e','#756047','#292016'], 'harvest-stubble':['#4e442b','#6d5b36','#302c1e'],
+ 'barn-boards':['#51402e','#756047','#292016'], 'harvest-stubble':['#514b42','#6b6254','#35312b'],
  'wagon-ruts':['#4d4030','#5f503b','#31291e'], 'briar-earth':['#30352e','#484c39','#232720'], 'briar-road':['#414137','#595747','#2c2d27']
 };
-export function makeFloorMaterial(art,theme,variant){
+export function makeFloorMaterial(art,theme,variant,granaryArt=null){
  let seed=theme.split('').reduce((a,c)=>a+c.charCodeAt(0)*13,731)+variant*7919;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
  const square=document.createElement('canvas');square.width=square.height=136;const c=square.getContext('2d'),[base,light,dark]=COLORS[theme];
  c.fillStyle=base;c.fillRect(0,0,136,136);
+ if(['barn-boards','harvest-stubble','wagon-ruts'].includes(theme)&&granaryArt?.complete&&granaryArt.naturalWidth){const cell=granaryArt.naturalWidth/2,index=theme==='barn-boards'?2:theme==='wagon-ruts'?1:variant%3===0?3:0;c.drawImage(granaryArt,index%2*cell,Math.floor(index/2)*cell,cell,cell,0,0,136,136);const tile=document.createElement('canvas');tile.width=136;tile.height=68;const t=tile.getContext('2d');t.translate(68,0);t.transform(.5,.25,-.5,.25,0,0);t.drawImage(square,0,0);return tile;}
+
  if(art.complete&&art.naturalWidth){const cell=art.naturalWidth/4;c.globalAlpha=.2;c.drawImage(art,3*cell,0,cell,cell,0,0,136,136);c.globalAlpha=1;}
  if(theme.startsWith('march')||theme.startsWith('crypt')){
   const slab=theme==='march-court'?34:theme==='crypt-slab'?68:theme==='crypt-inlay'?34:17;
