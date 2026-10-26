@@ -10,6 +10,13 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.61.0 — Shared multiplayer quest objectives
+
+- Every player in a hosted company shares Act I objective kills and boss completions, without requiring party membership or proximity. Players elsewhere in the world receive the same counters, and late joiners catch up to objectives completed in that game.
+- The host records actual objective deaths in a session ledger; importing an advanced character does not complete everybody else's quests. Repeated snapshots and stale character syncs cannot duplicate or erase that shared progress.
+- Acceptance, sequential NPC conversations and reward claims remain personal. Each character returns to the quest giver and claims each reward once. XP, kill credit, flask recovery and private drops keep their existing nearby party rules.
+- Shared progress merges into personal saves and unlocks Edrin after Aldren falls. A new hosted game has a fresh shared ledger; existing personal quest progress is retained.
+
 ## Version 0.60.1 — Achievement and chat spacing
 
 - Achievement notifications sit above the full multiplayer chat history and input area. Solo placement stays the same; stash notifications also respect the chat clearance.
