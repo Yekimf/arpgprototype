@@ -10,6 +10,11 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.66.0 — Stronger world contrast and Merrit’s stall
+
+- The world canvas has stronger contrast and color separation without adding per-frame terrain processing. Wild and companion chickens are slightly larger, brighter, and have clearer contact shadows against dark ground.
+- Merrit is now a mustached chicken at a textured market stall with a crooked **CHIKEN STUF** sign. The stall uses the same grounded shadow treatment as other buildings, and its larger shape can be clicked to open the chicken shop.
+
 ## Version 0.65.0 — Online realm ladder
 
 - The online company hall has a **Ladder** tab beside Create and Join. It ranks the top 100 online characters by level and shows rank, character name, account display name, class and level.

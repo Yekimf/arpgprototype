@@ -44,7 +44,7 @@ export class Renderer {
     for(const art of [this.granaryArt,this.granaryGround,...this.bossArt.images,...this.skillArt.images,...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons])art.addEventListener('load',()=>{this.artLoaded=[this.granaryArt,this.granaryGround,...this.bossArt.images,...this.skillArt.images,...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
     this.resize();window.addEventListener('resize',()=>this.resize());
   }
-  configure(settings){this.settings=settings;this.adaptiveScale=1;this.frameSample=null;this.canvas.style.filter=settings.brightness===100?'none':`brightness(${settings.brightness/100})`;this.resize();}
+  configure(settings){this.settings=settings;this.adaptiveScale=1;this.frameSample=null;this.canvas.style.filter=`brightness(${settings.brightness/100}) contrast(1.12) saturate(1.1)`;this.resize();}
   trackFrame(ms){
     if(this.settings?.quality!=='balanced'||this.settings.frameLimit<60)return;
     this.frameSample??={time:0,frames:0};this.frameSample.time+=Math.min(ms,150);this.frameSample.frames++;
@@ -556,13 +556,30 @@ export class Renderer {
     for(const b of this.lootLabels){const color=b.loot.item?{normal:'#d4c5aa',magic:'#8faed7',rare:'#d6bb68',legendary:'#e5a16c',set:'#8fc57b'}[b.loot.item.rarity]||'#d4c5aa':'#c3ac68';c.fillStyle='#0c0906ed';c.fillRect(b.x,b.y,b.w,b.h);c.strokeStyle=game.lootTarget===b.loot?'#ead1a0':color+'88';c.strokeRect(b.x,b.y,b.w,b.h);c.fillStyle=color;c.fillText(b.name,b.x+b.w/2,b.y+b.h/2);}
     c.restore();
   }
-  chicken(o,game){const c=this.ctx,art=this.chickenArt;if(!art.complete||!art.naturalWidth)return;const i=breedOf(o).art,flip=chickenFacesRight(o.heading);this.ellipse(0,2,8,3,'#08060466');c.save();if(flip)c.scale(-1,1);c.translate(0,o.moving?Math.sin(o.gait)*1.5:0);c.drawImage(art,i%4*256,Math.floor(i/4)*256,256,256,-20,-31,40,40);if(o.pet){const hat=HATS.find(h=>h.id===o.hat),art=game?.chickenUI?.crateImage;const pos=chickenHatPlacement(hat);if(pos&&art?.complete)c.drawImage(art,pos.sx,pos.sy,pos.sw,pos.sh,pos.x,pos.y,pos.width,pos.height);}c.restore();}
+  chicken(o,game){const c=this.ctx,art=this.chickenArt;if(!art.complete||!art.naturalWidth)return;const i=breedOf(o).art,flip=chickenFacesRight(o.heading);this.ellipse(0,2,16,6,'#d8bb7130');this.ellipse(0,3,10,4,'#080604aa');c.save();if(flip)c.scale(-1,1);c.translate(0,o.moving?Math.sin(o.gait)*1.5:0);c.filter='contrast(1.26) saturate(1.14) brightness(1.12)';c.shadowColor='#050403';c.shadowBlur=3;c.shadowOffsetY=2;c.drawImage(art,i%4*256,Math.floor(i/4)*256,256,256,-25,-38,50,50);c.filter='none';c.shadowBlur=0;c.shadowOffsetY=0;if(o.pet){const hat=HATS.find(h=>h.id===o.hat),art=game?.chickenUI?.crateImage;const pos=chickenHatPlacement(hat);if(pos&&art?.complete)c.drawImage(art,pos.sx,pos.sy,pos.sw,pos.sh,pos.x,pos.y,pos.width,pos.height);}c.restore();}
   worldLabel(name,role,y){const c=this.ctx;c.textAlign='center';c.shadowColor='#000';c.shadowBlur=5;c.font='10px Georgia';c.fillStyle='#d5c295';c.fillText(name,0,y);if(role){c.font='6px Inter,sans-serif';c.fillStyle='#a18d6b';c.fillText(role,0,y+12);}c.shadowBlur=0;}
   npc(n,game){
+    if(n.id==='chicken-vendor'){this.chickenMerchant(n,game);return;}
     this.ellipse(0,2,17,7,'#08050388');this.sprite(n.sprite,n.id==='smith'?65:64,n.id==='smith'?88:91);
     const nearby=distance(n,game.player)<3;if(nearby){this.ctx.strokeStyle='#c7ac6a55';this.ctx.lineWidth=1;this.ctx.beginPath();this.ctx.ellipse(0,0,20,9,0,0,Math.PI*2);this.ctx.stroke();}
     this.worldLabel(n.name,n.role,-103);
     if(game.questCue?.npc===n.id){this.ctx.font='bold 20px Georgia';this.ctx.fillStyle='#e3c476';this.ctx.textAlign='center';this.ctx.fillText(game.questCue.mark,0,-123+Math.sin(this.time*2)*3);}
+  }
+  chickenMerchant(n,game){
+    const c=this.ctx,art=this.chickenArt;
+    const offset=154*(WORLD_FOOT_OFFSETS[10]||0);
+    this.structureShadow(this.worldArt,10,167,154,offset);
+    this.sprite(10,167,154,offset);
+    // A hand-painted board fixed across the weathered market canopy.
+    c.fillStyle='#24180f';c.beginPath();c.moveTo(-54,-139);c.lineTo(49,-131);c.lineTo(46,-112);c.lineTo(-56,-119);c.closePath();c.fill();
+    c.strokeStyle='#9b774b';c.lineWidth=1.5;c.stroke();
+    c.fillStyle='#e0c798';c.font='bold 11px Georgia';c.textAlign='center';c.textBaseline='middle';c.shadowColor='#080503';c.shadowBlur=3;c.fillText('CHIKEN STUF',-3,-125);c.shadowBlur=0;
+    // Merrit uses the same naturalistic bird art as the wild flock.
+    if(art.complete&&art.naturalWidth){c.save();c.filter='contrast(1.2) saturate(1.12)';c.drawImage(art,256,256,256,256,-35,-100,70,70);c.filter='none';c.restore();
+      c.fillStyle='#17100b';c.strokeStyle='#a88b60';c.lineWidth=.8;
+      c.beginPath();c.moveTo(-29,-78);c.bezierCurveTo(-40,-83,-42,-75,-47,-79);c.bezierCurveTo(-39,-69,-34,-73,-29,-75);c.bezierCurveTo(-24,-72,-20,-70,-13,-77);c.bezierCurveTo(-21,-74,-23,-84,-29,-78);c.fill();c.stroke();}
+    const nearby=distance(n,game.player)<4;if(nearby){c.strokeStyle='#c7ac6a77';c.lineWidth=1;c.beginPath();c.ellipse(0,3,73,20,0,0,Math.PI*2);c.stroke();}
+    this.worldLabel('MERRIT',null,-160);
   }
   exitDoor(o,game,dt){
     const d=game.dungeon;if(this.doorDungeon!==d){this.doorDungeon=d;this.doorProgress=d.bossDead?1:0;}
