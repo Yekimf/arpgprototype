@@ -10,6 +10,14 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.60.0 — Spatial trade windows
+
+- Trading now opens a stone-framed trade sheet on the left and a separate equipment/backpack sheet on the right, leaving the world visible between them. The partner’s offer is above yours; each has a spatial 10×4 item grid, a nameplate, gold amount and confirmation seal.
+- Click or right click backpack items to offer them; click your offered items to remove them. Drag between your backpack and offer as well. Offered items stay marked in the backpack until the trade completes. Hover or keyboard-focus items for gothic inspection tooltips.
+- Items retain their inventory footprints and artwork. Overflow uses explicit pages, including offer pages, without scrolling items out of view. Equipped and quest items remain unavailable for trading; the twelve-item limit is retained.
+- Edit gold, press **Update offer**, then **Confirm offer**. Both players must confirm the same authoritative revision. Changing either offer clears confirmations; cancellation, capacity checks and atomic item/gold transfer are preserved for Classic LAN and browser-hosted games.
+- Checked layout and item bounds at 1024×720, 1280×720 and 1920×1080, browser account/trading flows, drag/right-click offers, confirmation resets and offline play.
+
 ## Version 0.59.0 — Company ledger and friends by name
 
 - Replaced native rounded party meters with square inset life wells, aged stone cards and shield-shaped level badges. The company roster has clearer party/leader labels, readable location names, grouped actions and a party summary. Health updates without rebuilding the roster; the compact party list can scroll for a full eight-player company.

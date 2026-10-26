@@ -22,8 +22,10 @@ test('standalone title, creation, prologue, inventory, maps and combat work offl
   const guide=(await snapshot()).npcs.find(n=>n.id==='guide');await page.mouse.click(guide.x,guide.y-35);await page.waitForFunction(()=>window.__reliquary.snapshot().dialogue==='guide');await page.keyboard.press('Space');await page.keyboard.press('Space');assert.ok((await snapshot()).quests.guideMet);await page.locator('[data-talk="leave"]').click();
   await page.keyboard.press('i');await page.locator('[data-pack-id="maelin-talisman"]').hover();assert.equal(await page.locator('#item-tooltip').isVisible(),true);assert.equal(await page.locator('#modal').evaluate(e=>e.scrollHeight<=e.clientHeight+1),true);await page.keyboard.press('i');
   await page.keyboard.press('g');assert.equal(await page.locator('[data-map-act="2"]').count(),0);assert.equal(await page.locator('.kingdom-map [data-waypoint]').count(),7);await page.locator('[data-action="close"]').last().click();
-  const current=await snapshot(),field=generateWilderness(current.seed+107,1),path=findPath(field,current.position,{x:field.townExit.x+7,y:field.townExit.y},{smooth:false});
-  // Exercise the real click-to-move planner around prop footprints. A synthetic
+  const current=await snapshot(),field=generateWilderness(current.seed+107,1),path=findPath(field,current.position,{x:field.townExit.x+1,y:field.townExit.y},{smooth:false});
+  // Cross the camp boundary using the real click-to-move planner. Stop
+  // before random enemy packs: clicking a moving enemy correctly attacks it,
+  // which would turn this storage/offline smoke check into a combat-route race. A synthetic
   // axis-only walker cuts the diagonal corners of an A* route into obstacles.
   for(const point of path){const here=(await snapshot()).position;if(Math.hypot(here.x-point.x,here.y-point.y)<.2)continue;const screen=await page.evaluate(p=>window.__reliquary.project(p.x,p.y),point);if((await snapshot()).cursor.captured)await page.keyboard.press('Control+Escape');await page.mouse.click(screen.x,screen.y);try{await page.waitForFunction(p=>{const at=window.__reliquary.snapshot().position;return Math.hypot(at.x-p.x,at.y-p.y)<.3;},point,{timeout:5000});}catch(error){console.log('offline route failure',{point,screen,position:(await snapshot()).position});await page.screenshot({path:'/tmp/offline-collision-route.png'});throw error;}}
   assert.equal((await snapshot()).zone,'wilderness');assert.equal((await snapshot()).areaSeed,current.areaSeed);
