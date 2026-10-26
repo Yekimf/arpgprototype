@@ -14,6 +14,7 @@ The root HTML embeds all code, styles and runtime art. It works offline. Use a d
 
 - The world canvas has stronger contrast and color separation without adding per-frame terrain processing. Wild and companion chickens are slightly larger, brighter, and have clearer contact shadows against dark ground.
 - Merrit is now a mustached chicken at a textured market stall with a crooked **CHIKEN STUF** sign. The stall uses the same grounded shadow treatment as other buildings, and its larger shape can be clicked to open the chicken shop.
+- **0.66.1:** Merrit’s mustache is positioned immediately under the beak, with smaller curls that stay on the face.
 
 ## Version 0.65.0 — Online realm ladder
 

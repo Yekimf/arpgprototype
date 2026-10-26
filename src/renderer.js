@@ -576,8 +576,9 @@ export class Renderer {
     c.fillStyle='#e0c798';c.font='bold 11px Georgia';c.textAlign='center';c.textBaseline='middle';c.shadowColor='#080503';c.shadowBlur=3;c.fillText('CHIKEN STUF',-3,-125);c.shadowBlur=0;
     // Merrit uses the same naturalistic bird art as the wild flock.
     if(art.complete&&art.naturalWidth){c.save();c.filter='contrast(1.2) saturate(1.12)';c.drawImage(art,256,256,256,256,-35,-100,70,70);c.filter='none';c.restore();
-      c.fillStyle='#17100b';c.strokeStyle='#a88b60';c.lineWidth=.8;
-      c.beginPath();c.moveTo(-29,-78);c.bezierCurveTo(-40,-83,-42,-75,-47,-79);c.bezierCurveTo(-39,-69,-34,-73,-29,-75);c.bezierCurveTo(-24,-72,-20,-70,-13,-77);c.bezierCurveTo(-21,-74,-23,-84,-29,-78);c.fill();c.stroke();}
+      // The beak in this cropped sprite lands near (-24,-86); the whiskers sit just below it.
+      c.save();c.translate(-24,-84);c.fillStyle='#17100b';c.strokeStyle='#a88b60';c.lineWidth=.7;
+      c.beginPath();c.moveTo(0,0);c.bezierCurveTo(-4,-2,-8,-1,-11,-4);c.bezierCurveTo(-10,2,-5,5,0,2);c.bezierCurveTo(5,5,10,2,11,-4);c.bezierCurveTo(8,-1,4,-2,0,0);c.fill();c.stroke();c.restore();}
     const nearby=distance(n,game.player)<4;if(nearby){c.strokeStyle='#c7ac6a77';c.lineWidth=1;c.beginPath();c.ellipse(0,3,73,20,0,0,Math.PI*2);c.stroke();}
     this.worldLabel('MERRIT',null,-160);
   }
