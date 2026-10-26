@@ -10,6 +10,11 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.67.0 — Character portraits on the online ladder
+
+- Each realm ladder row now shows a painted character portrait beside rank, name, class and level. The portrait uses the same equipped-gear rendering as character select.
+- Apply [005_online_ladder_portraits.sql](supabase/migrations/005_online_ladder_portraits.sql) to an existing Supabase project after 004. Only visible gear shape and appearance data are shared for the portrait; inventory, item stats and saves remain private.
+
 ## Version 0.66.0 — Stronger world contrast and Merrit’s stall
 
 - The world canvas has stronger contrast and color separation without adding per-frame terrain processing. Wild and companion chickens are slightly larger, brighter, and have clearer contact shadows against dark ground.

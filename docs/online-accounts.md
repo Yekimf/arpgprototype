@@ -92,4 +92,4 @@ existing public project settings, then rerun Publish browser game on `main`.
 
 After migrations 001 and 002, run [003_friend_names.sql](../supabase/migrations/003_friend_names.sql) in Supabase SQL Editor. It preserves existing accounts and friends, and adds exact, case-insensitive username/display-name lookup. Shared display names require `@username` or a friend code.
 
-The online realm ladder also needs [004_online_ladder.sql](../supabase/migrations/004_online_ladder.sql) in Supabase SQL Editor. It returns the top 100 online characters by level for the company hall's Ladder tab, without exposing character saves.
+The online realm ladder also needs [004_online_ladder.sql](../supabase/migrations/004_online_ladder.sql) followed by [005_online_ladder_portraits.sql](../supabase/migrations/005_online_ladder_portraits.sql) in Supabase SQL Editor. It returns the top 100 online characters by level with small equipped-character portraits, without exposing character saves, inventory or item stats.
