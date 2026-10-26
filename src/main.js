@@ -588,13 +588,14 @@ function openPanel(panel){
   if(game.frontScreen)return;
   if(player.hp<=0&&panel!=='death')return;
   if(game.panel===panel&&panel!=='death'){closePanel();return;}
+  if(panel!=='inventory'&&game.chickenUI?.visible&&!game.chickenUI.battle&&!game.chickenUI.duel)game.chickenUI.close(true);
   if(HUD_PANELS.includes(panel)){cancelPendingCombat();game.attackAnim=0;}
   if(panel==='inventory'){recordFeat(player,'inventoryOpens');save();}
   $('modal-backdrop').classList.toggle('death-arrival',panel==='death');
   game.panel=panel;game.paused=!HUD_PANELS.includes(panel)&&panel!=='journal';game.mouseDown=false;clearAttackOrder();game.target=null;game.path=null;game.interactTarget=null;keys.clear();$('modal-backdrop').classList.remove('hidden');$('modal').setAttribute('aria-modal',String(game.paused));$('skill-picker').classList.add('hidden');renderPanel();
   setTimeout(()=>$('modal').querySelector('button')?.focus(),0);
 }
-function closePanel(){if(game.panel==='death')return;pendingBinding=null;keys.clear();townUI.cancelIdentify();game.panel=null;game.paused=Boolean(game.frontScreen);game.hudWidth=0;$('modal-backdrop').classList.add('hidden');$('modal-backdrop').classList.remove('hud-mode','death-arrival');townUI.hud.hideTooltip();$('world').focus({preventScroll:true});save();}
+function closePanel(){if(game.panel==='death')return;if(game.chickenUI?.visible&&!game.chickenUI.battle&&!game.chickenUI.duel)game.chickenUI.close(true);pendingBinding=null;keys.clear();townUI.cancelIdentify();game.panel=null;game.paused=Boolean(game.frontScreen);game.hudWidth=0;$('modal-backdrop').classList.add('hidden');$('modal-backdrop').classList.remove('hud-mode','death-arrival');townUI.hud.hideTooltip();$('world').focus({preventScroll:true});save();}
 const title=(eyebrow,name)=>`<button class="close" data-action="close" aria-label="Close panel">×</button><span class="eyebrow">${eyebrow}</span><h2 id="modal-title">${name}</h2>`;
 function renderPanel(){
   const modal=$('modal');
@@ -961,4 +962,4 @@ async function prepareArea(){
  catch(error){if(game.loading!==token)return;root.querySelector('p').textContent='The area could not be prepared. Reload the game to retry.';console.error(error);}
 }
 
-const chickens=new ChickenUI(game,{save,toast,closePanel,renderer,stop:()=>{keys.clear();clearAttackOrder();cancelPendingCombat();game.target=null;game.path=null;}});game.chickenUI=chickens;chickens.crateImage=new Image();chickens.crateImage.src=CHICKEN_TREASURES_ART;
+const chickens=new ChickenUI(game,{save,toast,openPanel,closePanel,renderer,refreshInventory:()=>{if(game.panel==='inventory')renderPanel();},fitPanels:()=>townUI.hud.fit(),stop:()=>{keys.clear();clearAttackOrder();cancelPendingCombat();game.target=null;game.path=null;}});game.chickenUI=chickens;chickens.crateImage=new Image();chickens.crateImage.src=CHICKEN_TREASURES_ART;

@@ -161,6 +161,7 @@ export class TownUI {
     let data;try{data=JSON.parse(event.dataTransfer.getData('text/plain'));}catch{return;}
     const source=data.source==='pack'?this.player.inventory:data.source==='stash'?this.stashItems:null,item=data.source==='equipped'?this.player.equipment[data.slot]:source?.find(i=>i.id===data.id);if(!item||item.id!==data.id)return;
     event.preventDefault();const element=event.target,targetItem=element?.closest('[data-pack-id]'),grid=element?.closest('[data-bag-grid]'),slot=element?.closest('[data-equip-slot]'),doll=element?.closest('.paperdoll');
+    if(element?.closest('[data-cargo-grid="chicken"]')){if(data.source==='pack'&&this.game.panel==='inventory')this.game.chickenUI?.moveCargo(item.id,true);return;}
     if(isInsightScroll(item)&&targetItem&&targetItem.dataset.packId!==item.id){
       const target=targetItem.dataset.container==='stash'?this.stashItems:this.player.inventory,stack=target.find(i=>i.id===targetItem.dataset.packId);
       if(isInsightScroll(stack)){const n=Math.min(scrollQuantity(item),SCROLL_STACK-scrollQuantity(stack));if(n<=0){this.toast('This stack already holds 20 scrolls.');return;}stack.quantity=scrollQuantity(stack)+n;const left=scrollQuantity(item)-n;if(left)item.quantity=left;else source.splice(source.indexOf(item),1);this.refresh();return;}

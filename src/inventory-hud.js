@@ -87,9 +87,9 @@ export class InventoryHUD {
     const sheet=this.modal.querySelector('.inventory-sheet');if(!sheet)return;
     if(this.modal.classList.contains('dual-stash'))return this.fitStash();
     if(this.modal.classList.contains('dual-service'))return this.fitService();
-    const service=this.game.panel!=='inventory',availableWidth=innerWidth-16,availableHeight=innerHeight-108;
+    const service=this.game.panel!=='inventory',petPair=!service&&this.game.chickenUI?.visible&&!this.game.chickenUI.battle,availableWidth=innerWidth-16,availableHeight=innerHeight-108;
     let cell,width,height;
-    if(!service){cell=Math.max(12,Math.min(46,Math.floor((availableWidth-32)/BAG.width),Math.floor((availableHeight-162)/12.4)));width=cell*BAG.width+32;height=Math.round(cell*12.4+162);}else{width=Math.min(availableWidth,900);height=Math.min(700,availableHeight);}
+    if(!service){cell=Math.max(12,Math.min(46,Math.floor((availableWidth-(petPair?100:32))/(petPair?20:BAG.width)),Math.floor((availableHeight-162)/12.4)));width=cell*BAG.width+32;height=Math.round(cell*12.4+162);}else{width=Math.min(availableWidth,900);height=Math.min(700,availableHeight);}
     sheet.classList.remove('wide-inventory');sheet.classList.toggle('narrow-service',service&&innerWidth<=700);sheet.style.setProperty('--gear-cell',cell||32);
     sheet.style.width='100%';sheet.style.height='100%';sheet.style.transform='none';
     this.modal.style.width=width+'px';this.modal.style.height=height+'px';this.modal.style.setProperty('--panel-w',width+'px');this.modal.style.setProperty('--panel-h',height+'px');this.modal.style.top='8px';
@@ -100,7 +100,8 @@ export class InventoryHUD {
       const gridCell=!service?cell:Math.max(12,Math.floor(Math.min((section.clientWidth-4)/cols,(section.clientHeight-label-overflow-6)/rows)));
       const w=gridCell*cols+'px',h=gridCell*rows+'px';if(grid.style.width!==w)grid.style.width=w;if(grid.style.height!==h)grid.style.height=h;
     }
-    this.game.hudWidth=innerWidth-width>380&&innerWidth>700?width+16:0;
+    this.game.hudWidth=petPair?0:innerWidth-width>380&&innerWidth>700?width+16:0;
+    if(petPair)this.game.chickenUI.fitInventoryPair(width,height,cell);
   }
 
   fitService(){
