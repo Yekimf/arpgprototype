@@ -10,6 +10,12 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.58.1 — Fresh worlds per game
+
+- Pressing Play starts a new randomly seeded world in Emberfall, including for existing characters. Character progress, equipment, quests and waypoints remain saved.
+- Revisiting an area during the same game keeps its layout, explored ground, enemies and loot. Town portals retain their round-trip destinations. Returning to the title and playing again creates a fresh world; pausing does not.
+- Multiplayer continues to use one host-owned seed and area cache for everyone in the room.
+
 ## Version 0.58.0 — Solid scenery and the Tithe Granary
 
 - Buildings, tree trunks, chests, carts, sack stacks, barrels, pillars and other solid scenery have ground footprints. Canopies, loose bones, wheat and ground litter remain passable. Threshing shelters block their posts while leaving their centres open.

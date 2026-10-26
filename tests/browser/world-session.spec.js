@@ -1,0 +1,30 @@
+import {test,expect} from '@playwright/test';
+import {createPlayer} from '../../src/game.js';
+import {createCampaign,attuneWaypoint} from '../../src/campaign.js';
+import {continueJourney} from './helpers.js';
+
+test('Play randomizes the world while area revisits retain session state',async({page})=>{
+ test.setTimeout(90000);
+ const player=createPlayer({name:'Session keeper'});player.campaign=createCampaign();
+ attuneWaypoint(player,'stronghold',1,0);
+ await page.addInitScript(player=>{if(!localStorage.getItem('ashen-reliquary-save-v1'))localStorage.setItem('ashen-reliquary-save-v1',JSON.stringify({version:1,player,seed:42710,depth:1,zone:'town'}));},player);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const snapshot=()=>page.evaluate(()=>window.__reliquary.snapshot());
+ const ready=()=>expect(page.locator('#area-loading')).toBeHidden();
+ const travel=async id=>{await page.keyboard.press('g');await page.locator(`[data-waypoint="${id}"]`).first().click();await ready();};
+ await page.goto('/');await continueJourney(page);await ready();
+ const town=await snapshot();expect(town.seed).not.toBe(42710);expect(town.zone).toBe('town');
+ await travel('act-1-stronghold');const dungeon=await snapshot();expect(dungeon.seed).toBe(town.seed);
+ await page.keyboard.press('Escape');await page.locator('[data-action=close]').first().click();
+ expect((await snapshot()).seed).toBe(town.seed);
+ await travel('emberfall');expect((await snapshot()).areaSeed).toBe(town.areaSeed);
+ await travel('act-1-stronghold');const revisit=await snapshot();
+ expect(revisit.areaSeed).toBe(dungeon.areaSeed);expect(revisit.layoutSignature).toBe(dungeon.layoutSignature);
+ expect(revisit.exploredTiles).toBeGreaterThanOrEqual(dungeon.exploredTiles);
+ await page.keyboard.press('Escape');await page.locator('[data-action=main-menu]').click();
+ await continueJourney(page);await ready();const next=await snapshot();
+ expect(next.seed).not.toBe(town.seed);expect(next.areaSeed).not.toBe(town.areaSeed);
+ expect(next.characterId).toBe(town.characterId);expect(next.campaign.questFlow).toEqual(town.campaign.questFlow);
+ await travel('act-1-stronghold');expect((await snapshot()).areaSeed).not.toBe(dungeon.areaSeed);
+ expect(errors).toEqual([]);
+});
