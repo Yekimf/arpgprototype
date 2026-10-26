@@ -1,10 +1,10 @@
-import {ensurePets} from './chicken-pets.js';
+import {ensurePets,petName} from './chicken-pets.js';
 import {findPath,moveEntity,isWalkable} from './game.js';
 export function tickChickenFollower(game,dt){
  const p=game.player,s=ensurePets(p),pet=s.roster.find(c=>c.id===s.active),d=game.dungeon;
  if(!pet||pet.trip||s.follow===false||game.frontScreen||p.hp<=0){game.chickenFollower=null;return;}
  let f=game.chickenFollower;if(!f||f.petId!==pet.id||f.area!==d){f=game.chickenFollower={petId:pet.id,area:d,x:p.x,y:p.y,heading:0,gait:0,path:[],repath:0};}
- Object.assign(f,{breed:pet.breed,hat:pet.hat,pet:true});f.moving=false;
+ Object.assign(f,{breed:pet.breed,name:petName(pet),hat:pet.hat,pet:true});f.moving=false;
  if(game.petPaused||game.paused||game.loading)return;
  const gap=Math.hypot(p.x-f.x,p.y-f.y);if(gap>18){f.x=p.x;f.y=p.y;f.path=[];return;}if(gap<1.4){f.path=[];return;}
  f.repath-=dt;if(f.repath<=0){f.repath=.65;f.path=findPath(d,f,p);}

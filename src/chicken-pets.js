@@ -20,11 +20,15 @@ const hash=s=>{let h=2166136261;for(const c of String(s))h=Math.imul(h^c.charCod
 const id=()=>globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2);
 export function ensurePets(p){
  const s=p.pets??={version:1,unlocked:false,roster:[],seen:[],hats:[],points:0,items:{},captured:[],wins:0};
- for(const k of ['roster','seen','hats','captured'])if(!Array.isArray(s[k]))s[k]=[];
+ for(const k of ['roster','seen','hats','captured','defeatedWild'])if(!Array.isArray(s[k]))s[k]=[];
  s.points=Math.max(0,Math.floor(Number(s.points)||0));s.items??={};s.wins??=0;s.unlocked=!!(s.unlocked||s.roster.length);
  if(s.roster.length&&!s.roster.some(c=>c.id===s.active))s.active=s.roster[0].id;
  return s;
 }
+export function nicknamePet(p,petId,raw){const c=ensurePets(p).roster.find(c=>c.id===petId);if(!c)return false;const name=String(raw??'').normalize('NFKC').trim().replace(/\s+/g,' ');if(name&&!/^[\p{L}\p{N}][\p{L}\p{N} .'-]{0,23}$/u.test(name))throw Error('Use up to 24 letters, numbers, spaces, dots, apostrophes or hyphens.');if(name)c.name=name;else delete c.name;return true;}
+export function wildChickenRemoved(p,d,c){const key=wildIdentity(d,c);return !!(c.dead||c.removed||p.pets?.captured?.includes(key)||p.pets?.defeatedWild?.includes(key));}
+export function pruneWildChickens(p,d){if(d?.chickens?.some(c=>wildChickenRemoved(p,d,c)))d.chickens=d.chickens.filter(c=>!wildChickenRemoved(p,d,c));}
+export function defeatWildChicken(p,d,c){const s=ensurePets(p),key=wildIdentity(d,c);if(!s.defeatedWild.includes(key))s.defeatedWild.push(key);c.dead=true;pruneWildChickens(p,d);}
 export function movesFor(c){const t=typeOf(c),l=c.level||1;return ['peck',t+0,l>=6?t+2:'brace',l>=12?t+3:t+1].filter(k=>MOVES[k].level<=l);}
 export function petStats(c){const l=clamp(c.level||1,1,50),v=hash(c.id||c.breed),b=breedOf(c);return {hp:42+l*8+(v%7),attack:11+l*3+(b.art%3)*2,defense:9+l*2+(b.art%4),speed:10+l*2+(b.art%5)*2};}
 export const petXpNeeded=level=>Math.round(35+level*level*5);
@@ -35,7 +39,7 @@ export function wildProfile(d,c){if(!c.breed){const n=hash((d.seed||0)+':'+c.id+
 export function canCapture(p){return ensurePets(p).roster.length<MAX_PETS;}
 export const isChickenCrate=i=>i?.consumable==='chicken-crate';
 export function makeChickenCrate(){return {id:'crate-'+id(),name:'Wooden Crate',slot:'supply',consumable:'chicken-crate',rarity:'normal',identified:true,width:2,height:2,level:1,price:18};}
-export function beginCapture(p,d,c,crateId){const s=ensurePets(p);if(s.pendingCapture||!canCapture(p)||c.capturing||s.captured.includes(wildIdentity(d,c)))return false;const at=p.inventory.findIndex(i=>i.id===crateId&&isChickenCrate(i));if(at<0)return false;
+export function beginCapture(p,d,c,crateId){const s=ensurePets(p);if(s.pendingCapture||!canCapture(p)||c.capturing||wildChickenRemoved(p,d,c))return false;const at=p.inventory.findIndex(i=>i.id===crateId&&isChickenCrate(i));if(at<0)return false;
  wildProfile(d,c);p.inventory.splice(at,1);c.capturing=true;s.pendingCapture={key:wildIdentity(d,c),wild:{breed:c.breed,element:c.element,level:c.level},token:id()};return true;
 }
 export function finishCapture(p){const s=ensurePets(p),pending=s.pendingCapture;if(!pending)return null;delete s.pendingCapture;if(s.captured.includes(pending.key))return null;const c=makePet(pending.wild);s.roster.push(c);s.captured.push(pending.key);s.unlocked=true;s.active??=c.id;

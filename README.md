@@ -10,6 +10,12 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.62.0 — Chickens stay gone, names, and clearer hats
+
+- Captured chickens leave the world after the crate closes. Wild chickens defeated in a battle also disappear. Neither returns when you walk away or revisit the area during the same game; a fresh world can have new wild chickens.
+- Open **Chickendex → Pets** to give a collected chicken a nickname or restore its breed name. Names persist with that character and appear in battles and on multiplayer companions.
+- Hats now use tighter artwork crops and larger placement over the chicken's head in the world, portraits, and battles.
+
 ## Version 0.61.0 — Shared multiplayer quest objectives
 
 - Every player in a hosted company shares Act I objective kills and boss completions, without requiring party membership or proximity. Players elsewhere in the world receive the same counters, and late joiners catch up to objectives completed in that game.
