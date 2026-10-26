@@ -87,3 +87,7 @@ must be checked on the deployed project and a normal browser.
 
 The v0.43 menu update requires no new SQL. Keep migrations 001 and 002 and the
 existing public project settings, then rerun Publish browser game on `main`.
+
+### Friend requests by name
+
+After migrations 001 and 002, run [003_friend_names.sql](../supabase/migrations/003_friend_names.sql) in Supabase SQL Editor. It preserves existing accounts and friends, and adds exact, case-insensitive username/display-name lookup. Shared display names require `@username` or a friend code.

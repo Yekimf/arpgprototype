@@ -10,6 +10,13 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.59.0 — Company ledger and friends by name
+
+- Replaced native rounded party meters with square inset life wells, aged stone cards and shield-shaped level badges. The company roster has clearer party/leader labels, readable location names, grouped actions and a party summary. Health updates without rebuilding the roster; the compact party list can scroll for a full eight-player company.
+- Add friends by exact username, display name or existing friend code from the company hall. Requests still require acceptance. Names ignore letter case; use `@username` or a code when a display name is shared. Enter submits the request, with duplicate-submit protection and feedback.
+- **Existing online deployments:** run [003_friend_names.sql](supabase/migrations/003_friend_names.sql) once in Supabase SQL Editor, after migrations 001 and 002, to enable name lookup. Existing friends and characters remain intact. Codes continue working with the previous database.
+- Checked database permissions, duplicate names and pending requests, browser account/friend/host/trade flows, party UI at desktop resolutions, and both offline builds.
+
 ## Version 0.58.1 — Fresh worlds per game
 
 - Pressing Play starts a new randomly seeded world in Emberfall, including for existing characters. Character progress, equipment, quests and waypoints remain saved.

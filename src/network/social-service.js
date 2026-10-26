@@ -30,7 +30,7 @@ export class SocialService {
  peerCharacter(request){return this.rpc('online_peer_character',{p_request:request});}
  roster(){return this.rpc('social_roster');}
  heartbeat(hosting=null){return this.rpc('social_heartbeat',{p_hosting:hosting});}
- addFriend(code){return this.rpc('social_add_friend',{p_code:String(code).trim().toUpperCase()});}
+ addFriend(name){const value=String(name||'').normalize('NFKC').trim().replace(/\s+/g,' ');if(value.length<2||value.length>25)throw Error('Enter an exact username, display name or friend code.');return this.rpc('social_add_friend',{p_code:value});}
  replyFriend(id,accept){return this.rpc('social_reply_friend',{p_id:id,p_accept:accept});}
  removeFriend(id){return this.rpc('social_remove_friend',{p_id:id});}
  requestJoin(host,room,character){return this.rpc('social_request_join',{p_host:host,p_room:room,p_character:character});}

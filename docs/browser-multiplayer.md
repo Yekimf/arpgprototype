@@ -14,9 +14,17 @@ The repository includes the implementation and database migration. Public servic
 For the current username/password version, follow [online account setup](online-accounts.md).
 Create the Supabase project, enable Email/password with signups allowed and email
 confirmation disabled, then run **001_browser_friends.sql** followed by
-**002_accounts_online_characters.sql**. Existing installations run only 002.
+**002_accounts_online_characters.sql**, then **003_friend_names.sql**. Existing installations with accounts already enabled run only 003.
 The game now requires separate online characters; single-player imports remain
 local. Anonymous sign-ins are no longer created by the game.
+
+To enable username/display-name requests on an existing deployment, open Supabase
+**SQL Editor → New query**, paste [003_friend_names.sql](../supabase/migrations/003_friend_names.sql),
+and run it once. No characters, friends or saves are removed. In the company hall,
+enter an exact username, display name or friend code and press **Send request** (or
+Enter). Names are case insensitive. If several players share a display name, use
+`@username` or the unique friend code. Existing friend codes still work without
+this migration; name requests require it.
 
 Copy the project URL and public publishable/anon key from Project Settings → API.
 Never use a secret or service-role key in the game.
