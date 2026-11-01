@@ -36,12 +36,14 @@ export function poseFrame(face,look,state,heading={x:0,y:1}){
  if(look.twoHanded){primary.x=(face.arm[0]+face.offArm[0])*160+aim.x*reach*.6;primary.y=148+lift+aim.y*reach*.4;}
  let support={x:face.offHand[0]*320,y:face.offHand[1]*320};
  if(look.twoHanded&&look.weapon==='bow'){
-  support={x:(face.arm[0]+face.offArm[0])*160+aim.x*50,y:116+aim.y*34};
+  support={x:Math.min(285,(face.arm[0]+face.offArm[0])*160+aim.x*50+(back?15:83)),y:116+aim.y*34};
   // A carried bow stands upright beside the body. Drawing it for a shot may
   // rotate it toward the target without altering the idle silhouette.
   angle=attack?Math.atan2(aim.y,aim.x)+Math.PI/2:-Math.PI/2;
  }
  if(look.twoHanded&&look.weapon==='crossbow'&&!attack)angle=back?.08:-.08;
  if(state.action==='walk'){const phase=state.frame/16*Math.PI*2,shift=Math.sin(phase)*2;primary.y+=shift;if(!look.twoHanded)support.y-=shift;else support.y+=shift;}
- return {primary,support,angle,aim,draw:mode==='bow'&&attack?Math.abs(lift):0,weaponHand:look.weapon==='bow'?'off':'primary'};
+ const bowDraw=mode==='bow'&&attack?Math.abs(lift):0;
+ if(bowDraw)primary.x-=bowDraw;
+ return {primary,support,angle,aim,draw:bowDraw,relaxedBow:look.weapon==='bow',weaponHand:look.weapon==='bow'?'off':'primary'};
 }

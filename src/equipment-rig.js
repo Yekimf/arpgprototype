@@ -7,8 +7,9 @@ export function solveEquipmentRig(face,look,pose,bounds){
  const icon=look.weaponIcon??0,b=bounds[icon]||bounds[0],height=(WEAPON_GRIPS[icon]||WEAPON_GRIPS[0])[4],width=height*b[2]/b[3];
  let primary={...pose.primary},support={...pose.support},supportOffset=null,weaponHand=0;
  if(look.twoHanded&&look.weapon==='bow'){
-  weaponHand=1;const string=weaponPointOffset(icon,width,height,pose.angle,BOW_STRING),draw=pose.draw||0;
-  primary={x:support.x+string.x-pose.aim.x*draw,y:support.y+string.y-pose.aim.y*draw};supportOffset={x:support.x-primary.x,y:support.y-primary.y};
+  weaponHand=1;
+  if(!pose.relaxedBow){const string=weaponPointOffset(icon,width,height,pose.angle,BOW_STRING),draw=pose.draw||0;
+   primary={x:support.x+string.x-pose.aim.x*draw,y:support.y+string.y-pose.aim.y*draw};supportOffset={x:support.x-primary.x,y:support.y-primary.y};}
  }else if(look.twoHanded&&WEAPON_SUPPORTS[icon])supportOffset=weaponPointOffset(icon,width,height,pose.angle,WEAPON_SUPPORTS[icon]);
  if(supportOffset){const fitted=fitGrips(roots,lengths.map(l=>l[0]+l[1]),primary,supportOffset,lengths.map(l=>Math.abs(l[0]-l[1])+.05));primary=fitted.primary;support=fitted.support;}
  const hands=[primary,support].map((goal,i)=>{

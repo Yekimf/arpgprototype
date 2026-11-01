@@ -6,7 +6,7 @@ export const oneHandedMelee=look=>!look.twoHanded&&['sword','axe','mace','flail'
 // These angles are shared by both bodies; the grip remains on the measured hilt.
 export const CARRY_ANGLES={
  0:[-2.45,.36],2:[2.43,.55],3:[-2.55,.35],5:[2.72,.30],
- 6:[-2.42,-.78],7:[-2.06,-1.03],10:[2.43,.52],11:[2.39,.50],15:[-1.46,-1.28],
+ 6:[-2.42,.25],7:[-2.06,-1.03],10:[2.43,.52],11:[2.39,.50],15:[-1.46,-1.28],
 };
 const smooth=t=>t*t*(3-2*t);
 const swing=[[0,0,0,0,0],[.23,-10,-25,0,.4],[.48,34,-8,1,0],[.70,21,5,1,.45],[1,0,0,0,0]];
