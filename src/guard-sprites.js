@@ -2,7 +2,7 @@ import {animationState,poseFrame,layerOrder,weaponMode} from './player-animation
 import {weaponPlacement,WEAPON_GRIPS,BOW_TIPS} from './weapon-rig.js';
 import weaponBounds from './art/weapon-bounds.json';
 import {WEAPON_ART} from './assets.js';
-import {SET_MODELS_ART,GUARD_ART,ITEM_ART,ORIGINAL_ART} from './assets.js';
+import {SET_MODELS_ART,FEMALE_SET_MODELS_ART,GUARD_ART,FEMALE_GUARD_ART,ITEM_ART,ORIGINAL_ART} from './assets.js';
 import {appearanceOf} from './itemization.js';
 import {facingPose,walkingLeg,WALK_FRAMES} from './locomotion.js';
 import {solveEquipmentRig} from './equipment-rig.js';
@@ -13,9 +13,9 @@ const W=192,H=176,S=320;
 export const GUARD_FRAME={width:W,height:H,anchorX:96,anchorY:148,scale:.75};
 const poly=(c,points)=>{c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x*S,y*S):c.moveTo(x*S,y*S));c.closePath();};
 export class GuardSprites{
- constructor(){this.setArt=new Image();this.setArt.src=SET_MODELS_ART;this.weapons=new Image();this.weapons.src=WEAPON_ART;this.art=new Image();this.art.src=GUARD_ART;this.items=new Image();this.items.src=ITEM_ART;this.original=new Image();this.original.src=ORIGINAL_ART;this.cache=new Map();}
- get ready(){return [this.setArt,this.weapons,this.art,this.items,this.original].every(a=>a.complete&&a.naturalWidth>0);}
- tile(c,index){if(Number.isInteger(this.skin)&&this.skin>=0){const i=this.skin*2+index%2,s=this.setArt.naturalWidth/4;c.drawImage(this.setArt,i%4*s,Math.floor(i/4)*s,s,s,0,0,S,S);return;}const s=this.art.naturalWidth/4;c.drawImage(this.art,index%4*s,Math.floor(index/4)*s,s,s,0,0,S,S);}
+ constructor(){this.setArt=new Image();this.setArt.src=SET_MODELS_ART;this.femaleSetArt=new Image();this.femaleSetArt.src=FEMALE_SET_MODELS_ART;this.weapons=new Image();this.weapons.src=WEAPON_ART;this.art=new Image();this.art.src=GUARD_ART;this.femaleArt=new Image();this.femaleArt.src=FEMALE_GUARD_ART;this.items=new Image();this.items.src=ITEM_ART;this.original=new Image();this.original.src=ORIGINAL_ART;this.cache=new Map();}
+ get ready(){return [this.setArt,this.femaleSetArt,this.weapons,this.art,this.femaleArt,this.items,this.original].every(a=>a.complete&&a.naturalWidth>0);}
+ tile(c,index){if(Number.isInteger(this.skin)&&this.skin>=0){const i=this.skin*2+index%2,art=this.sex==='female'?this.femaleSetArt:this.setArt,s=art.naturalWidth/4;c.drawImage(art,i%4*s,Math.floor(i/4)*s,s,s,0,0,S,S);return;}const art=this.sex==='female'?this.femaleArt:this.art,s=art.naturalWidth/4;c.drawImage(art,index%4*s,Math.floor(index/4)*s,s,s,0,0,S,S);}
  clipTile(c,index,points,exclude=null){c.save();poly(c,points);c.clip();if(exclude){c.beginPath();c.rect(0,0,S,S);c.ellipse(exclude[0]*S,exclude[1]*S,50,72,0,0,Math.PI*2);c.clip('evenodd');}this.tile(c,index);c.restore();}
  frame(p,back,column,heading={x:.9,y:back?-.4:.4},direction=null,state=null){
   const look=appearanceOf(p);direction??=facingPose(back?{x:-1,y:-1}:{x:1,y:1});
@@ -26,7 +26,7 @@ export class GuardSprites{
   // Every piece uses one projection. There is no final whole-character flip:
   // the right-hand weapon and left-hand shield retain their anatomical sides.
   const center=160;c.translate(center,0);c.scale(direction.profile,1);c.translate(-center,0);
-  const face=back?FACE.back:FACE.front,offset=back?1:0,body=({none:2,original:0,leather:4,chain:6,plate:8,robe:10})[look.armor]??0;
+  this.sex=look.sex;const face=back?FACE.back:FACE.front,offset=back?1:0,body=({none:2,original:0,leather:4,chain:6,plate:8,robe:10})[look.armor]??0;
   const pose=poseFrame(face,look,state,heading),armed=look.weapon!=='none',rig=solveEquipmentRig(face,look,pose,weaponBounds);
   const armLayer=(arm,part)=>{this.skin=look.setParts.armor;const hand=rig.hands[arm];paintLimb(c,this,{from:part==='upper'?hand.shoulder:hand.elbow,to:part==='upper'?hand.elbow:hand.wrist,part,look:look.armor,back,gloves:part==='upper'?'none':look.gloves});};
   const handLayer=arm=>{this.skin=look.setParts.gloves;const options={hand:rig.hands[arm],gloves:look.gloves,back,arm,closed:armed||state.action==='punch'};if(rig.hands[arm].grip)paintGripFingers(c,this,options);else paintHand(c,this,options);};
@@ -36,7 +36,7 @@ export class GuardSprites{
     const legs=face.legs.map((part,leg)=>({part,leg,step:walking?walkingLeg(phase,leg,face):null})).sort((a,b)=>(a.step?.heel.y??a.part.ankle[1]*S)-(b.step?.heel.y??b.part.ankle[1]*S));
     for(const {part,leg,step}of legs){c.save();if(step)c.translate(step.x,step.y);this.skin=look.setParts.armor;this.clipTile(c,body+offset,part.thigh);this.skin=look.setParts.boots;this.clipTile(c,index,part.shin);c.restore();c.save();if(step){const boot=face.legs[1];c.translate(step.heel.x,step.heel.y);c.scale(leg===0?-1:1,1);c.translate(-boot.ankle[0]*S,-boot.ankle[1]*S);this.clipTile(c,index,boot.foot);}else this.clipTile(c,index,part.foot);c.restore();}
    },
-   torso:()=>{const mask=back&&rig.grip?face.bodyGrip:face.body;this.skin=null;this.clipTile(c,2+offset,mask);this.skin=look.setParts.armor;this.clipTile(c,body+offset,mask,face.shield);},
+   torso:()=>{const mask=look.sex==='female'?(back?FACE.femaleBack:FACE.femaleFront):(back&&rig.grip?face.bodyGrip:face.body);this.skin=null;this.clipTile(c,2+offset,mask);this.skin=look.setParts.armor;this.clipTile(c,body+offset,mask,face.shield);},
    head:()=>{this.skin=look.setParts.helm;const head=look.helm==='none'?2:look.helm==='hood'?14:look.helm==='greathelm'?12:0,[x,y,w,h]=face.head;c.save();c.beginPath();c.rect(x*S,y*S,w*S,h*S);c.clip();this.tile(c,head+offset);c.restore();},
    accessories:()=>this.accessories(c,look,back),
    primaryPalm:()=>{this.skin=look.setParts.gloves;paintGripPalm(c,this,{hand:rig.hands[0],gloves:look.gloves,back});},primaryArm:()=>armLayer(0,'upper'),offArm:()=>armLayer(1,'upper'),primaryForearm:()=>armLayer(0,'lower'),offForearm:()=>armLayer(1,'lower'),primaryHand:()=>handLayer(0),offHand:()=>handLayer(1),

@@ -10,6 +10,12 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.68.0 — Selectable female loyalist
+
+- Character creation now offers male and female royal guards in both single player and the online realm. The selection updates the camp preview and is saved with the character. Existing male saves stay male; older female saves keep their female model.
+- The female loyalist has a fitted painted guard atlas, a narrower waist, a fuller chest plate, distinct face and hair, and adapted leather, mail, plate, robe and set armor. She uses the same 16-direction walk and weapon attack timing. Her equipped appearance appears in the world, character portraits, inventory preview and fitted armor icons.
+- Existing Supabase projects can run [006_online_ladder_sex.sql](supabase/migrations/006_online_ladder_sex.sql) after 005 so female online characters also use the correct model on the leaderboard. Character saves remain private.
+
 ## Version 0.67.0 — Character portraits on the online ladder
 
 - Each realm ladder row now shows a painted character portrait beside rank, name, class and level. The portrait uses the same equipped-gear rendering as character select.

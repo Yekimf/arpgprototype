@@ -14,7 +14,7 @@ The repository includes the implementation and database migration. Public servic
 For the current username/password version, follow [online account setup](online-accounts.md).
 Create the Supabase project, enable Email/password with signups allowed and email
 confirmation disabled, then run **001_browser_friends.sql** followed by
-**002_accounts_online_characters.sql**, **003_friend_names.sql**, **004_online_ladder.sql**, then **005_online_ladder_portraits.sql**. Existing installations run only migrations they have not yet applied.
+**002_accounts_online_characters.sql**, **003_friend_names.sql**, **004_online_ladder.sql**, then **005_online_ladder_portraits.sql** and **006_online_ladder_sex.sql**. Existing installations run only migrations they have not yet applied.
 The game now requires separate online characters; single-player imports remain
 local. Anonymous sign-ins are no longer created by the game.
 
@@ -30,7 +30,8 @@ The **Ladder** tab in the company hall lists the 100 highest level online
 characters with their name, class, level, account display name and equipped
 character portrait. For an existing Supabase project, run
 [004_online_ladder.sql](../supabase/migrations/004_online_ladder.sql) and then
-[005_online_ladder_portraits.sql](../supabase/migrations/005_online_ladder_portraits.sql)
+[005_online_ladder_portraits.sql](../supabase/migrations/005_online_ladder_portraits.sql) and
+[006_online_ladder_sex.sql](../supabase/migrations/006_online_ladder_sex.sql)
 in **SQL Editor → New query**, then republish the game. The portrait query
 returns only visible gear shape and appearance fields; it does not return
 inventory, item stats or character saves.

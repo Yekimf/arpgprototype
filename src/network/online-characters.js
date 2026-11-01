@@ -4,7 +4,13 @@ import {validCharacterSave} from '../character-saves.js';
 export class OnlineCharacters{
  constructor(service){this.service=service;this.characters=[];this.sharedStashes=[[],[],[]];this.persistent=true;this.error='';this.lease=crypto.randomUUID();this.queue=Promise.resolve();}
  async refresh(){const records=await this.service.onlineRoster();if(this.active){const active=this.active;this.characters=records.map(r=>r.id===active.id?active:r);}else this.characters=records;return this.characters;}
- async create(name){const record=await this.service.createOnline(name);this.characters.push(record);return record;}
+ async create(name,sex='male'){let record=await this.service.createOnline(name);if(sex==='female'){
+  // The existing account RPC creates the starter save. Apply the selected
+  // appearance through its leased, revision-checked save path immediately.
+  await this.service.openOnline(record.id,this.lease);
+  try{record.save.player.sex='female';const saved=await this.service.saveOnline(record.id,this.lease,record.revision,record.save);record={...record,revision:saved.revision};}
+  finally{await this.service.releaseOnline(record.id,this.lease);}
+ }this.characters.push(record);return record;}
  async open(id){if(this.releasing)await this.releasing;if(this.active&&this.active.id!==id)throw Error('Leave the current character before selecting another.');const record=await this.service.openOnline(id,this.lease);if(!validCharacterSave(record.save)||record.save.player.onlineCharacterId!==record.id)throw Error('The online character record is invalid.');this.active={...record,online:true};this.dirty=false;this.characters=this.characters.map(r=>r.id===id?this.active:r);return this.active;}
  save(save){if(!this.active||!validCharacterSave(save)||save.player.onlineCharacterId!==this.active.id)return false;this.active.save=structuredClone(save);this.dirty=true;if(!this.timer)this.timer=setTimeout(()=>this.flush().catch(e=>this.onError?.(e)),1200);return true;}
  async flush(){clearTimeout(this.timer);this.timer=null;const task=this.queue.catch(()=>{}).then(async()=>{if(!this.active||!this.dirty)return;const active=this.active,snapshot=structuredClone(active.save);await this.service.openOnline(active.id,this.lease);const record=await this.service.saveOnline(active.id,this.lease,active.revision,snapshot);if(this.active!==active)return;active.revision=record.revision;this.dirty=JSON.stringify(active.save)!==JSON.stringify(snapshot);this.error='';});this.queue=task;try{await task;}catch(e){this.error='Online save failed: '+e.message;this.onError?.(Error(this.error));throw e;}}

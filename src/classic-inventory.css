@@ -12,3 +12,5 @@
 .affix-tier{display:block;font:10px Georgia;color:#998a6c;margin:4px 0 7px;letter-spacing:.5px}
 
 .item-tooltip.pinned-tip.scrollable-tip{pointer-events:auto;overscroll-behavior:contain;touch-action:pan-y}
+/* Painted equipped model behind the socket grid, for both loyalist bodies. */
+.modal.hud-panel:is([data-hud-panel="inventory"],.dual-service) .paperdoll canvas.paperdoll-figure{display:block!important;position:absolute;left:34%;top:3%;right:auto;bottom:auto;transform:none;width:32%;height:87%;opacity:.46;clip-path:none;background:none;object-fit:contain;filter:drop-shadow(0 4px 5px #000);pointer-events:none}

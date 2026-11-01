@@ -64,7 +64,7 @@ export function arrange(items,dimensions=BAG,sort=false){
 }
 export function migratePlayer(player){
   ensureChronicle(player);discoverSetItems(player);ensurePassives(player);player.skillMods??={};player.dungeonGeneration??=0;
-  player.sex='male';
+  player.sex=player.sex==='female'?'female':'male';
   const legacy=player.progressionVersion!==2;
   player.slots=Array.from({length:4},(_,i)=>player.slots?.[i]??null);
   if(legacy&&player.slots.includes('lance'))player.skills.lance??=1;

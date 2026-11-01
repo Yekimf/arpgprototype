@@ -29,14 +29,18 @@ export const CAMPAIGN_ART=localAsset(campaign);
 export const MAP_ART=localAsset(worldmap);
 
 import guard from './art/runtime/guard-equipment.webp?inline';
+import femaleGuard from './art/runtime/guard-female.webp?inline';
 import original from './art/runtime/guard-combat.webp?inline';
 import stone from './art/runtime/inventory-stone.webp?inline';
 export const GUARD_ART=localAsset(guard);
+export const FEMALE_GUARD_ART=localAsset(femaleGuard);
 export const ORIGINAL_ART=localAsset(original);
 export const STONE_ART=localAsset(stone);
 
 import armorIcons from './art/runtime/armor-icons.webp?inline';
+import femaleArmorIcons from './art/runtime/armor-icons-female.webp?inline';
 export const ARMOR_ART=localAsset(armorIcons);
+export const FEMALE_ARMOR_ART=localAsset(femaleArmorIcons);
 
 import titleLandscape from './art/runtime/title-landscape.webp?inline';
 import menuButton from './art/runtime/menu-button.webp?inline';
@@ -89,8 +93,10 @@ import chickenArt from './art/runtime/chickens.webp?inline';
 export const CHICKEN_ART=localAsset(chickenArt);
 
 import setModels from './art/runtime/set-models.webp?inline';
+import femaleSetModels from './art/runtime/set-models-female.webp?inline';
 import setItems from './art/runtime/set-items.webp?inline';
 export const SET_MODELS_ART=localAsset(setModels);
+export const FEMALE_SET_MODELS_ART=localAsset(femaleSetModels);
 export const SET_ITEMS_ART=localAsset(setItems);
 
 import globeFrame from './art/runtime/globe-frame.webp?inline';

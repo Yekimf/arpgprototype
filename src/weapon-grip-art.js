@@ -3,7 +3,7 @@
 function palette(gloves){return gloves==='steel'?{dark:'#343a35',mid:'#74776b',light:'#b1ad96'}:gloves==='leather'?{dark:'#342519',mid:'#715136',light:'#a47c4c'}:{dark:'#593d2c',mid:'#997351',light:'#c29b74'};}
 function space(c,hand){const g=hand.grip;c.translate(hand.center.x,hand.center.y);c.rotate(g.angle);c.scale(1,g.side);return g;}
 function texture(c,guard,back,gloves,x,y,w,h){
- const custom=gloves!=='none'&&Number.isInteger(guard.skin)&&guard.skin>=0,image=custom?guard.setArt:guard.art,cell=custom?guard.skin*2+(back?1:0):(gloves==='none'?2:gloves==='steel'?0:4)+(back?1:0),s=image.naturalWidth/4,p=gloves==='none'?(back?[262,178,17,16]:[109,175,17,17]):back?[254,146,10,23]:[109,139,10,24];
+ const custom=gloves!=='none'&&Number.isInteger(guard.skin)&&guard.skin>=0,image=custom?(guard.sex==='female'?guard.femaleSetArt:guard.setArt):(guard.sex==='female'?guard.femaleArt:guard.art),cell=custom?guard.skin*2+(back?1:0):(gloves==='none'?2:gloves==='steel'?0:4)+(back?1:0),s=image.naturalWidth/4,p=gloves==='none'?(back?[262,178,17,16]:[109,175,17,17]):back?[254,146,10,23]:[109,139,10,24];
  c.drawImage(image,cell%4*s+p[0],Math.floor(cell/4)*s+p[1],p[2],p[3],x,y,w,h);
 }
 export function paintGripPalm(c,guard,{hand,gloves='none',back=false}){
