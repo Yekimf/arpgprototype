@@ -29,7 +29,7 @@ export class GuardSprites{
   this.sex=look.sex;const face=back?FACE.back:FACE.front,offset=back?1:0,body=({none:2,original:0,leather:4,chain:6,plate:8,robe:10})[look.armor]??0;
   const pose=poseFrame(face,look,state,heading),armed=look.weapon!=='none',rig=solveEquipmentRig(face,look,pose,weaponBounds);
   const armLayer=(arm,part)=>{this.skin=look.setParts.armor;const hand=rig.hands[arm];paintLimb(c,this,{from:part==='upper'?hand.shoulder:hand.elbow,to:part==='upper'?hand.elbow:hand.wrist,part,look:look.armor,back,gloves:part==='upper'?'none':look.gloves});};
-  const handLayer=arm=>{this.skin=look.setParts.gloves;const options={hand:rig.hands[arm],gloves:look.gloves,back,arm,closed:armed||state.action==='punch'};if(rig.hands[arm].grip)paintGripFingers(c,this,options);else paintHand(c,this,options);};
+  const handLayer=arm=>{this.skin=look.setParts.gloves;const hand=rig.hands[arm],held=hand.wrap?{...hand,grip:hand.wrap}:hand,options={hand:held,gloves:look.gloves,back,arm,closed:armed||state.action==='punch'};if(held.grip)paintGripFingers(c,this,options);else paintHand(c,this,options);};
   const layers={
    legs:()=>{const index=(look.boots==='steel'?0:look.boots==='leather'?4:2)+offset;this.skin=look.setParts.boots;
     const walking=state.action==='walk'||Number.isInteger(state.locomotionFrame),cycle=state.action==='walk'?state.frame:state.locomotionFrame,phase=walking?cycle/WALK_FRAMES*Math.PI*2:0;
@@ -40,7 +40,7 @@ export class GuardSprites{
    head:()=>{this.skin=look.setParts.helm;const head=look.helm==='none'?2:look.helm==='hood'?14:look.helm==='greathelm'?12:0,[x,y,w,h]=face.head;c.save();c.beginPath();c.rect(x*S,y*S,w*S,h*S);c.clip();this.tile(c,head+offset);c.restore();},
    accessories:()=>this.accessories(c,look,back),
    primaryPalm:()=>{this.skin=look.setParts.gloves;paintGripPalm(c,this,{hand:rig.hands[0],gloves:look.gloves,back});},primaryArm:()=>armLayer(0,'upper'),offArm:()=>armLayer(1,'upper'),primaryForearm:()=>armLayer(0,'lower'),offForearm:()=>armLayer(1,'lower'),primaryHand:()=>handLayer(0),offHand:()=>handLayer(1),
-   weapon:()=>{if(!armed)return;this.skin=null;const hand=rig.weapon.anchor;this.weapon(c,look.weapon,back,[hand.x/S,hand.y/S],look.weaponIcon,pose.angle,state.action);if(rig.string){c.strokeStyle='#c2af8599';c.lineWidth=1.2;c.beginPath();c.moveTo(rig.string[0].x,rig.string[0].y);if(state.action==='attack')c.lineTo(rig.hands[0].center.x,rig.hands[0].center.y);c.lineTo(rig.string[1].x,rig.string[1].y);c.stroke();}},
+   weapon:()=>{if(!armed)return;if(look.twoHanded){this.skin=look.setParts.gloves;for(const hand of rig.hands)if(hand.wrap)paintGripPalm(c,this,{hand:{...hand,grip:hand.wrap},gloves:look.gloves,back});}this.skin=null;const hand=rig.weapon.anchor;this.weapon(c,look.weapon,back,[hand.x/S,hand.y/S],look.weaponIcon,pose.angle,state.action);if(rig.string){c.strokeStyle='#c2af8599';c.lineWidth=1.2;c.beginPath();c.moveTo(rig.string[0].x,rig.string[0].y);if(state.action==='attack')c.lineTo(rig.hands[0].center.x,rig.hands[0].center.y);c.lineTo(rig.string[1].x,rig.string[1].y);c.stroke();}},
    shield:()=>{if(look.shield==='none'||look.twoHanded)return;this.skin=look.setParts.shield;const center=rig.hands[1].center;this.shield(c,look.shield,back,[center.x/S,center.y/S]);},
   };
   for(const name of layerOrder(direction,state.mode,rig.grip))layers[name]();
@@ -49,7 +49,7 @@ export class GuardSprites{
  }
  weapon(c,look,back,hand,weaponIcon=0,angle=back?1:2.12,action='idle'){
   if(!this.weapons.complete||!this.weapons.naturalWidth)return;
-  const b=weaponBounds[weaponIcon]||weaponBounds[0],h=weaponIcon===6&&back&&action!=='attack'?100:(WEAPON_GRIPS[weaponIcon]||WEAPON_GRIPS[0])[4],w=h*b[2]/b[3],place=weaponPlacement(weaponIcon,w,h,angle);
+  const b=weaponBounds[weaponIcon]||weaponBounds[0],h=weaponIcon===6&&action!=='attack'?72:(WEAPON_GRIPS[weaponIcon]||WEAPON_GRIPS[0])[4],w=h*b[2]/b[3],place=weaponPlacement(weaponIcon,w,h,angle);
   c.save();c.translate(hand[0]*S,hand[1]*S);c.rotate(place.rotation);if(look==='bow'){if(!this.bow){this.bow=document.createElement('canvas');this.bow.width=b[2];this.bow.height=b[3];const bc=this.bow.getContext('2d');bc.drawImage(this.weapons,...b,0,0,b[2],b[3]);bc.globalCompositeOperation='destination-out';bc.lineWidth=3.5;bc.beginPath();bc.moveTo(BOW_TIPS[0][0]*b[2],BOW_TIPS[0][1]*b[3]);bc.lineTo(BOW_TIPS[1][0]*b[2],BOW_TIPS[1][1]*b[3]);bc.stroke();}c.drawImage(this.bow,place.x,place.y,w,h);}else if(weaponIcon===6&&action!=='attack'){
    // The painted flail is one atlas image. Keep its handle on the hand, but
    // suspend the original spiked head below the ring instead of rotating the
@@ -59,11 +59,13 @@ export class GuardSprites{
   }else c.drawImage(this.weapons,...b,place.x,place.y,w,h);c.restore();
   if(weaponIcon===6&&action!=='attack'){
    const ring=weaponPointOffset(6,w,h,angle,[.56,.05]),x=hand[0]*S+ring.x,y=hand[1]*S+ring.y;
-   const length=h*.9,ballW=w*.41,ballH=h*.41,ballX=x+(back?10:-10),ballY=y+length-3;
+   // A short carried hilt keeps the chain close to the hip; its own length
+   // reaches the shin without making the entire weapon a rigid diagonal.
+   const length=110,ballW=w*.55,ballH=h*.54,ballX=x+(back?6:-6),ballY=y+length-3;
    // Reuse the painted links from the weapon itself. Reflect the chain for a
    // front view so it falls toward the spiked head on the outer side.
    c.save();c.translate(x,y);if(!back)c.scale(-1,1);
-   c.drawImage(this.weapons,b[0]+b[2]*.54,b[1]+b[3]*.08,b[2]*.30,b[3]*.48,-4,0,24,length);
+   c.drawImage(this.weapons,b[0]+b[2]*.54,b[1]+b[3]*.08,b[2]*.30,b[3]*.48,-4,0,20,length);
    c.restore();c.drawImage(this.weapons,b[0]+b[2]*.58,b[1]+b[3]*.54,b[2]*.42,b[3]*.43,ballX-ballW/2,ballY,ballW,ballH);
   }
  }

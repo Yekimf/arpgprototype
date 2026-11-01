@@ -12,6 +12,11 @@ The root HTML embeds all code, styles and runtime art. It works offline. Use a d
 
 Editable male and female weapon-grip sprites are in the [sprite sheet ZIP](docs/downloads/weapon-grip-sheets.zip). It contains 32 transparent PNG sheets, the source character and weapon atlases, and a JSON map of every hand position. Each 192×176 cell covers one of 16 directions and the idle or eight attack frames. The PNGs are exports of the layered renderer; edited cells need to be integrated into the game before they appear in play. Regenerate the export with `node scripts/export-weapon-grip-sheets.mjs`.
 
+## Version 0.68.4 — Weapon-specific hand grips
+
+- One-handed weapons now have their own front and rear hand positions. Greatswords, mauls, both staffs, bows, crossbows and battle axes have distinct two-handed carry targets instead of sharing one ready stance. Staff hands sit farther up their shafts; the rear crossbow is held outward at the waist.
+- Two-handed handles now render between a palm and curled fingers. The flail keeps a short carried hilt with painted links and a head hanging near the shin. Updated male/female comparison images and editable sprite sheets are included.
+
 ## Version 0.68.3 — Corrected weapon-sheet export
 
 - Reworked the weapon carry poses against the supplied front and rear galleries. Two-handed blades, staffs, the battle axe, mace and bow have larger, better placed silhouettes; the bow now rests beside the character rather than across the face. The flail uses painted chain links and hangs its head below the handle.

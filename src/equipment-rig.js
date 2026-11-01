@@ -10,7 +10,7 @@ export function solveEquipmentRig(face,look,pose,bounds){
   weaponHand=1;
   if(!pose.relaxedBow){const string=weaponPointOffset(icon,width,height,pose.angle,BOW_STRING),draw=pose.draw||0;
    primary={x:support.x+string.x-pose.aim.x*draw,y:support.y+string.y-pose.aim.y*draw};supportOffset={x:support.x-primary.x,y:support.y-primary.y};}
- }else if(look.twoHanded&&WEAPON_SUPPORTS[icon])supportOffset=weaponPointOffset(icon,width,height,pose.angle,WEAPON_SUPPORTS[icon]);
+ }else if(look.twoHanded&&!pose.singleCrossbow&&WEAPON_SUPPORTS[icon])supportOffset=weaponPointOffset(icon,width,height,pose.angle,WEAPON_SUPPORTS[icon]);
  if(supportOffset){const fitted=fitGrips(roots,lengths.map(l=>l[0]+l[1]),primary,supportOffset,lengths.map(l=>Math.abs(l[0]-l[1])+.05));primary=fitted.primary;support=fitted.support;}
  const hands=[primary,support].map((goal,i)=>{
   if(i===0&&pose.gripWrap){
@@ -21,7 +21,13 @@ export function solveEquipmentRig(face,look,pose,bounds){
    return {center,wrist,angle:Math.atan2(-heel.y,-heel.x)-Math.PI/2,shoulder:roots[0],elbow:chain.knee,grip:{angle:pose.angle,side,wristX:heel.x*ux+heel.y*uy,wristY:(heel.x*vx+heel.y*vy)*side}};
   }
   const chain=joint(roots[i],goal,...lengths[i],i?(face.back?1:-1):(face.back?-1:1)),center=chain.end,dx=center.x-chain.knee.x,dy=center.y-chain.knee.y,len=Math.hypot(dx,dy)||1;
-  return {center,wrist:{x:center.x-dx/len*9,y:center.y-dy/len*9},angle:Math.atan2(dy,dx)-Math.PI/2,shoulder:roots[i],elbow:chain.knee};
+  const wrist={x:center.x-dx/len*9,y:center.y-dy/len*9};
+  // Both hands close around a two-handed handle. The overlay uses a palm behind
+  // the weapon and fingers above it, while the underlying arm IK is unchanged.
+  const wraps=look.twoHanded&&(look.weapon!=='bow'||i===1)&&!(pose.singleCrossbow&&i===1),ux=Math.cos(pose.angle),uy=Math.sin(pose.angle),vx=-uy,vy=ux;
+  const heel={x:wrist.x-center.x,y:wrist.y-center.y},side=heel.x*vx+heel.y*vy>=0?1:-1;
+  const wrap=wraps?{angle:pose.angle,side,wristX:heel.x*ux+heel.y*uy,wristY:(heel.x*vx+heel.y*vy)*side}:null;
+  return {center,wrist,angle:Math.atan2(dy,dx)-Math.PI/2,shoulder:roots[i],elbow:chain.knee,...(wrap?{wrap}:{})};
  });
  const anchor=hands[weaponHand].center;
  const string=look.weapon==='bow'?BOW_TIPS.map(p=>{const d=weaponPointOffset(icon,width,height,pose.angle,p);return {x:anchor.x+d.x,y:anchor.y+d.y};}):null;

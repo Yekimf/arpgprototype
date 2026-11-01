@@ -15,6 +15,18 @@ const tracks={
  cast:[[0,0,0,0],[.28,-8,-28,-.8],[.5,26,-45,-.4],[.7,32,-30,0],[1,0,0,0]],
  punch:[[0,0,0,0],[.23,-7,4,0],[.5,52,-15,0],[.7,24,-3,0],[1,0,0,0]],
 };
+// Each two-handed painting needs its own held silhouette. Coordinates are in
+// the guard atlas's 320px space; the first entry is the front and the second
+// is the rear view. Attack strokes return to these same held poses.
+const READY_TWO_HANDED={
+ 1:[{hand:[190,151],angle:-1.10},{hand:[201,151],angle:-1.11}], // greatsword
+ 4:[{hand:[184,154],angle:-.83},{hand:[196,154],angle:-.88}], // maul
+ 8:[{hand:[188,158],angle:-.79},{hand:[200,158],angle:-.84}], // ashwood staff
+ 9:[{hand:[189,158],angle:-.83},{hand:[201,158],angle:-.87}], // iron staff
+ 12:[{hand:[184,148],angle:-Math.PI/2,bow:[270,116]},{hand:[203,149],angle:-Math.PI/2,bow:[212,116]}],
+ 13:[{hand:[193,148],angle:-.04},{hand:[235,165],angle:.12}], // crossbow
+ 14:[{hand:[210,164],angle:-.83},{hand:[220,164],angle:-.87}], // battle axe
+};
 function sample(track,t){let b=track.findIndex(k=>k[0]>=t);if(b<=0)return track[0].slice(1);const a=track[b-1],next=track[b],u=smooth((t-a[0])/(next[0]-a[0]));return a.slice(1).map((n,i)=>n+(next[i+1]-n)*u);}
 export const POSE_FRAMES=Object.fromEntries(Object.entries(tracks).map(([name,track])=>[name,Object.freeze(Array.from({length:name==='punch'?6:8},(_,i)=>Object.freeze(sample(track,i/(name==='punch'?5:7)))))]));
 export function weaponMode(look){if(look.weapon==='none')return 'punch';if(['bow','crossbow'].includes(look.weapon))return look.weapon;if(['spear','dagger'].includes(look.weapon))return 'thrust';return look.twoHanded?'heavy':'slash';}
@@ -29,21 +41,23 @@ export function layerOrder(direction,mode=null,grip=false){
 export function poseFrame(face,look,state,heading={x:0,y:1}){
  if(oneHandedMelee(look)&&state.mode!=='cast'&&['idle','walk','attack'].includes(state.action))return oneHandedPose(face,look,state,heading);
  const mode=state.mode||weaponMode(look),frames=POSE_FRAMES[mode],sampled=state.action==='idle'||state.action==='walk'?[0,0,0]:frames[Math.min(frames.length-1,state.frame)]||frames[0],reach=sampled[0],lift=sampled[1],sweep=sampled[2],dx=heading.x,dy=heading.y*.5,length=Math.hypot(dx,dy)||1,aim={x:dx/length,y:dy/length},back=face.hand[0]>.5;
+ const ready=look.twoHanded?READY_TWO_HANDED[look.weaponIcon]?.[back?1:0]:null;
  const primary={x:face.hand[0]*320+aim.x*reach,y:face.hand[1]*320+aim.y*reach*.55+lift};
- let angle=(look.twoHanded?-.95:back?1:2.12)+sweep;
+ let angle=(ready?.angle??(look.twoHanded?-.95:back?1:2.12))+sweep;
  const attack=!['idle','walk'].includes(state.action);
- if(attack&&state.frame>0&&state.frame<state.count-1)angle=Math.atan2(aim.y,aim.x)+sweep;
- if(look.twoHanded){primary.x=(face.arm[0]+face.offArm[0])*160+aim.x*reach*.6;primary.y=148+lift+aim.y*reach*.4;}
+ const striking=attack&&state.frame>0&&state.frame<state.count-1;
+ if(striking)angle=Math.atan2(aim.y,aim.x)+sweep;
+ if(look.twoHanded){primary.x=(ready?.hand[0]??(face.arm[0]+face.offArm[0])*160)+aim.x*reach*.6;primary.y=(ready?.hand[1]??148)+lift+aim.y*reach*.4;}
  let support={x:face.offHand[0]*320,y:face.offHand[1]*320};
  if(look.twoHanded&&look.weapon==='bow'){
-  support={x:Math.min(285,(face.arm[0]+face.offArm[0])*160+aim.x*50+(back?15:83)),y:116+aim.y*34};
+  support={x:Math.min(285,(ready?.bow[0]??(face.arm[0]+face.offArm[0])*160+(back?15:83))+aim.x*50),y:(ready?.bow[1]??116)+aim.y*34};
   // A carried bow stands upright beside the body. Drawing it for a shot may
   // rotate it toward the target without altering the idle silhouette.
-  angle=attack?Math.atan2(aim.y,aim.x)+Math.PI/2:-Math.PI/2;
+  angle=striking?Math.atan2(aim.y,aim.x)+Math.PI/2:ready?.angle??-Math.PI/2;
  }
- if(look.twoHanded&&look.weapon==='crossbow'&&!attack)angle=back?.08:-.08;
+ if(look.twoHanded&&look.weapon==='crossbow'&&!striking)angle=ready?.angle??(back?.08:-.08);
  if(state.action==='walk'){const phase=state.frame/16*Math.PI*2,shift=Math.sin(phase)*2;primary.y+=shift;if(!look.twoHanded)support.y-=shift;else support.y+=shift;}
  const bowDraw=mode==='bow'&&attack?Math.abs(lift):0;
  if(bowDraw)primary.x-=bowDraw;
- return {primary,support,angle,aim,draw:bowDraw,relaxedBow:look.weapon==='bow',weaponHand:look.weapon==='bow'?'off':'primary'};
+ return {primary,support,angle,aim,draw:bowDraw,relaxedBow:look.weapon==='bow',singleCrossbow:look.weapon==='crossbow'&&back,weaponHand:look.weapon==='bow'?'off':'primary'};
 }
