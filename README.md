@@ -10,6 +10,10 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
+## Version 0.68.1 — Reference female guard art
+
+- Replaced the first female guard approximation with a transparent 4×4 sheet based on the supplied reference. The same 16-direction movement and layered equipment rig now uses its painted face, hair, scarf and fitted armor.
+
 ## Version 0.68.0 — Selectable female loyalist
 
 - Character creation now offers male and female royal guards in both single player and the online realm. The selection updates the camp preview and is saved with the character. Existing male saves stay male; older female saves keep their female model.
