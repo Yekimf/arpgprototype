@@ -1,5 +1,5 @@
 import {animationState,poseFrame,layerOrder,weaponMode} from './player-animation.js';
-import {weaponPlacement,WEAPON_GRIPS,BOW_TIPS} from './weapon-rig.js';
+import {weaponPlacement,weaponPointOffset,WEAPON_GRIPS,BOW_TIPS} from './weapon-rig.js';
 import weaponBounds from './art/weapon-bounds.json';
 import {WEAPON_ART} from './assets.js';
 import {SET_MODELS_ART,FEMALE_SET_MODELS_ART,GUARD_ART,FEMALE_GUARD_ART,ITEM_ART,ORIGINAL_ART} from './assets.js';
@@ -40,17 +40,30 @@ export class GuardSprites{
    head:()=>{this.skin=look.setParts.helm;const head=look.helm==='none'?2:look.helm==='hood'?14:look.helm==='greathelm'?12:0,[x,y,w,h]=face.head;c.save();c.beginPath();c.rect(x*S,y*S,w*S,h*S);c.clip();this.tile(c,head+offset);c.restore();},
    accessories:()=>this.accessories(c,look,back),
    primaryPalm:()=>{this.skin=look.setParts.gloves;paintGripPalm(c,this,{hand:rig.hands[0],gloves:look.gloves,back});},primaryArm:()=>armLayer(0,'upper'),offArm:()=>armLayer(1,'upper'),primaryForearm:()=>armLayer(0,'lower'),offForearm:()=>armLayer(1,'lower'),primaryHand:()=>handLayer(0),offHand:()=>handLayer(1),
-   weapon:()=>{if(!armed)return;this.skin=null;const hand=rig.weapon.anchor;this.weapon(c,look.weapon,back,[hand.x/S,hand.y/S],look.weaponIcon,pose.angle);if(rig.string){c.strokeStyle='#c2af8599';c.lineWidth=1.2;c.beginPath();c.moveTo(rig.string[0].x,rig.string[0].y);c.lineTo(rig.hands[0].center.x,rig.hands[0].center.y);c.lineTo(rig.string[1].x,rig.string[1].y);c.stroke();}},
+   weapon:()=>{if(!armed)return;this.skin=null;const hand=rig.weapon.anchor;this.weapon(c,look.weapon,back,[hand.x/S,hand.y/S],look.weaponIcon,pose.angle,state.action);if(rig.string){c.strokeStyle='#c2af8599';c.lineWidth=1.2;c.beginPath();c.moveTo(rig.string[0].x,rig.string[0].y);c.lineTo(rig.hands[0].center.x,rig.hands[0].center.y);c.lineTo(rig.string[1].x,rig.string[1].y);c.stroke();}},
    shield:()=>{if(look.shield==='none'||look.twoHanded)return;this.skin=look.setParts.shield;const center=rig.hands[1].center;this.shield(c,look.shield,back,[center.x/S,center.y/S]);},
   };
   for(const name of layerOrder(direction,state.mode,rig.grip))layers[name]();
   if(look.surcoat==='iron'){c.save();c.globalCompositeOperation='source-atop';c.fillStyle='#8d99951a';c.fillRect(0,0,S,S);c.restore();}
   canvas.composition=rig;this.skin=null;this.cache.set(key,canvas);while(this.cache.size*W*H*4>32*1024*1024)this.cache.delete(this.cache.keys().next().value);return canvas;
  }
- weapon(c,look,back,hand,weaponIcon=0,angle=back?1:2.12){
+ weapon(c,look,back,hand,weaponIcon=0,angle=back?1:2.12,action='idle'){
   if(!this.weapons.complete||!this.weapons.naturalWidth)return;
   const b=weaponBounds[weaponIcon]||weaponBounds[0],h=(WEAPON_GRIPS[weaponIcon]||WEAPON_GRIPS[0])[4],w=h*b[2]/b[3],place=weaponPlacement(weaponIcon,w,h,angle);
-  c.save();c.translate(hand[0]*S,hand[1]*S);c.rotate(place.rotation);if(look==='bow'){if(!this.bow){this.bow=document.createElement('canvas');this.bow.width=b[2];this.bow.height=b[3];const bc=this.bow.getContext('2d');bc.drawImage(this.weapons,...b,0,0,b[2],b[3]);bc.globalCompositeOperation='destination-out';bc.lineWidth=3.5;bc.beginPath();bc.moveTo(BOW_TIPS[0][0]*b[2],BOW_TIPS[0][1]*b[3]);bc.lineTo(BOW_TIPS[1][0]*b[2],BOW_TIPS[1][1]*b[3]);bc.stroke();}c.drawImage(this.bow,place.x,place.y,w,h);}else c.drawImage(this.weapons,...b,place.x,place.y,w,h);c.restore();
+  c.save();c.translate(hand[0]*S,hand[1]*S);c.rotate(place.rotation);if(look==='bow'){if(!this.bow){this.bow=document.createElement('canvas');this.bow.width=b[2];this.bow.height=b[3];const bc=this.bow.getContext('2d');bc.drawImage(this.weapons,...b,0,0,b[2],b[3]);bc.globalCompositeOperation='destination-out';bc.lineWidth=3.5;bc.beginPath();bc.moveTo(BOW_TIPS[0][0]*b[2],BOW_TIPS[0][1]*b[3]);bc.lineTo(BOW_TIPS[1][0]*b[2],BOW_TIPS[1][1]*b[3]);bc.stroke();}c.drawImage(this.bow,place.x,place.y,w,h);}else if(weaponIcon===6&&action!=='attack'){
+   // The painted flail is one atlas image. Keep its handle on the hand, but
+   // suspend the original spiked head below the ring instead of rotating the
+   // entire chain into a rigid pole when the character turns around.
+   if(!this.flailHandle){this.flailHandle=document.createElement('canvas');this.flailHandle.width=b[2];this.flailHandle.height=b[3];const fc=this.flailHandle.getContext('2d');fc.drawImage(this.weapons,...b,0,0,b[2],b[3]);fc.globalCompositeOperation='destination-in';fc.fillStyle='#fff';fc.beginPath();fc.moveTo(0,b[3]);fc.lineTo(0,b[3]*.73);fc.lineTo(b[2]*.47,b[3]*.08);fc.lineTo(b[2]*.52,0);fc.lineTo(b[2]*.66,0);fc.lineTo(b[2]*.61,b[3]*.12);fc.lineTo(b[2]*.09,b[3]);fc.closePath();fc.fill();}
+   c.drawImage(this.flailHandle,place.x,place.y,w,h);
+  }else c.drawImage(this.weapons,...b,place.x,place.y,w,h);c.restore();
+  if(weaponIcon===6&&action!=='attack'){
+   const ring=weaponPointOffset(6,w,h,angle,[.56,.05]),x=hand[0]*S+ring.x,y=hand[1]*S+ring.y;
+   const length=h*.43,ballW=w*.41,ballH=h*.41,ballX=x+(back?5:-5),ballY=y+length;
+   c.save();c.strokeStyle='#27231f';c.lineWidth=4.5;c.beginPath();c.moveTo(x,y+3);c.quadraticCurveTo(ballX+(back?-6:6),y+length*.52,ballX,ballY);c.stroke();
+   c.strokeStyle='#81766b';c.lineWidth=1.7;for(let i=0;i<5;i++){const t=(i+.5)/5,cx=x+(ballX-x)*t+(back?-3:3)*Math.sin(t*Math.PI),cy=y+3+length*t;c.beginPath();c.ellipse(cx,cy,3,7,-.28,0,Math.PI*2);c.stroke();}
+   c.drawImage(this.weapons,b[0]+b[2]*.58,b[1]+b[3]*.54,b[2]*.42,b[3]*.43,ballX-ballW/2,ballY,ballW,ballH);c.restore();
+  }
  }
 
  shield(c,look,back,center){const source=back?FACE.back.shield:FACE.front.shield,x=source[0]*S,y=source[1]*S;c.save();c.translate(center[0]*S-x,center[1]*S-y);c.save();c.beginPath();if(look==='kite'){c.moveTo(x-39,y-62);c.lineTo(x+43,y-56);c.lineTo(x+38,y+25);c.lineTo(x,y+80);c.lineTo(x-38,y+27);c.closePath();}else c.ellipse(x,y,49,71,back?-.12:.12,0,Math.PI*2);c.clip();if(look==='kite'){c.fillStyle='#3d3023';c.fillRect(x-55,y-80,110,165);}this.tile(c,back?1:0);c.restore();if(look==='kite'){c.strokeStyle='#8c7855';c.lineWidth=2;c.beginPath();c.moveTo(x-39,y-62);c.lineTo(x+43,y-56);c.lineTo(x+38,y+25);c.lineTo(x,y+80);c.lineTo(x-38,y+27);c.closePath();c.stroke();}c.restore();}

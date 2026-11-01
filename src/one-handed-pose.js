@@ -1,6 +1,13 @@
 // Low hip grip, bent elbow and an outward/upward weapon, following the supplied
 // knight-and-shield reference. Ranged and two-handed weapons use their own poses.
-export const oneHandedMelee=look=>!look.twoHanded&&['sword','axe','mace','flail','dagger','spear','staff'].includes(look.weapon);
+export const oneHandedMelee=look=>!look.twoHanded&&['sword','axe','mace','flail','dagger','spear','staff','wand'].includes(look.weapon);
+// Screen-space direction from the hand to the weapon's head or point. Front
+// and rear carries have different silhouettes, as in the approved model sheet.
+// These angles are shared by both bodies; the grip remains on the measured hilt.
+export const CARRY_ANGLES={
+ 0:[-2.45,.36],2:[2.43,.55],3:[-2.55,.35],5:[2.72,.30],
+ 6:[-2.42,-.78],7:[-2.06,-1.03],10:[2.43,.52],11:[2.39,.50],15:[-1.46,-1.28],
+};
 const smooth=t=>t*t*(3-2*t);
 const swing=[[0,0,0,0,0],[.23,-10,-25,0,.4],[.48,34,-8,1,0],[.70,21,5,1,.45],[1,0,0,0,0]];
 const thrust=[[0,0,0,0,0],[.25,-9,-10,0,.12],[.48,38,-6,1,0],[.7,20,-3,1,0],[1,0,0,0,0]];
@@ -8,7 +15,7 @@ function sample(track,t){const at=track.findIndex(k=>k[0]>=t);if(at<=0)return tr
 const turn=(from,to,amount)=>{const delta=Math.atan2(Math.sin(to-from),Math.cos(to-from));return from+delta*amount;};
 export function oneHandedPose(face,look,state,heading){
  const back=!!face.back,dx=heading.x,dy=heading.y*.5,length=Math.hypot(dx,dy)||1,aim={x:dx/length,y:dy/length},long=['spear','staff'].includes(look.weapon);
- const readyAngle=(back?(long?-.94:.035):(long?-2.20:-2.45))+aim.x*(back?.025:.045);
+ const pair=CARRY_ANGLES[look.weaponIcon],readyAngle=(pair?pair[back?1:0]:back?(long?-1.03:.36):(long?-2.06:-2.45))+aim.x*(back?.018:.025);
  const primary={x:face.hand[0]*320-2,y:face.hand[1]*320+(back?3:-3)},support={x:face.offHand[0]*320,y:face.offHand[1]*320};
  if(look.shield&&look.shield!=='none'){support.x+=back?12:-12;support.y=160;}
  let angle=readyAngle;
