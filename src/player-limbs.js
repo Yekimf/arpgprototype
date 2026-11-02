@@ -5,7 +5,51 @@ const samples={
  back:{cloth:[[242,103,14,24],[261,145,9,25]],metal:[[235,111,13,22],[254,146,10,23]],palm:[262,178,17,16]},
 };
 const material={none:['#755e46','#32251d'],leather:['#684b32','#261d16'],chain:['#77776c','#292e2b'],plate:['#8c8877','#292d2b'],original:['#81725a','#2a2721'],robe:['#635b4b','#27231d']};
-export function paintLimb(c,guard,{from,to,part,look,back,gloves='none'}){
+// The unarmed source painting has complete sleeves and bracers. Move those
+// painted segments with the joints instead of stretching a tiny texture strip
+// over a synthetic rectangle. Each mask deliberately overlaps at the elbow.
+const naturalArms={
+ front:[
+  {upper:{from:[145,94],to:[124,132],mask:[[142,87],[158,99],[152,113],[137,139],[120,146],[109,135],[113,119],[127,95]]},lower:{from:[124,132],to:[118,176],mask:[[112,124],[136,127],[135,144],[129,178],[109,183],[105,166]]}},
+  {upper:{from:[230,96],to:[251,136],mask:[[219,88],[238,89],[254,112],[263,135],[251,147],[235,137],[226,115]]},lower:{from:[251,136],to:[263,177],mask:[[240,130],[260,126],[270,145],[273,180],[253,185],[245,164]]}},
+ ],
+ back:[
+  {upper:{from:[242,94],to:[263,137],mask:[[230,87],[249,89],[264,113],[274,136],[261,147],[244,136],[235,115]]},lower:{from:[263,137],to:[268,178],mask:[[251,130],[273,128],[280,146],[280,180],[260,185],[251,162]]}},
+  {upper:{from:[151,94],to:[137,135],mask:[[141,87],[163,88],[161,110],[152,133],[138,146],[125,136],[132,111]]},lower:{from:[137,135],to:[123,176],mask:[[127,127],[148,129],[146,148],[137,177],[117,182],[110,166]]}},
+ ],
+};
+function paintNaturalLimb(c,guard,{from,to,part,back,arm}){
+ const source=naturalArms[back?'back':'front'][arm][part],femaleShift=guard.sex==='female'?(back?[-22,-20]:[-14,-10])[arm]:0,
+  a=[source.from[0]+femaleShift,source.from[1]],b=[source.to[0]+femaleShift,source.to[1]],
+  sourceAngle=Math.atan2(b[1]-a[1],b[0]-a[0]),targetAngle=Math.atan2(to.y-from.y,to.x-from.x),
+  sourceLength=Math.hypot(b[0]-a[0],b[1]-a[1]),targetLength=Math.hypot(to.x-from.x,to.y-from.y),
+  scale=targetLength/sourceLength,image=guard.sex==='female'?guard.femaleArt:guard.art,cell=back?3:2,s=image.naturalWidth/4;
+ if(guard.sex==='female'&&!back&&arm===0&&part==='upper'){
+  // The leather torso mask stops inside this sleeve. Keep the shoulder root
+  // from the same source painting stationary while the lower arm rotates.
+  c.save();c.translate(from.x-a[0],from.y-a[1]);c.beginPath();
+  for(const [i,[x,y]] of [[126,85],[161,88],[158,114],[142,128],[120,115]].entries())i?c.lineTo(x,y):c.moveTo(x,y);
+  c.closePath();c.clip();c.drawImage(image,cell%4*s,Math.floor(cell/4)*s,s,s,0,0,320,320);c.restore();
+ }
+ c.save();c.translate(from.x,from.y);c.rotate(targetAngle-sourceAngle);c.scale(scale,scale);c.translate(-a[0],-a[1]);
+ c.beginPath();source.mask.forEach(([x,y],i)=>i?c.lineTo(x+femaleShift,y):c.moveTo(x+femaleShift,y));c.closePath();c.clip();
+ c.drawImage(image,cell%4*s,Math.floor(cell/4)*s,s,s,0,0,320,320);c.restore();
+}
+function paintNaturalCuff(c,guard,{from,to,back,gloves}){
+ const length=Math.hypot(to.x-from.x,to.y-from.y),metal=gloves==='steel',image=guard.sex==='female'?guard.femaleArt:guard.art,
+  cell=(metal?0:4)+(back?1:0),s=image.naturalWidth/4,p=samples[back?'back':'front'].metal[1];
+ c.save();c.translate(from.x,from.y);c.rotate(Math.atan2(to.y-from.y,to.x-from.x)-Math.PI/2);c.translate(0,length-15);
+ c.beginPath();c.roundRect(-8,-5,16,19,3);c.clip();c.fillStyle=metal?'#57554d':'#4d3322';c.fillRect(-9,-6,18,21);
+ c.drawImage(image,cell%4*s+p[0],Math.floor(cell/4)*s+p[1],p[2],p[3],-8,-5,16,19);
+ c.strokeStyle=metal?'#b0a88b':'#9d714b';c.lineWidth=1;c.beginPath();c.moveTo(-7,-3);c.lineTo(7,-3);c.stroke();c.restore();
+}
+export function paintLimb(c,guard,{from,to,part,look,back,gloves='none',arm=null}){
+ if(look==='leather'&&guard.skin==null){
+  const index=arm??(back?from.x>190?0:1:from.x<190?0:1);
+  paintNaturalLimb(c,guard,{from,to,part,back,arm:index});
+  if(part==='lower'&&gloves!=='none')paintNaturalCuff(c,guard,{from,to,back,gloves});
+  return;
+ }
  const dx=to.x-from.x,dy=to.y-from.y,length=Math.hypot(dx,dy),metal=['plate','chain','original'].includes(look),colors=material[look]||material.none;
  const upper=part==='upper',slim=guard.sex==='female'?0.86:1,r0=(upper?13:10)*slim,r1=(upper?10:7)*slim,source=samples[back?'back':'front'][metal?'metal':'cloth'][upper?0:1];
  c.save();c.translate(from.x,from.y);c.rotate(Math.atan2(dy,dx)-Math.PI/2);

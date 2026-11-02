@@ -1,11 +1,14 @@
 // Grip and tip measurements refer to the tightly cropped weapon paintings.
 // Artwork rotates around the grip, never around an arbitrary item rectangle.
 export const WEAPON_GRIPS=[
- [.78,.19,.05,.97,135],[.78,.19,.03,.99,220],[.74,.26,.03,.99,80],[24/185,.86,.79,.16,130],
+ [.78,.19,.05,.97,135],[.78,.19,.03,.99,245],[.74,.26,.03,.99,80],[24/185,.86,.79,.16,130],
  [32/192,.84,.66,.14,158],[29/172,.85,.73,.12,132],[30/220,.83,.55,.12,132],[34/190,.83,.98,.02,190],
  [.44,.56,.70,.12,300],[.40,.56,.65,.15,300],[33/154,.78,.78,.18,100],[25/135,.80,.70,.12,105],
  [31/128,124/240,.95,.01,232],[80/240,125/222,.62,.30,145],[32/171,.81,.67,.14,202],[18/149,.85,.67,.15,148]
 ];
+// The rear carry projects long upright weapons closer to the top of a frame.
+// Keep their painted tips inside the sprite without shrinking the front pose.
+export const weaponRenderHeight=(icon,back=false)=>back&&icon===1?220:back&&icon===12?220:(WEAPON_GRIPS[icon]||WEAPON_GRIPS[0])[4];
 // Second grips are measured on the painted handle/stock, not a fixed distance
 // toward the weapon tip. The greatsword's second hand belongs behind the hilt.
 export const WEAPON_SUPPORTS={1:[139/154,20/240],4:[72/192,145/240],7:[.39,.59],8:[.60,.38],9:[.57,.38],13:[127/240,65/222],14:[60/171,140/240]};

@@ -19,11 +19,11 @@ const tracks={
 // the guard atlas's 320px space; the first entry is the front and the second
 // is the rear view. Attack strokes return to these same held poses.
 const READY_TWO_HANDED={
- 1:[{hand:[190,151],angle:-1.10},{hand:[201,151],angle:-1.11}], // greatsword
+ 1:[{hand:[190,131],angle:-.88},{hand:[201,166],angle:-1.11}], // greatsword
  4:[{hand:[184,154],angle:-.83},{hand:[196,154],angle:-.88}], // maul
  8:[{hand:[188,158],angle:-.79},{hand:[200,158],angle:-.84}], // ashwood staff
  9:[{hand:[189,158],angle:-.83},{hand:[201,158],angle:-.87}], // iron staff
- 12:[{hand:[184,148],angle:-Math.PI/2,bow:[270,116]},{hand:[203,149],angle:-Math.PI/2,bow:[212,116]}],
+ 12:[{hand:[184,148],angle:-Math.PI/2,bow:[270,116]},{hand:[203,149],angle:-Math.PI/2,bow:[212,136]}],
  13:[{hand:[193,148],angle:-.04},{hand:[235,165],angle:.12}], // crossbow
  14:[{hand:[210,164],angle:-.83},{hand:[220,164],angle:-.87}], // battle axe
 };

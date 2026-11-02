@@ -6,7 +6,7 @@ export const oneHandedMelee=look=>!look.twoHanded&&['sword','axe','mace','flail'
 // These angles are shared by both bodies; the grip remains on the measured hilt.
 export const CARRY_ANGLES={
  0:[-2.45,.36],2:[2.43,.55],3:[-2.55,.35],5:[2.72,.30],
- 6:[-2.42,.25],7:[-2.06,-1.03],10:[2.43,.52],11:[2.39,.50],15:[-1.46,-1.28],
+ 6:[-2.42,.25],7:[-2.06,-1.03],10:[2.43,.52],11:[2.39,.50],15:[-2.0,-1.45],
 };
 // Each weapon's grip rests at a different point relative to the painted hip.
 // Values are front-x, front-y, rear-x, rear-y offsets in the 320px source

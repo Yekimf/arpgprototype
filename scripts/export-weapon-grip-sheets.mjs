@@ -2,6 +2,7 @@
 // Run: node scripts/export-weapon-grip-sheets.mjs [output-directory]
 import {mkdir,writeFile,copyFile} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
+import {execFileSync} from 'node:child_process';
 import {createServer} from 'vite';
 import {chromium} from '@playwright/test';
 
@@ -40,7 +41,7 @@ try{
     for(let column=0;column<9;column++){
      const action=column?'attack':'idle',frame=column?column-1:0,state={action,frame,count:column?8:1,mode:weaponMode(look)};
      const sprite=guard.frame(player,direction.back,column?17+frame:0,direction.forward,direction,state);
-     c.drawImage(sprite,column*192,row*176);
+     c.drawImage(sprite,column*192,row*176,192,176);
      const rig=sprite.composition,point=hand=>({x:Math.round(32+.4*(160+direction.profile*(hand.x-160))),y:Math.round(20+.4*hand.y)});
      grips.push({row,column,weaponHand:rig.weapon.hand,primary:point(rig.hands[0].center),offhand:point(rig.hands[1].center),weaponAnchor:point(rig.weapon.anchor)});
     }
@@ -54,6 +55,7 @@ try{
  }
  await writeFile(join(output,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');
  await writeFile(join(output,'README.txt'),`The Forgotten Kingdom — editable weapon grip sprite sheets\n\n32 transparent PNGs: one for each of 16 weapons and two character models.\nEvery sheet is 1728 × 2816 pixels, arranged as 16 direction rows and 9 animation columns.\nEach cell is 192 × 176 pixels. Row 0 faces north (rear); row 8 faces south (front).\nColumn 0 is idle. Columns 1–8 are the eight attack frames.\nmanifest.json gives the weapon names and exact hand and hilt anchors in each cell.\nThe two weapon-models comparison images show the current game's front and rear idle poses; they are not the supplied reference paintings.\n\nThese are exports of the current layered renderer, not pixel-exact copies of the supplied front/rear references. Editing a PNG does not yet change the game automatically; send back the edited sheets or cells to integrate them. The original source atlases are also included.\n`);
+ execFileSync('python',['scripts/build-weapon-comparison.py',output,resolve('docs/previews')],{stdio:'inherit'});
  for(const name of ['guard-equipment.png','guard-female.png','weapons-atlas.png','weapon-bounds.json'])await copyFile(resolve('src/art',name),join(output,name));
  for(const sex of ['male','female'])await copyFile(resolve('docs/previews',`weapon-models-${sex}.png`),join(output,`weapon-models-${sex}.png`));
 }finally{if(browser)await browser.close();await server.close();}
