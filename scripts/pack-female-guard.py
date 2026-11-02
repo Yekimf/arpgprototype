@@ -15,7 +15,7 @@ female = Image.open(ROOT / 'guard-female.png').convert('RGBA')
 if female.width != female.height:
     raise ValueError('The female guard sheet must be square with four equal columns.')
 female.resize((1280, 1280), Image.Resampling.LANCZOS).save(
-    ROOT / 'runtime/guard-female.webp', 'WEBP', quality=89, method=6
+    ROOT / 'runtime/guard-female.webp', 'WEBP', lossless=True, method=6
 )
 
 # Set armor has its own painted sheet. Adapt its chest and waist to the

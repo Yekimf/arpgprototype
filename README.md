@@ -10,7 +10,12 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
-Editable male and female weapon-grip sprites are in the [sprite sheet ZIP](docs/downloads/weapon-grip-sheets.zip). It contains 32 transparent PNG sheets, the source character and weapon atlases, and a JSON map of every hand position. Each 192×176 cell covers one of 16 directions and the idle or eight attack frames. The PNGs are exports of the layered renderer; edited cells need to be integrated into the game before they appear in play. Regenerate the export with `node scripts/export-weapon-grip-sheets.mjs`.
+Editable male and female weapon-grip sprites are in the [sprite sheet ZIP](docs/downloads/weapon-grip-sheets.zip). It contains 32 transparent PNG sheets, the source character and weapon atlases, and a JSON map of every hand position. Each 192×176 cell covers one of 16 directions and the idle or eight attack frames. The PNGs are exports of the layered renderer, so they do not reproduce the supplied front/rear character paintings pixel for pixel. Edited cells need to be integrated into the game before they appear in play. Regenerate the export with `node scripts/export-weapon-grip-sheets.mjs`.
+
+## Version 0.68.5 — Lossless character and weapon atlases
+
+- The runtime male, female, combat and weapon atlases now preserve the source pixels after resizing instead of adding lossy WebP compression. The editable grip sheets have been re-exported from these atlases.
+- The supplied front/rear character paintings still require their original image files and additional direction/attack art for an exact animated match.
 
 ## Version 0.68.4 — Weapon-specific hand grips
 

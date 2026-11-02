@@ -11,6 +11,6 @@ for(let index=0;index<boxes.length;index++){
  const clean=await sharp(data,{raw:info}).png().toBuffer(),trimmed=await sharp(clean).trim({threshold:8}).png().toBuffer(),sprite=await sharp(trimmed).resize(240,240,{fit:'inside'}).toBuffer(),meta=await sharp(sprite).metadata(),x=index%4*256+Math.floor((256-meta.width)/2),y=Math.floor(index/4)*256+Math.floor((256-meta.height)/2);
  layers.push({input:sprite,left:x,top:y});bounds.push([x,y,meta.width,meta.height]);
 }
-await sharp({create:{width:1024,height:1024,channels:4,background:'#00000000'}}).composite(layers).webp({quality:90,alphaQuality:100,effort:6}).toFile('src/art/runtime/weapons.webp');
+await sharp({create:{width:1024,height:1024,channels:4,background:'#00000000'}}).composite(layers).webp({lossless:true,effort:6}).toFile('src/art/runtime/weapons.webp');
 await writeFile('src/art/weapon-bounds.json',JSON.stringify(bounds));
 console.log('Packed 16 distinct weapon inventory paintings.');
