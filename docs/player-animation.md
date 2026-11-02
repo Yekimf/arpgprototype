@@ -11,11 +11,12 @@ from movement speed. Existing narrow foot tracks and mirrored idle boot artwork
 are retained, without twisting or independently rotating the feet.
 
 `guard-sprites.js` composes legs, torso, head, arms, hands, shield and weapon. The
-composition order changes by facing so that far upper arms pass behind the torso.
-One-handed melee forearms meet the wrist, with the palm behind the weapon and
-curled fingers/thumb in front. Rear upper arms remain under the shoulder/coat
-mask, and the shield-side forearm is drawn over the visible inside of the shield.
-Other weapon families retain their existing composition until their pose updates.
+composition order changes by facing. In front views, the forearms and palms draw
+before the weapon, and curled fingers/thumb draw over its handle. In rear views,
+the complete equipment and grip group draws before the legs, torso and head.
+Opaque body and cloak pixels hide overlapping weapons and hands; exposed tips
+and hands outside that silhouette stay visible. This applies to one-handed and
+two-handed equipment in both idle and attack poses.
 Equipment is not swapped between hands by a final character
 flip. Complete textured limb silhouettes join shoulder, elbow, wrist and palm. Bare,
 leather and steel hands overlap the sleeve at the wrist; source-space crops
@@ -32,7 +33,10 @@ the drawing hand each frame, replacing the static string in the item painting. B
 from weapon attacks, including on remote LAN/WebRTC player poses.
 
 Finished frames are cached with their appearance, direction, clip and frame. The
-cache has a 32 MiB pixel budget per guard instance. Padded frames allow long
+cache has a 96 MiB pixel budget per guard instance. Each logical 192×176 frame
+rasterizes to 384×352 pixels. High render quality preserves display density up to
+2×, capped at a 3840×2400 world canvas; Balanced and Performance retain their
+smaller budgets. Padded frames allow long
 weapons and raised hands to extend beyond the body; portraits and creation use
 the same compositor and adjusted frame anchors.
 
@@ -69,8 +73,10 @@ change does not add separate authored block, hit-recovery or death sprite sheets
 every grip in the real runtime weapon atlas and verifies supporting-hand
 registration for all attack frames and facings. Browser checks render every
 weapon plus bare fists in sixteen directions, with bare/leather/steel hands,
-checking hand/wrist opacity and that changing gloves changes the visible palm
-pixels. These replace the previous contact sheet's weak whole-sprite pixel count
+checking hand/wrist opacity and that changing gloves changes visible front palm
+pixels. Rear grips can be hidden by the cloak. A separate rendered pixel comparison
+checks that opaque rear torso pixels hide weapons while front overlaps and
+exposed weapon tips remain visible for both characters and idle/attack poses. These replace the previous contact sheet's weak whole-sprite pixel count
 as the main protection against missing or detached hands.
 
 ## Wrapped one-handed grip
@@ -78,8 +84,8 @@ as the main protection against missing or detached hands.
 `weapon-grip-art.js` draws the palm/heel first, the original weapon painting next,
 and individual curled fingers plus the opposing thumb last. The fingers follow
 the handle axis; the heel follows the anatomical wrist. Bare hands and both
-glove materials retain painted texture. This depth split applies to the current
-one-handed melee profile, preserving the other weapon families for later work.
+glove materials retain painted texture. This depth split applies to both one-handed and two-handed grips. The forearm
+renders before the palm so it cannot overpaint a held handle.
 
 The wrist solver subtracts the painted palm length from the forearm measurement
 before solving the two arm bones. The contact point remains the measured handle

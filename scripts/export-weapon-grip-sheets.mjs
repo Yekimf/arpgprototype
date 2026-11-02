@@ -2,13 +2,12 @@
 // Run: node scripts/export-weapon-grip-sheets.mjs [output-directory]
 import {mkdir,writeFile,copyFile} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
-import {execFileSync} from 'node:child_process';
 import {createServer} from 'vite';
 import {chromium} from '@playwright/test';
 
 const output=resolve(process.argv[2]||'docs/previews/weapon-grip-sheets');
 await mkdir(output,{recursive:true});
-const server=await createServer({server:{host:'127.0.0.1',port:0,strictPort:false}});
+const server=await createServer({server:{host:'127.0.0.1',port:5174,strictPort:false}});
 let browser;
 try{
  await server.listen();
@@ -22,13 +21,34 @@ try{
   const guard=new GuardSprites();
   await Promise.all([guard.art,guard.femaleArt,guard.setArt,guard.femaleSetArt,guard.weapons,guard.items,guard.original].map(image=>image.decode()));
   const weapons=BASES.filter(base=>base.slot==='weapon').sort((a,b)=>weaponIconIndex(a)-weaponIconIndex(b));
-  window.__gripExport={guard,weapons,weaponIconIndex,appearanceOf,createPlayer,facingPose,weaponMode};
+  const previews=Object.fromEntries(['male','female'].map(sex=>{
+   const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=900;
+   const c=canvas.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,canvas.width,canvas.height);
+   c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
+   return [sex,canvas];
+  }));
+  const drawPreview=(sex,index,rear,sprite)=>{
+   // Sample the full-resolution renderer, before the editable cells are reduced.
+   // Fit the visible art inside each front/rear slot so long weapons stay on-sheet.
+   const pixels=sprite.getContext('2d').getImageData(0,0,sprite.width,sprite.height).data;
+   let minX=sprite.width,minY=sprite.height,maxX=-1,maxY=-1;
+   for(let y=0;y<sprite.height;y++)for(let x=0;x<sprite.width;x++)if(pixels[(y*sprite.width+x)*4+3]){
+    minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);
+   }
+   if(maxX<0)return;
+   const slotX=(index%4)*320+(rear?160:0),slotY=Math.floor(index/4)*225;
+   const scale=Math.min(1.2*192/sprite.width,148/(maxX-minX+1),205/(maxY-minY+1));
+   const left=Math.max(slotX+6-minX*scale,Math.min(slotX+80-sprite.width*scale/2,slotX+154-(maxX+1)*scale));
+   const top=Math.max(slotY+10-minY*scale,Math.min(slotY+12,slotY+215-(maxY+1)*scale));
+   previews[sex].getContext('2d').drawImage(sprite,left,top,sprite.width*scale,sprite.height*scale);
+  };
+  window.__gripExport={guard,weapons,weaponIconIndex,appearanceOf,createPlayer,facingPose,weaponMode,previews,drawPreview};
   return weapons.map(base=>({id:base.id,name:base.name,icon:weaponIconIndex(base),look:base.look,twoHanded:!!base.twoHanded,ranged:!!base.ranged}));
  });
  const manifest={version:1,description:'Actual in-game male and female guard composites, with leather armor and no shield.',frameSize:{width:192,height:176},sheetSize:{width:1728,height:2816},layout:'16 direction rows (north clockwise); 9 columns: idle, attack frames 0 through 7',directions:Array.from({length:16},(_,index)=>({index,screenAngleDegrees:index*22.5})),columns:[{index:0,action:'idle',frame:0},...Array.from({length:8},(_,frame)=>({index:frame+1,action:'attack',frame}))],weapons,sheets:[]};
  for(const sex of ['male','female'])for(const weapon of weapons){
   const data=await page.evaluate(({sex,weaponId})=>{
-   const {guard,weapons,weaponIconIndex,appearanceOf,createPlayer,facingPose,weaponMode}=window.__gripExport;
+   const {guard,weapons,weaponIconIndex,appearanceOf,createPlayer,facingPose,weaponMode,drawPreview}=window.__gripExport;
    const base=weapons.find(item=>item.id===weaponId),player=createPlayer({sex});
    player.level=100;player.attributes={might:999,dexterity:999,vitality:999,will:999};
    player.equipment.armor={id:'export-leather',slot:'armor',look:'leather',rarity:'normal',identified:true,requiredLevel:1,requiredStats:{might:0}};
@@ -42,6 +62,7 @@ try{
      const action=column?'attack':'idle',frame=column?column-1:0,state={action,frame,count:column?8:1,mode:weaponMode(look)};
      const sprite=guard.frame(player,direction.back,column?17+frame:0,direction.forward,direction,state);
      c.drawImage(sprite,column*192,row*176,192,176);
+     if(column===0&&(row===0||row===8))drawPreview(sex,weaponIconIndex(base),row===0,sprite);
      const rig=sprite.composition,point=hand=>({x:Math.round(32+.4*(160+direction.profile*(hand.x-160))),y:Math.round(20+.4*hand.y)});
      grips.push({row,column,weaponHand:rig.weapon.hand,primary:point(rig.hands[0].center),offhand:point(rig.hands[1].center),weaponAnchor:point(rig.weapon.anchor)});
     }
@@ -55,7 +76,15 @@ try{
  }
  await writeFile(join(output,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');
  await writeFile(join(output,'README.txt'),`The Forgotten Kingdom — editable weapon grip sprite sheets\n\n32 transparent PNGs: one for each of 16 weapons and two character models.\nEvery sheet is 1728 × 2816 pixels, arranged as 16 direction rows and 9 animation columns.\nEach cell is 192 × 176 pixels. Row 0 faces north (rear); row 8 faces south (front).\nColumn 0 is idle. Columns 1–8 are the eight attack frames.\nmanifest.json gives the weapon names and exact hand and hilt anchors in each cell.\nThe two weapon-models comparison images show the current game's front and rear idle poses; they are not the supplied reference paintings.\n\nThese are exports of the current layered renderer, not pixel-exact copies of the supplied front/rear references. Editing a PNG does not yet change the game automatically; send back the edited sheets or cells to integrate them. The original source atlases are also included.\n`);
- execFileSync('python',['scripts/build-weapon-comparison.py',output,resolve('docs/previews')],{stdio:'inherit'});
+ const previewOutput=resolve('docs/previews');
+ await mkdir(previewOutput,{recursive:true});
+ for(const sex of ['male','female']){
+  const png=await page.evaluate(sex=>window.__gripExport.previews[sex].toDataURL('image/png').split(',')[1],sex);
+  for(const prefix of ['weapon-models','weapon-reference-comparison']){
+   const filename=`${prefix}-${sex}.png`,path=join(previewOutput,filename);
+   await writeFile(path,Buffer.from(png,'base64'));
+   if(output!==previewOutput)await copyFile(path,join(output,filename));
+  }
+ }
  for(const name of ['guard-equipment.png','guard-female.png','weapons-atlas.png','weapon-bounds.json'])await copyFile(resolve('src/art',name),join(output,name));
- for(const sex of ['male','female'])await copyFile(resolve('docs/previews',`weapon-models-${sex}.png`),join(output,`weapon-models-${sex}.png`));
 }finally{if(browser)await browser.close();await server.close();}

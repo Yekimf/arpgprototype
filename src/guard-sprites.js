@@ -32,6 +32,7 @@ export class GuardSprites{
   const pose=poseFrame(face,look,state,heading),armed=look.weapon!=='none',rig=solveEquipmentRig(face,look,pose,weaponBounds);
   const armLayer=(arm,part)=>{this.skin=look.setParts.armor;const hand=rig.hands[arm];paintLimb(c,this,{from:part==='upper'?hand.shoulder:hand.elbow,to:part==='upper'?hand.elbow:hand.wrist,part,look:look.armor,back,arm,gloves:part==='upper'?'none':look.gloves});};
   const handLayer=arm=>{this.skin=look.setParts.gloves;const hand=rig.hands[arm],held=hand.wrap?{...hand,grip:hand.wrap}:hand,options={hand:held,gloves:look.gloves,back,arm,closed:armed||state.action==='punch'};if(held.grip)paintGripFingers(c,this,options);else paintHand(c,this,options);};
+  const palmLayer=arm=>{this.skin=look.setParts.gloves;const hand=rig.hands[arm],held=hand.wrap?{...hand,grip:hand.wrap}:hand;paintGripPalm(c,this,{hand:held,gloves:look.gloves,back});};
   const layers={
    legs:()=>{const index=(look.boots==='steel'?0:look.boots==='leather'?4:2)+offset;this.skin=look.setParts.boots;
     const walking=state.action==='walk'||Number.isInteger(state.locomotionFrame),cycle=state.action==='walk'?state.frame:state.locomotionFrame,phase=walking?cycle/WALK_FRAMES*Math.PI*2:0;
@@ -48,11 +49,11 @@ export class GuardSprites{
    torso:()=>{const mask=look.sex==='female'?(back?FACE.femaleBack:FACE.femaleFront):(back&&rig.grip?face.bodyGrip:face.body);this.skin=null;this.clipTile(c,2+offset,mask);this.skin=look.setParts.armor;this.clipTile(c,body+offset,mask,face.shield);},
    head:()=>{this.skin=look.setParts.helm;const head=look.helm==='none'?2:look.helm==='hood'?14:look.helm==='greathelm'?12:0,[x,y,w,h]=face.head;c.save();c.beginPath();c.rect(x*S,y*S,w*S,h*S);c.clip();this.tile(c,head+offset);c.restore();},
    accessories:()=>this.accessories(c,look,back),
-   primaryPalm:()=>{this.skin=look.setParts.gloves;paintGripPalm(c,this,{hand:rig.hands[0],gloves:look.gloves,back});},primaryArm:()=>armLayer(0,'upper'),offArm:()=>armLayer(1,'upper'),primaryForearm:()=>armLayer(0,'lower'),offForearm:()=>armLayer(1,'lower'),primaryHand:()=>handLayer(0),offHand:()=>handLayer(1),
-   weapon:()=>{if(!armed)return;if(look.twoHanded){this.skin=look.setParts.gloves;for(const hand of rig.hands)if(hand.wrap)paintGripPalm(c,this,{hand:{...hand,grip:hand.wrap},gloves:look.gloves,back});}this.skin=null;const hand=rig.weapon.anchor;this.weapon(c,look.weapon,back,[hand.x/S,hand.y/S],look.weaponIcon,pose.angle,state.action);if(rig.string){c.strokeStyle='#c2af8599';c.lineWidth=1.2;c.beginPath();c.moveTo(rig.string[0].x,rig.string[0].y);if(state.action==='attack')c.lineTo(rig.hands[0].center.x,rig.hands[0].center.y);c.lineTo(rig.string[1].x,rig.string[1].y);c.stroke();}},
+   primaryPalm:()=>palmLayer(0),offPalm:()=>palmLayer(1),primaryArm:()=>armLayer(0,'upper'),offArm:()=>armLayer(1,'upper'),primaryForearm:()=>armLayer(0,'lower'),offForearm:()=>armLayer(1,'lower'),primaryHand:()=>handLayer(0),offHand:()=>handLayer(1),
+   weapon:()=>{if(!armed)return;this.skin=null;const hand=rig.weapon.anchor;this.weapon(c,look.weapon,back,[hand.x/S,hand.y/S],look.weaponIcon,pose.angle,state.action);if(rig.string){c.strokeStyle='#c2af8599';c.lineWidth=1.2;c.beginPath();c.moveTo(rig.string[0].x,rig.string[0].y);if(state.action==='attack')c.lineTo(rig.hands[0].center.x,rig.hands[0].center.y);c.lineTo(rig.string[1].x,rig.string[1].y);c.stroke();}},
    shield:()=>{if(look.shield==='none'||look.twoHanded)return;this.skin=look.setParts.shield;const center=rig.hands[1].center;this.shield(c,look.shield,back,[center.x/S,center.y/S]);},
   };
-  for(const name of layerOrder(direction,state.mode,rig.grip))layers[name]();
+  for(const name of layerOrder(direction))layers[name]();
   if(look.surcoat==='iron'){c.save();c.globalCompositeOperation='source-atop';c.fillStyle='#8d99951a';c.fillRect(0,0,S,S);c.restore();}
   canvas.composition=rig;this.skin=null;this.cache.set(key,canvas);while(this.cache.size*W*H*4*RASTER*RASTER>CACHE_LIMIT)this.cache.delete(this.cache.keys().next().value);return canvas;
  }
@@ -84,7 +85,7 @@ export class GuardSprites{
  draw(c,game){
   const look=appearanceOf(game.player),state=animationState(game,look),vector=(game.attackAnim>0?game.actionFacing:game.facing)||game.lastMove||{x:1,y:1},direction=facingPose(vector);
   const frame=this.frame(game.player,direction.back,state.action==='walk'?state.frame+1:state.action==='idle'?0:WALK_FRAMES+1+state.frame,direction.forward,direction,state);if(!frame)return null;
-  c.save();if(game.dodgeTime>0)c.globalAlpha*=.7;c.drawImage(frame,-GUARD_FRAME.anchorX*.75,-GUARD_FRAME.anchorY*.75,W*.75,H*.75);c.restore();
-  return {row:direction.index,directions:16,column:state.action==='walk'?state.frame+1:state.action==='idle'?0:WALK_FRAMES+1+state.frame,frame:state.frame,clip:state.mode,action:game.dodgeTime>0?'evade':state.action,style:'layered-guard',layers:layerOrder(direction,state.mode,frame.composition.grip),cacheBytes:this.cache.size*W*H*4*RASTER*RASTER,...(Number.isInteger(state.locomotionFrame)?{locomotionFrame:state.locomotionFrame}:{})};
+  c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';if(game.dodgeTime>0)c.globalAlpha*=.7;c.drawImage(frame,-GUARD_FRAME.anchorX*.75,-GUARD_FRAME.anchorY*.75,W*.75,H*.75);c.restore();
+  return {row:direction.index,directions:16,column:state.action==='walk'?state.frame+1:state.action==='idle'?0:WALK_FRAMES+1+state.frame,frame:state.frame,clip:state.mode,action:game.dodgeTime>0?'evade':state.action,style:'layered-guard',layers:layerOrder(direction),cacheBytes:this.cache.size*W*H*4*RASTER*RASTER,...(Number.isInteger(state.locomotionFrame)?{locomotionFrame:state.locomotionFrame}:{})};
  }
 }

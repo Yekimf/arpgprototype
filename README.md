@@ -10,7 +10,13 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
-Editable male and female weapon-grip sprites are in the [sprite sheet ZIP](docs/downloads/weapon-grip-sheets.zip). It contains 32 transparent PNG sheets, the source character and weapon atlases, and a JSON map of every hand position. Each 192×176 cell covers one of 16 directions and the idle or eight attack frames. The PNGs are exports of the layered renderer, so they do not reproduce the supplied front/rear character paintings pixel for pixel. Edited cells need to be integrated into the game before they appear in play. Regenerate the export and comparison images with `node scripts/export-weapon-grip-sheets.mjs` (requires Python and Pillow).
+Editable male and female weapon-grip sprites are in the [sprite sheet ZIP](docs/downloads/weapon-grip-sheets.zip). It contains 32 transparent PNG sheets, the source character and weapon atlases, and a JSON map of every hand position. Each 192×176 cell covers one of 16 directions and the idle or eight attack frames. The PNGs are exports of the layered renderer, so they do not reproduce the supplied front/rear character paintings pixel for pixel. Edited cells need to be integrated into the game before they appear in play. Regenerate the export and comparison images with `node scripts/export-weapon-grip-sheets.mjs`.
+
+## Version 0.68.7 — Front/rear equipment depth and sharper rendering
+
+- Rear-facing bodies and cloaks now hide overlapping weapons and gripping hands. Front grips draw the sleeve and palm behind the handle, with curled fingers above it, for both male and female models.
+- High render quality uses native display density up to 2×, with a 3840×2400 world-canvas limit. Select **Options → Render quality → High** for the sharper display path.
+- Front/rear comparison galleries now sample the full-resolution sprites directly. The editable sheets, galleries and offline game have been refreshed.
 
 ## Version 0.68.6 — Reference-inspired armed character models
 

@@ -51,7 +51,13 @@ export class Renderer {
     if(this.frameSample.time<2000)return;const mean=this.frameSample.time/this.frameSample.frames;this.frameSample={time:0,frames:0};const old=this.adaptiveScale||1;
     if(mean>28)this.adaptiveScale=Math.max(.75,old-.15);else if(mean<17.5)this.adaptiveScale=Math.min(1,old+.05);if(this.adaptiveScale!==old&&this.adaptiveScale)this.resize();
   }
-  resize(){this.w=window.innerWidth;this.h=window.innerHeight;const cap=({performance:[960,600],balanced:[1280,800],high:[1920,1200]})[this.settings?.quality||'balanced'],dpr=Math.min(devicePixelRatio||1,1,cap[0]/this.w*(this.adaptiveScale||1),cap[1]/this.h*(this.adaptiveScale||1));this.canvas.width=this.w*dpr;this.canvas.height=this.h*dpr;this.ctx.setTransform(dpr,0,0,dpr,0,0);this.zoom=this.w<650?.85:this.h<540?.85:1.12;this.needsDraw=true;}
+  resize(){
+    this.w=window.innerWidth;this.h=window.innerHeight;
+    const quality=this.settings?.quality||'balanced',cap=({performance:[960,600],balanced:[1280,800],high:[3840,2400]})[quality];
+    // Preserve the character detail on dense displays without increasing the lower quality budgets.
+    const dpr=Math.min(devicePixelRatio||1,quality==='high'?2:1,cap[0]/this.w*(this.adaptiveScale||1),cap[1]/this.h*(this.adaptiveScale||1));
+    this.canvas.width=this.w*dpr;this.canvas.height=this.h*dpr;this.ctx.setTransform(dpr,0,0,dpr,0,0);this.zoom=this.w<650?.85:this.h<540?.85:1.12;this.needsDraw=true;
+  }
   iso(x,y){return {x:(x-y)*34,y:(x+y)*17};}
   screen(x,y,z=0){const p=this.iso(x,y);return{x:(p.x-this.camera.x)*this.zoom+(this.originX??this.w/2),y:(p.y-this.camera.y-z)*this.zoom+this.h*.53};}
   unproject(x,y,z=0){const a=(x-(this.originX??this.w/2))/this.zoom+this.camera.x,b=(y-this.h*.53)/this.zoom+this.camera.y+z;return{x:(a/34+b/17)/2,y:(b/17-a/34)/2};}
