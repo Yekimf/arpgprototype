@@ -18,21 +18,25 @@ const naturalArms={
   {upper:{from:[151,94],to:[137,135],mask:[[141,87],[163,88],[161,110],[152,133],[138,146],[125,136],[132,111]]},lower:{from:[137,135],to:[123,176],mask:[[127,127],[148,129],[146,148],[137,177],[117,182],[110,166]]}},
  ],
 };
+// The female sleeves have their own silhouette and elbow locations. Translating
+// male cutouts clips the outside of her upper arm and leaves holes at the cuff.
+const femaleNaturalArms={
+ front:[
+  {upper:{from:[138,91],to:[127,128],mask:[[133,69],[150,73],[158,94],[151,115],[141,129],[126,135],[116,125],[122,104],[128,83]]},lower:{from:[127,128],to:[107,174],mask:[[116,120],[141,126],[137,143],[119,174],[99,179],[96,168],[104,146],[109,133]]}},
+  {upper:{from:[229,92],to:[240,129],mask:[[214,74],[230,68],[239,81],[245,104],[253,121],[251,132],[233,137],[224,119],[219,100]]},lower:{from:[240,129],to:[259,174],mask:[[229,123],[251,121],[259,141],[269,171],[268,179],[249,181],[242,158],[234,143]]}},
+ ],
+ back:[
+  {upper:{from:[214,92],to:[222,130],mask:[[208,73],[223,68],[235,80],[239,99],[245,116],[247,129],[230,139],[217,123],[214,105]]},lower:{from:[222,130],to:[248,174],mask:[[212,122],[235,122],[244,142],[258,169],[256,180],[239,181],[229,161],[217,143]]}},
+  {upper:{from:[129,94],to:[114,131],mask:[[127,72],[143,79],[144,101],[135,119],[128,134],[110,140],[100,126],[107,107],[116,86]]},lower:{from:[114,131],to:[98,174],mask:[[102,123],[126,126],[124,145],[110,176],[93,180],[88,170],[94,148],[98,135]]}},
+ ],
+};
 function paintNaturalLimb(c,guard,{from,to,part,back,arm}){
- const source=naturalArms[back?'back':'front'][arm][part],femaleShift=guard.sex==='female'?(back?[-22,-20]:[-14,-10])[arm]:0,
-  a=[source.from[0]+femaleShift,source.from[1]],b=[source.to[0]+femaleShift,source.to[1]],
+ const source=(guard.sex==='female'?femaleNaturalArms:naturalArms)[back?'back':'front'][arm][part],a=source.from,b=source.to,
   sourceAngle=Math.atan2(b[1]-a[1],b[0]-a[0]),targetAngle=Math.atan2(to.y-from.y,to.x-from.x),
   sourceLength=Math.hypot(b[0]-a[0],b[1]-a[1]),targetLength=Math.hypot(to.x-from.x,to.y-from.y),
   scale=targetLength/sourceLength,image=guard.sex==='female'?guard.femaleArt:guard.art,cell=back?3:2,s=image.naturalWidth/4;
- if(guard.sex==='female'&&!back&&arm===0&&part==='upper'){
-  // The leather torso mask stops inside this sleeve. Keep the shoulder root
-  // from the same source painting stationary while the lower arm rotates.
-  c.save();c.translate(from.x-a[0],from.y-a[1]);c.beginPath();
-  for(const [i,[x,y]] of [[126,85],[161,88],[158,114],[142,128],[120,115]].entries())i?c.lineTo(x,y):c.moveTo(x,y);
-  c.closePath();c.clip();c.drawImage(image,cell%4*s,Math.floor(cell/4)*s,s,s,0,0,320,320);c.restore();
- }
  c.save();c.translate(from.x,from.y);c.rotate(targetAngle-sourceAngle);c.scale(scale,scale);c.translate(-a[0],-a[1]);
- c.beginPath();source.mask.forEach(([x,y],i)=>i?c.lineTo(x+femaleShift,y):c.moveTo(x+femaleShift,y));c.closePath();c.clip();
+ c.beginPath();source.mask.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.clip();
  c.drawImage(image,cell%4*s,Math.floor(cell/4)*s,s,s,0,0,320,320);c.restore();
 }
 function paintNaturalCuff(c,guard,{from,to,back,gloves}){

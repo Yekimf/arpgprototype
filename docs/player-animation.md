@@ -21,6 +21,11 @@ Equipment is not swapped between hands by a final character
 flip. Complete textured limb silhouettes join shoulder, elbow, wrist and palm. Bare,
 leather and steel hands overlap the sleeve at the wrist; source-space crops
 calibrate the painted texture rather than determine whether the limb exists.
+The female model has independently measured head, torso, cloak and leg masks.
+Her leather torso, sleeves and boots use the same unarmed source painting, so
+pieces from differently positioned armor paintings cannot cut into her silhouette.
+Female upper-arm and bracer cutouts follow their own source joints, and overlap
+at elbows; they are not translated male cutouts.
 Gloves follow the solved wrists; the complete shield follows the off-hand
 attachment; weapon paintings rotate about grips measured inside opaque handles.
 Two-handed grips are fitted inside
@@ -95,3 +100,8 @@ the rear elbow from flaring outward just to place a palm-sized arm endpoint.
 The browser depth check compares palm-only, palm-plus-weapon and fully wrapped
 renders. It requires both unchanged exposed handle pixels and pixels changed by
 overlapping fingers, so another opaque whole-hand stamp cannot pass.
+
+`tests/browser/female-continuity.spec.js` renders all eight female arm segments
+in isolation to check for transparent cuts, then flood-fills 120 complete poses
+to check that elbows, wrists, knees and ankles remain connected to the torso.
+It also checks independently measured shoulder, scarf and cloth landmarks.

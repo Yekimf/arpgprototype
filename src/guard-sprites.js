@@ -28,13 +28,13 @@ export class GuardSprites{
   // Every piece uses one projection. There is no final whole-character flip:
   // the right-hand weapon and left-hand shield retain their anatomical sides.
   const center=160;c.translate(center,0);c.scale(direction.profile,1);c.translate(-center,0);
-  this.sex=look.sex;const face=look.sex==='female'?FEMALE_GUARD_FACE[back?'back':'front']:FACE[back?'back':'front'],offset=back?1:0,body=({none:2,original:0,leather:4,chain:6,plate:8,robe:10})[look.armor]??0;
+  this.sex=look.sex;const face=look.sex==='female'?FEMALE_GUARD_FACE[back?'back':'front']:FACE[back?'back':'front'],offset=back?1:0,body=look.sex==='female'&&look.armor==='leather'?2:({none:2,original:0,leather:4,chain:6,plate:8,robe:10})[look.armor]??0;
   const pose=poseFrame(face,look,state,heading),armed=look.weapon!=='none',rig=solveEquipmentRig(face,look,pose,weaponBounds);
   const armLayer=(arm,part)=>{this.skin=look.setParts.armor;const hand=rig.hands[arm];paintLimb(c,this,{from:part==='upper'?hand.shoulder:hand.elbow,to:part==='upper'?hand.elbow:hand.wrist,part,look:look.armor,back,arm,gloves:part==='upper'?'none':look.gloves});};
   const handLayer=arm=>{this.skin=look.setParts.gloves;const hand=rig.hands[arm],held=hand.wrap?{...hand,grip:hand.wrap}:hand,options={hand:held,gloves:look.gloves,back,arm,closed:armed||state.action==='punch'};if(held.grip)paintGripFingers(c,this,options);else paintHand(c,this,options);};
   const palmLayer=arm=>{this.skin=look.setParts.gloves;const hand=rig.hands[arm],held=hand.wrap?{...hand,grip:hand.wrap}:hand;paintGripPalm(c,this,{hand:held,gloves:look.gloves,back});};
   const layers={
-   legs:()=>{const index=(look.boots==='steel'?0:look.boots==='leather'?4:2)+offset;this.skin=look.setParts.boots;
+   legs:()=>{const index=(look.boots==='steel'?0:look.boots==='leather'&&look.sex!=='female'?4:2)+offset;this.skin=look.setParts.boots;
     const walking=state.action==='walk'||Number.isInteger(state.locomotionFrame),cycle=state.action==='walk'?state.frame:state.locomotionFrame,phase=walking?cycle/WALK_FRAMES*Math.PI*2:0;
     const legs=face.legs.map((part,leg)=>({part,leg,step:walking?walkingLeg(phase,leg,face):null})).sort((a,b)=>(a.step?.heel.y??a.part.ankle[1]*S)-(b.step?.heel.y??b.part.ankle[1]*S));
     for(const {part,leg,step}of legs){
@@ -46,7 +46,7 @@ export class GuardSprites{
      c.save();c.translate(spread,0);if(step){const boot=face.legs[1];c.translate(step.heel.x,step.heel.y);c.scale(leg===0?-1:1,1);c.translate(-boot.ankle[0]*S,-boot.ankle[1]*S);this.clipTile(c,index,boot.foot);}else this.clipTile(c,index,part.foot);c.restore();
     }
    },
-   torso:()=>{const mask=look.sex==='female'?(back?FACE.femaleBack:FACE.femaleFront):(back&&rig.grip?face.bodyGrip:face.body);this.skin=null;this.clipTile(c,2+offset,mask);this.skin=look.setParts.armor;this.clipTile(c,body+offset,mask,face.shield);},
+   torso:()=>{const mask=look.sex==='female'?(back?FACE.femaleBack:FACE.femaleFront):(back&&rig.grip?face.bodyGrip:face.body);this.skin=null;this.clipTile(c,2+offset,mask);this.skin=look.setParts.armor;this.clipTile(c,body+offset,mask,look.sex==='female'&&body===2?null:face.shield);},
    head:()=>{this.skin=look.setParts.helm;const head=look.helm==='none'?2:look.helm==='hood'?14:look.helm==='greathelm'?12:0,[x,y,w,h]=face.head;c.save();c.beginPath();c.rect(x*S,y*S,w*S,h*S);c.clip();this.tile(c,head+offset);c.restore();},
    accessories:()=>this.accessories(c,look,back),
    primaryPalm:()=>palmLayer(0),offPalm:()=>palmLayer(1),primaryArm:()=>armLayer(0,'upper'),offArm:()=>armLayer(1,'upper'),primaryForearm:()=>armLayer(0,'lower'),offForearm:()=>armLayer(1,'lower'),primaryHand:()=>handLayer(0),offHand:()=>handLayer(1),

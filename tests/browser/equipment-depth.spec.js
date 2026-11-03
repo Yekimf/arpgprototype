@@ -35,7 +35,7 @@ test('rear bodies occlude held weapons while front grips and exposed blades rema
    const canvas=()=>{const image=document.createElement('canvas');image.width=frame.width;image.height=frame.height;const context=image.getContext('2d'),scale=frame.width/GUARD_FRAME.width;context.translate(32*scale,20*scale);context.scale(.4*scale,.4*scale);context.translate(160,0);context.scale(direction.profile,1);context.translate(-160,0);return {image,context};};
    const torso=canvas();guard.sex=sex;guard.skin=null;
    guard.clipTile(torso.context,back?3:2,torsoMask);
-   guard.skin=look.setParts.armor;guard.clipTile(torso.context,back?5:4,torsoMask,face.shield);guard.skin=null;
+   guard.skin=look.setParts.armor;guard.clipTile(torso.context,(sex==='female'?2:4)+(back?1:0),torsoMask,sex==='female'?null:face.shield);guard.skin=null;
    const body=pixels(torso.image),weapon=canvas();
    paintWeapon.call(guard,weapon.context,look.weapon,back,[rig.weapon.anchor.x/320,rig.weapon.anchor.y/320],look.weaponIcon,rig.weapon.angle,state.action);
    const item=pixels(weapon.image),width=frame.width,height=frame.height;

@@ -12,6 +12,12 @@ The root HTML embeds all code, styles and runtime art. It works offline. Use a d
 
 Editable male and female weapon-grip sprites are in the [sprite sheet ZIP](docs/downloads/weapon-grip-sheets.zip). It contains 32 transparent PNG sheets, the source character and weapon atlases, and a JSON map of every hand position. Each 192×176 cell covers one of 16 directions and the idle or eight attack frames. The PNGs are exports of the layered renderer, so they do not reproduce the supplied front/rear character paintings pixel for pixel. Edited cells need to be integrated into the game before they appear in play. Regenerate the export and comparison images with `node scripts/export-weapon-grip-sheets.mjs`.
 
+## Version 0.68.8 — Complete female body and limbs
+
+- Corrected female-specific head, torso, cloak, thigh, shin and boot masks. Shared male cutouts had removed sections of her shoulders and legs.
+- Female sleeves and bracers now use their own source measurements. Leather equipment uses a consistent female painting across torso, arms and boots, keeping the limbs connected during movement and attacks.
+- Added rendered continuity checks for eight arm segments and 120 full-body poses; refreshed the offline game and character sheets.
+
 ## Version 0.68.7 — Front/rear equipment depth and sharper rendering
 
 - Rear-facing bodies and cloaks now hide overlapping weapons and gripping hands. Front grips draw the sleeve and palm behind the handle, with curled fingers above it, for both male and female models.
