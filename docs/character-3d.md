@@ -1,8 +1,9 @@
 # 3D character prototype
 
-The `Character3D` stage in `src/character-3d.js` builds male and female guards from
-solid geometry. These are procedural prototype models, not imported production
-character assets or pixel matches to the character references.
+The `Character3D` stage in `src/character-3d.js` builds male and female guards with a continuous skinned anatomical body. The
+hm08 mesh and adult head morphs come from MakeHuman assets explicitly released
+as CC0. No MakeHuman application code is used. Equipment meshes, cloth and
+material maps are authored for this game.
 
 The orthographic camera uses the world's 2:1 ground projection. Facing is derived
 from the actual world vector with 64 sampled viewing angles; there is no final sprite flip. A transparent WebGL
@@ -37,3 +38,22 @@ equipment appearance data and animation input contract.
 `tests/browser/character-3d.spec.js` checks 384 combinations of sex, weapon,
 facing and action, actual supporting-hand registration, rendered front/rear
 occlusion, style switching/persistence and unavailable-WebGL fallback.
+
+## Gothic appearance and lighting
+
+`guard-anatomy.js` binds the prepared anatomical surface to 14 skin bones, fits
+it to the equipment rig, and keeps the head, hands, elbows and knees continuous.
+The adult head forms and generated frontal face albedo are baked by
+`scripts/build-guard-anatomy.py` (Python + Pillow) into the bundled geometry.
+Body triangles inside a closed cuirass are hidden to prevent garment penetration.
+
+`gothic-materials.js` supplies deterministic albedo, bump and roughness maps for
+skin, hair, mail, cloth, leather, wood and metal. The stage uses a restrained
+environment reflection, a shadow-casting directional light, hemisphere fill and
+a warm point light near braziers. Crypts use a cooler, dimmer lighting profile.
+Light direction and strength are quantized in cached pose keys. The ground
+shadow fades at the edge rather than ending at the receiving plane boundary.
+
+Source assets and CC0 notices are in `src/art/source`. The generated face atlas
+is a texture source, not a screenshot of the 3D model. Menus, terrain and NPCs
+keep their existing painted artwork.

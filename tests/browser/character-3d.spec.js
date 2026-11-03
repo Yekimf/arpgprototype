@@ -13,6 +13,8 @@ test('3D equipment stays on actual hand joints across male/female facings and at
    if(!frame)return {failures:['WebGL did not initialize'],checked};
    const model=renderer.current,hand=model.arms[base.look==='bow'?1:0].wrist.getWorldPosition(new Vector3()),anchor=model.weapon.getWorldPosition(new Vector3());
    const label=`${sex}/${base.id}/${JSON.stringify(facing)}/${action}`;
+   model.anatomy.mesh.computeBoundingBox();const bounds=model.anatomy.mesh.boundingBox;
+   if(!Number.isFinite(bounds.max.y)||bounds.min.y<-.15||bounds.max.y>2.1||bounds.max.x-bounds.min.x>1.6)failures.push([label,'anatomical skinning escaped the body bounds']);
    if(hand.distanceTo(anchor)>1e-6)failures.push([label,'weapon detached']);
    if(base.twoHanded&&base.look!=='bow'){
     const point=base.look==='crossbow'?new Vector3(0,.10,.19):new Vector3(0,base.look==='greatsword'?.13:.25,0);
@@ -61,16 +63,17 @@ test('real mesh depth hides rear weapons behind the body and keeps front weapons
  await page.goto('/');
  const failures=await page.evaluate(async()=>{
   const [{Character3D},{createPlayer},{BASES,weaponIconIndex}]=await Promise.all([import('/src/character-3d.js'),import('/src/game.js'),import('/src/itemization.js')]);
-  const renderer=new Character3D(),canvas=document.createElement('canvas');canvas.width=384;canvas.height=352;const c=canvas.getContext('2d'),failures=[];
+  const renderer=new Character3D();renderer.init();renderer.renderer.shadowMap.enabled=false;renderer.floor.visible=false;const canvas=document.createElement('canvas');canvas.width=384;canvas.height=352;const c=canvas.getContext('2d'),failures=[];
   const pixels=game=>{renderer.stamp=null;const frame=renderer.render(game);c.clearRect(0,0,384,352);c.drawImage(frame.canvas,0,0);return c.getImageData(0,0,384,352).data;};
   for(const sex of ['male','female'])for(const rear of [false,true]){
    const player=createPlayer({sex});player.level=100;player.attributes={might:999,dexterity:999,vitality:999,will:999};player.equipment.shield=null;player.equipment.helm=null;
    const base=BASES.find(b=>b.id==='greatsword');player.equipment.weapon={...base,weaponIcon:weaponIconIndex(base),rarity:'normal',identified:true};
    const game={player,facing:rear?{x:-1,y:-1}:{x:1,y:1},moving:false,attackAnim:0},full=pixels(game),model=renderer.current;
    model.weapon.visible=false;const body=pixels(game);model.weapon.visible=true;
+   const visibility=new Map();model.root.traverse(o=>visibility.set(o,o.visible));
    const itemMeshes=new Set();model.weapon.traverse(o=>{if(o.isMesh)itemMeshes.add(o);});
    model.root.traverse(o=>{if(o.isMesh&&!itemMeshes.has(o))o.visible=false;});const item=pixels(game);
-   model.root.traverse(o=>o.visible=true);
+   model.root.traverse(o=>o.visible=visibility.get(o));
    let overlap=0,changes=0;
    for(let y=2;y<350;y++)for(let x=2;x<382;x++){
     const i=(y*384+x)*4;if(item[i+3]<220)continue;
@@ -82,4 +85,21 @@ test('real mesh depth hides rear weapons behind the body and keeps front weapons
   renderer.dispose();return failures;
  });
  expect(failures).toEqual([]);
+});
+
+test('daylight, crypt and nearby firelight produce distinct shaded renders',async({page})=>{
+ await page.goto('/');
+ const result=await page.evaluate(async()=>{
+  const [{Character3D},{createPlayer}]=await Promise.all([import('/src/character-3d.js'),import('/src/game.js')]);
+  const r=new Character3D(),p=createPlayer();p.x=p.y=0;
+  const canvas=document.createElement('canvas');canvas.width=384;canvas.height=352;const c=canvas.getContext('2d'),hashes=[],keys=[];
+  for(const dungeon of [{outdoor:true,props:[]},{outdoor:false,props:[]},{outdoor:false,props:[{type:'brazier',x:.8,y:.8}]}]){
+   const frame=r.render({player:p,facing:{x:1,y:1},moving:false,attackAnim:0,dungeon});c.clearRect(0,0,384,352);c.drawImage(frame.canvas,0,0);let hash=2166136261;
+   for(const value of c.getImageData(0,0,384,352).data)hash=Math.imul(hash^value,16777619);
+   hashes.push(hash>>>0);keys.push(frame.info.lighting);
+  }
+  const shadows=r.renderer.shadowMap.enabled&&r.keyLight.castShadow&&r.current.anatomy.mesh.receiveShadow;
+  r.dispose();return {hashes,keys,shadows};
+ });
+ expect(new Set(result.hashes).size).toBe(3);expect(new Set(result.keys).size).toBe(3);expect(result.shadows).toBe(true);
 });

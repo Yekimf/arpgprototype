@@ -12,6 +12,13 @@ The root HTML embeds all code, styles and runtime art. It works offline. Use a d
 
 Editable painted male and female weapon-grip sprites are in the [sprite sheet ZIP](docs/downloads/weapon-grip-sheets.zip). It contains 32 transparent PNG sheets, the source character and weapon atlases, and a JSON map of every hand position. Each 192×176 cell covers one of 16 directions and the idle or eight attack frames. The PNGs are exports of the layered renderer, so they do not reproduce the supplied front/rear character paintings pixel for pixel. Edited cells need to be integrated into the game before they appear in play. Regenerate the export and comparison images with `node scripts/export-weapon-grip-sheets.mjs`.
 
+## Version 0.70.0 — Anatomical guards and gothic materials
+
+- Replaced the primitive body with a continuous skinned anatomical mesh and authored adult male/female head forms. Rebuilt the fitted armor with curved shoulder plates, overlapping tassets, straps, buckles, boots and folded cloth; hands now wrap around the handle across the palm.
+- Added baked weathered face color, worn metal/leather, woven cloth, chainmail and hair material maps. Forged blades have a diamond bevel rather than a flat wooden-looking plank.
+- Added self-shadowing, softened contact shadows, subdued environment reflections, cool crypt illumination and nearby brazier/firelight. Runtime pose caching includes the lighting state.
+- Refreshed the offline game and the male/female equipment galleries. Anatomy assets are CC0; their source notices, adult morphs and the reproducible build script are included.
+
 ## Version 0.69.0 — Playable 3D character prototype
 
 - Male and female player characters now have a switchable 3D prototype with jointed limbs, geometric equipment, 64 viewing angles and a fixed orthographic camera. Select **Options → Character model → 3D prototype** or **Painted sprites**; the choice is saved. The prototype is selected by default.

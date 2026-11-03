@@ -9,7 +9,7 @@ try{
  const page=await browser.newPage();await page.goto(`http://127.0.0.1:${server.httpServer.address().port}`);
  const previews=await page.evaluate(async()=>{
   const [{Character3D},{createPlayer},{BASES,weaponIconIndex}]=await Promise.all([import('/src/character-3d.js'),import('/src/game.js'),import('/src/itemization.js')]);
-  const renderer=new Character3D(),previews={};
+  const renderer=new Character3D(),previews={};renderer.init();renderer.floor.visible=false;
   for(const sex of ['male','female']){
    const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=900;const c=canvas.getContext('2d');c.fillStyle='#e4e3df';c.fillRect(0,0,1280,900);
    for(const base of BASES.filter(b=>b.slot==='weapon'))for(const back of [false,true]){
