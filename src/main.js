@@ -676,7 +676,7 @@ $('modal').addEventListener('pointermove',e=>{if(!atlasDrag)return;const {svg,x,
 for(const type of ['pointerup','pointercancel'])$('modal').addEventListener(type,()=>{atlasDrag=null;setTimeout(()=>game.atlasDragged=false,0);});
 $('modal').addEventListener('wheel',e=>{const svg=e.target.closest('#passive-atlas');if(!svg)return;e.preventDefault();const v=zoomAtlas(game,e.deltaY<0?'in':'out');svg.setAttribute('viewBox',`${v.x} ${v.y} ${v.w} ${v.h||v.w*2/3}`);},{passive:false});
 $('modal').addEventListener('keydown',e=>{const node=e.target.closest('[data-passive-detail]');if(node&&['Enter',' '].includes(e.key)){e.preventDefault();e.stopPropagation();node.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
-$('modal').addEventListener('input',event=>{const field=event.target.closest('[data-option]');if(!field)return;settings[field.dataset.option]=field.type==='checkbox'?field.checked:field.tagName==='SELECT'&&['quality','menuFont'].includes(field.dataset.option)?field.value:Number(field.value);const output=field.closest('label')?.querySelector('output');if(output)output.textContent=field.value+'%';applySettings();});
+$('modal').addEventListener('input',event=>{const field=event.target.closest('[data-option]');if(!field)return;settings[field.dataset.option]=field.type==='checkbox'?field.checked:field.tagName==='SELECT'&&['quality','menuFont','characterModel'].includes(field.dataset.option)?field.value:Number(field.value);const output=field.closest('label')?.querySelector('output');if(output)output.textContent=field.value+'%';applySettings();});
 $('modal').addEventListener('change',event=>{
   townUI.handleChange(event);
 });

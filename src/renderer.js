@@ -26,6 +26,7 @@ import {combatEffect,combatProjectile} from './combat-vfx.js';
 import forestSizes from './art/forest-life-sizes.json';
 import {passivePosition} from './farmland.js';
 import {WORLD_FOOT_OFFSETS} from './world-bounds.js';
+import {Character3D} from './character-3d.js';
 import {GuardSprites} from './guard-sprites.js';
 import {pyreStats} from './devotion.js';
 import {clamp, distance} from './game.js';
@@ -40,7 +41,7 @@ export class Renderer {
     this.w=0;this.h=0;this.camera={x:0,y:0};this.time=0;this.zoom=1;
     this.granaryArt=new Image();this.granaryArt.src=granaryProps;this.granaryGround=new Image();this.granaryGround.src=granaryGround;this.bossArt=new BossArt();this.skillArt=new PaintedSkills();this.deaths=new DeathSprites();this.enemySprites=new EnemySprites();this.columnArt=new Image();this.columnArt.src=STONE_COLUMN_ART;this.chickenArt=new Image();this.chickenArt.src=CHICKEN_BREEDS_ART;this.stashArt=new Image();this.stashArt.src=STASH_CHEST_ART;this.fountainArt=new Image();this.fountainArt.src=WAYPOINT_FOUNTAIN_ART;this.forestGroundArt=new Image();this.forestGroundArt.src=FOREST_GROUND_ART;this.forestArt=new Image();this.forestArt.src=FOREST_LIFE_ART;this.worldArt=new Image();this.worldArt.src=WORLD_ART;this.itemArt=new Image();this.itemArt.src=ITEM_ART;this.farmArt=new Image();this.farmArt.src=FARM_ART;
     this.innerGateArt=new Image();this.innerGateArt.src=MARCHGATE_INNER_ART;this.gateArt=new Image();this.gateArt.src=MARCHGATE_ART;this.campaignArt=new Image();this.campaignArt.src=CAMPAIGN_ART;this.heroFrame={row:0,column:0,action:'idle'};
-    this.remainsArt=new WeakMap();this.corpseArt=new Map();this.stainArt=new Map();this.contactShadows=new Map();this.artKeys=new WeakMap();this.artSerial=0;this.guard=new GuardSprites();this.groundCache=new Map();this.glowCache=new Map();this.wallCache=new Map();this.spriteCache=new Map();this.tileCache=new Map();this.artLoaded=false;
+    this.remainsArt=new WeakMap();this.corpseArt=new Map();this.stainArt=new Map();this.contactShadows=new Map();this.artKeys=new WeakMap();this.artSerial=0;this.guard=new GuardSprites();this.character3d=new Character3D();this.groundCache=new Map();this.glowCache=new Map();this.wallCache=new Map();this.spriteCache=new Map();this.tileCache=new Map();this.artLoaded=false;
     for(const art of [this.granaryArt,this.granaryGround,...this.bossArt.images,...this.skillArt.images,...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons])art.addEventListener('load',()=>{this.artLoaded=[this.granaryArt,this.granaryGround,...this.bossArt.images,...this.skillArt.images,...this.deaths.images,...this.enemySprites.images,this.columnArt,this.chickenArt,this.stashArt,this.fountainArt,this.forestGroundArt,this.forestArt,this.worldArt,this.itemArt,this.farmArt,this.gateArt,this.innerGateArt,this.campaignArt,this.guard.setArt,this.guard.art,this.guard.items,this.guard.original,this.guard.weapons].every(i=>i.complete&&i.naturalWidth>0);this.needsDraw=true;});
     this.resize();window.addEventListener('resize',()=>this.resize());
   }
@@ -234,7 +235,7 @@ export class Renderer {
       c.save();c.translate(v.x,v.y);
       if(o.type==='falling-body')this.drawCorpse(o.corpse,game);
       else if(o.type==='hero')this.hero(game);
-      else if(o.type==='ally'){this.ellipse(0,2,15,7,'#020a07a0');this.guard.draw(c,{...game,player:o.peer,moving:o.moving,walkPhase:o.walkPhase,facing:o.facing,actionFacing:o.actionFacing||o.facing,animationMode:o.animationMode,lastMove:o.facing,attackAnim:o.attackAnim,attackDuration:o.attackDuration,dodgeTime:o.dodgeTime});if(o.pyre)this.fireField(0,0,2.7,9);c.fillStyle=o.party&&o.party===game.lanParty?'#b8cf9a':'#a7bfd4';c.font='12px Georgia';c.textAlign='center';c.fillText(o.name,0,-111);}
+      else if(o.type==='ally'){this.ellipse(0,2,15,7,'#020a07a0');this.drawCharacter(c,{...game,player:o.peer,moving:o.moving,walkPhase:o.walkPhase,facing:o.facing,actionFacing:o.actionFacing||o.facing,animationMode:o.animationMode,lastMove:o.facing,attackAnim:o.attackAnim,attackDuration:o.attackDuration,dodgeTime:o.dodgeTime});if(o.pyre)this.fireField(0,0,2.7,9);c.fillStyle=o.party&&o.party===game.lanParty?'#b8cf9a':'#a7bfd4';c.font='12px Georgia';c.textAlign='center';c.fillText(o.name,0,-111);}
       else if(o.type==='enemy'){this.enemy(o.enemy,game);if(o.enemy.shock>0){this.line([[-8,-30],[-3,-37],[1,-28],[7,-33]],'#c3b897aa',1);}if(o.enemy.bleed>0)this.ellipse(3,1,7,3,'#622e2388');}
       else if(o.type==='waypoint')this.waypoint(o,game);
       else if(o.type==='chicken')this.chicken(o,game);
@@ -427,7 +428,7 @@ export class Renderer {
     if(!art){
       art=document.createElement('canvas');art.width=320;art.height=224;const context=art.getContext('2d');context.translate(160,184);
       // Capture the actual painted body, including the player's equipped gear.
-      const previous=this.ctx;try{this.ctx=context;if(corpse.player)this.guard.draw(context,{...game,player:corpse.body,moving:false,attackAnim:0,dodgeTime:0});else this.enemy(corpse.body,game,true);}finally{this.ctx=previous;}
+      const previous=this.ctx;try{this.ctx=context;if(corpse.player)this.drawCharacter(context,{...game,player:corpse.body,moving:false,attackAnim:0,dodgeTime:0});else this.enemy(corpse.body,game,true);}finally{this.ctx=previous;}
       if(corpse.player)this.remainsArt.set(corpse,art);else{this.corpseArt.set(key,art);if(this.corpseArt.size>80)this.corpseArt.delete(this.corpseArt.keys().next().value);}
     }
     const t=this.settings?.reducedMotion?1:Math.min(1,corpse.age/corpse.duration),fall=Math.max(0,(t-.12)/.88),ease=fall*fall*(3-2*fall),side=corpse.aim.x>=0?1:-1;
@@ -440,10 +441,16 @@ export class Renderer {
     }
     c.drawImage(art,-160,-184);c.restore();
   }
+  drawCharacter(context,game){
+    if(this.settings?.characterModel==='3d'){
+      const frame=this.character3d.draw(context,game);if(frame)return frame;
+    }
+    return this.guard.draw(context,game);
+  }
   hero(game){
     const c=this.ctx,{player:p}=game,t=this.time,bob=game.moving?Math.sin(t*12)*1.6:Math.sin(t*2)*.5;
     this.ellipse(0,2,15,7,'#020a07a0');
-    const painted=this.guard.draw(c,game);if(painted){this.heroFrame=painted;return;}
+    const painted=this.drawCharacter(c,game);if(painted){this.heroFrame=painted;return;}
     if(game.dodgeTime>0){this.light(0,-10,45,'#d4dbab33');c.globalAlpha=.6;}
     if(game.attackAnim>0){c.save();c.globalAlpha=game.attackAnim*2;this.ellipse(5,-10,35,15,'#d9c79522');c.restore();}
     c.translate(0,bob);

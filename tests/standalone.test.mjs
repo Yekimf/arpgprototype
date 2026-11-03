@@ -27,7 +27,12 @@ test('standalone title, creation, prologue, inventory, maps and combat work offl
   // before random enemy packs: clicking a moving enemy correctly attacks it,
   // which would turn this storage/offline smoke check into a combat-route race. A synthetic
   // axis-only walker cuts the diagonal corners of an A* route into obstacles.
-  for(const point of path){const here=(await snapshot()).position;if(Math.hypot(here.x-point.x,here.y-point.y)<.2)continue;const screen=await page.evaluate(p=>window.__reliquary.project(p.x,p.y),point);if((await snapshot()).cursor.captured)await page.keyboard.press('Control+Escape');await page.mouse.click(screen.x,screen.y);try{await page.waitForFunction(p=>{const at=window.__reliquary.snapshot().position;return Math.hypot(at.x-p.x,at.y-p.y)<.3;},point,{timeout:5000});}catch(error){console.log('offline route failure',{point,screen,position:(await snapshot()).position});await page.screenshot({path:'/tmp/offline-collision-route.png'});throw error;}}
+  for(const point of path){const here=(await snapshot()).position;if(Math.hypot(here.x-point.x,here.y-point.y)<.2)continue;
+   // Project the next click after movement/camera settling. Projecting while
+   // the previous step is still moving can click a nearby sign instead of ground,
+   // especially when WebGL runs through the browser's software renderer.
+   await page.evaluate(async()=>{let previous=null,steady=0;const start=performance.now();while(performance.now()-start<1400){await new Promise(requestAnimationFrame);const s=window.__reliquary.snapshot(),at=window.__reliquary.project(s.position.x,s.position.y);steady=!s.moving&&previous&&Math.hypot(at.x-previous.x,at.y-previous.y)<.15?steady+1:0;previous=at;if(steady>=3)break;}});
+   const screen=await page.evaluate(p=>window.__reliquary.project(p.x,p.y),point);if((await snapshot()).cursor.captured)await page.keyboard.press('Control+Escape');await page.mouse.click(screen.x,screen.y);try{await page.waitForFunction(p=>{const at=window.__reliquary.snapshot().position;return Math.hypot(at.x-p.x,at.y-p.y)<.3;},point,{timeout:5000});}catch(error){console.log('offline route failure',{point,screen,position:(await snapshot()).position});await page.screenshot({path:'/tmp/offline-collision-route.png'});throw error;}}
   assert.equal((await snapshot()).zone,'wilderness');assert.equal((await snapshot()).areaSeed,current.areaSeed);
   await page.waitForTimeout(700);if((await snapshot()).panel)await page.locator('[data-action="close"]').last().click();
   await page.keyboard.down('Shift');await page.mouse.click(700,430);await page.keyboard.up('Shift');assert.ok((await snapshot()).attackAnim>0);

@@ -10,7 +10,15 @@ An original isometric ARPG with single-player and optional LAN co-op for **deskt
 
 The root HTML embeds all code, styles and runtime art. It works offline. Use a desktop viewport of at least 1024×720; 1280×720 or larger is recommended. Touch controls, phone layouts and the mobile test project have been removed. The HTTPS browser game is available at https://yekimf.github.io/arpgprototype/ after deployment. An optional local server hosts classic LAN multiplayer. Browser-hosted WebRTC multiplayer is also included and needs the one-time friends-service setup below; solo play still works directly from the HTML file.
 
-Editable male and female weapon-grip sprites are in the [sprite sheet ZIP](docs/downloads/weapon-grip-sheets.zip). It contains 32 transparent PNG sheets, the source character and weapon atlases, and a JSON map of every hand position. Each 192×176 cell covers one of 16 directions and the idle or eight attack frames. The PNGs are exports of the layered renderer, so they do not reproduce the supplied front/rear character paintings pixel for pixel. Edited cells need to be integrated into the game before they appear in play. Regenerate the export and comparison images with `node scripts/export-weapon-grip-sheets.mjs`.
+Editable painted male and female weapon-grip sprites are in the [sprite sheet ZIP](docs/downloads/weapon-grip-sheets.zip). It contains 32 transparent PNG sheets, the source character and weapon atlases, and a JSON map of every hand position. Each 192×176 cell covers one of 16 directions and the idle or eight attack frames. The PNGs are exports of the layered renderer, so they do not reproduce the supplied front/rear character paintings pixel for pixel. Edited cells need to be integrated into the game before they appear in play. Regenerate the export and comparison images with `node scripts/export-weapon-grip-sheets.mjs`.
+
+## Version 0.69.0 — Playable 3D character prototype
+
+- Male and female player characters now have a switchable 3D prototype with jointed limbs, geometric equipment, 64 viewing angles and a fixed orthographic camera. Select **Options → Character model → 3D prototype** or **Painted sprites**; the choice is saved. The prototype is selected by default.
+- All 16 weapon types attach to hand joints. Two-handed poses solve both arms onto the weapon, while mesh depth handles front/rear occlusion. Armor, headgear, shields, boots and gloves change with equipped appearance. Local and co-op characters use the selected style.
+- The environment, portraits and menu previews retain their painted art. The 3D bodies are procedural prototype geometry, not finished replacements for the reference paintings. Walking, attacks and casting use procedural poses; player remains keep the existing corpse presentation.
+- A shared WebGL stage is composited into the existing world depth. It batches geometry, caches up to 44 rendered poses, retains at most four appearances and falls back to painted characters when WebGL is unavailable. Three.js is bundled in the offline game.
+- See actual front/rear renders: [male](docs/previews/character-3d-male.png), [female](docs/previews/character-3d-female.png). Regenerate with `node scripts/export-3d-character-preview.mjs`.
 
 ## Version 0.68.8 — Complete female body and limbs
 

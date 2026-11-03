@@ -5,6 +5,9 @@ import path from 'node:path';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const dist=path.join(root,'dist');
 let html=await readFile(path.join(dist,'index.html'),'utf8');
+const notices=await readFile(path.join(root,'THIRD_PARTY_NOTICES.txt'),'utf8');
+await writeFile(path.join(dist,'THIRD_PARTY_NOTICES.txt'),notices);
+html=html.replace('</body>',()=>`<!-- Third-party notices\n${notices}\n--></body>`);
 const script=html.match(/<script\b[^>]*\bsrc="([^"]+)"[^>]*><\/script>/);
 if(!script)throw new Error('Production JavaScript entry not found. Run the Vite build first.');
 const assetPath=url=>{
